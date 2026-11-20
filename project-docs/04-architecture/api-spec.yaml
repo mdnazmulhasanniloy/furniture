@@ -19,10 +19,29 @@ tags:
   - name: Notifications
   - name: Admin
   - name: Internal
+  - name: System
 security:
   - bearerAuth: []
 
 paths:
+  # ---------------- SYSTEM ----------------
+  /health:
+    get:
+      tags: [System]
+      summary: Liveness check (served at the host root, not under /api/v1)
+      servers:
+        - url: http://localhost:4100
+      security: []
+      responses:
+        '200':
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, const: ok }
   # ---------------- AUTH ----------------
   /auth/register:
     post:
@@ -932,7 +951,9 @@ components:
     CsrfToken: { name: X-CSRF-Token, in: header, required: true, schema: { type: string }, description: Token from GET /auth/csrf }
   responses:
     Error:
-      description: Error
+      description: Error (always carries `requestId`, also sent as response header `x-request-id`)
+      headers:
+        x-request-id: { schema: { type: string } }
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
     Message:
       description: OK
@@ -1001,7 +1022,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA] }
+        code: { type: string, examples: [VALIDATION_ERROR, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA] }
         message: { type: string }
         details: {}
         requestId: { type: string }

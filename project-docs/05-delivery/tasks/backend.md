@@ -3,7 +3,7 @@
 Status: `todo` · `in-progress` · `review` · `done` · `blocked`. Docs paths are relative to `project-docs/`.
 Done = every listed acceptance criterion of the linked requirement has a passing test (vitest + supertest) and `api-spec.yaml` matches the implementation.
 
-### T-001 Bootstrap backend · todo
+### T-001 Bootstrap backend · done
 - Req: NFR-01, NFR-04 · Depends: — 
 - Docs: `04-architecture/system-architecture.md`, `04-architecture/infra-deployment.md`
 - Done: Express 5 + TS strict, app exported for Vercel (`api/index.ts`, ADR-012); zod-validated env covering every key in `backend/.env.example` (ADR-011: production requires `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_PEPPER`, `CSRF_SECRET` ≥ 32 chars and `CORS_ALLOWED_ORIGINS`; empty secrets outside production are generated at start-up; `AUTH_COOKIE_SECURE` empty = true in production); dependencies switched per ADR-010/011 (remove `bcryptjs`, `cloudinary`, `multer`; add `argon2`, `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`, `@sentry/node`, `mongodb`, `@socket.io/mongo-adapter`, `@socket.io/mongo-emitter`, `@vercel/functions`); `PrismaClient` as a `globalThis` singleton; `TRUST_PROXY` parsed (`1` in production); `OTP_TTL_SECONDS`, `SOCKET_ADAPTER_COLLECTION`, `SOCKET_ADAPTER_TTL_SECONDS` and `CRON_SECRET` validated; `prisma generate` in `postinstall`; port 4100; Sentry initialised only when `SENTRY_DSN` is set; pino logger with request id; helmet, CORS allow-list, cookie-parser; central error handler returning `Error` schema; `GET /health` → 200; vitest + supertest set up with `mongodb-memory-server` replica set; ESLint + Prettier; `npm run typecheck` clean.

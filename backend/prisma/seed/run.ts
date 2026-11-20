@@ -2,10 +2,15 @@ import argon2 from 'argon2';
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { CATEGORIES, DELIVERY_CITIES, DEMO_PRODUCTS, HOME_SECTIONS, PAGES } from './data.js';
 
+export const PLACEHOLDER_CONTACT_EMAIL = 'placeholder@example.com';
+export const PLACEHOLDER_CONTACT_PHONE = '+966500000000';
+
 export interface SeedOptions {
   nodeEnv: string;
   demo: boolean;
   admin: { email?: string; password?: string; firstName?: string; lastName?: string };
+  /** Optional public contact details (SEED_CONTACT_EMAIL / SEED_CONTACT_PHONE). Placeholders are used when missing. */
+  contact?: { email?: string; phone?: string };
   argon2?: { memoryCost: number; timeCost: number; parallelism: number };
   log?: (msg: string) => void;
 }
@@ -29,7 +34,9 @@ export async function runSeed(prisma: PrismaClient, opts: SeedOptions): Promise<
     throw new Error('Refusing to seed demo data when NODE_ENV=production');
   }
   const a = opts.admin;
-  const missing = (['email', 'password', 'firstName', 'lastName'] as const).filter((k) => !a[k]?.trim());
+  const missing = (['email', 'password', 'firstName', 'lastName'] as const).filter(
+    (k) => !a[k]?.trim(),
+  );
   if (missing.length) {
     const names = missing.map((k) => `ADMIN_${k.replace(/[A-Z]/g, (c) => `_${c}`).toUpperCase()}`);
     throw new Error(`Missing admin seed settings: ${names.join(', ')}`);
@@ -40,7 +47,14 @@ export async function runSeed(prisma: PrismaClient, opts: SeedOptions): Promise<
   }
   const email = (a.email as string).trim().toLowerCase();
 
-  const result: SeedResult = { admin: false, categories: 0, siteSetting: false, homeSections: 0, pages: 0, products: 0 };
+  const result: SeedResult = {
+    admin: false,
+    categories: 0,
+    siteSetting: false,
+    homeSections: 0,
+    pages: 0,
+    products: 0,
+  };
 
   // Admin: only when the email is new. An existing user keeps its password and names.
   if (!(await prisma.user.findUnique({ where: { email } }))) {
@@ -71,12 +85,19 @@ export async function runSeed(prisma: PrismaClient, opts: SeedOptions): Promise<
 
   // SiteSetting singleton: untouched when it exists (VAT, fees and cities are admin-managed).
   if (!(await prisma.siteSetting.findUnique({ where: { key: 'default' } }))) {
+    const contactEmail = opts.contact?.email?.trim() || PLACEHOLDER_CONTACT_EMAIL;
+    const contactPhone = opts.contact?.phone?.trim() || PLACEHOLDER_CONTACT_PHONE;
+    if (contactEmail === PLACEHOLDER_CONTACT_EMAIL || contactPhone === PLACEHOLDER_CONTACT_PHONE) {
+      log(
+        'WARNING: SiteSetting contactEmail/contactPhone use placeholder values (set SEED_CONTACT_EMAIL and SEED_CONTACT_PHONE before seeding, or change them from the admin dashboard before launch).',
+      );
+    }
     await prisma.siteSetting.create({
       data: {
         key: 'default',
         storeName: { en: 'Furnixa', ar: 'فرنيكسا' },
-        contactEmail: 'info@furnixa.example',
-        contactPhone: '+966500000000',
+        contactEmail,
+        contactPhone,
         deliveryFee: 0,
         freeDeliveryThreshold: null,
         vat: { vatRate: 0, applyToDelivery: true, pricesIncludeVat: true },
@@ -115,7 +136,9 @@ export async function runSeed(prisma: PrismaClient, opts: SeedOptions): Promise<
   }
 
   if (opts.demo) {
-    log('Demo seed: products are created without images (images: []). Clients must show a placeholder.');
+    log(
+      'Demo seed: products are created without images (images: []). Clients must show a placeholder.',
+    );
     for (const p of DEMO_PRODUCTS) {
       if (await prisma.product.findUnique({ where: { slug: p.slug } })) continue;
       const category = await prisma.category.findUnique({ where: { slug: p.category } });
@@ -128,7 +151,9 @@ export async function runSeed(prisma: PrismaClient, opts: SeedOptions): Promise<
           type: p.type,
           condition: p.condition,
           conditionNotes:
-            p.type === 'RESALE' ? { en: 'Sample pre-owned item.', ar: 'قطعة مستعملة للعرض.' } : undefined,
+            p.type === 'RESALE'
+              ? { en: 'Sample pre-owned item.', ar: 'قطعة مستعملة للعرض.' }
+              : undefined,
           price: p.price,
           stock: p.stock,
           isFeatured: p.isFeatured ?? false,

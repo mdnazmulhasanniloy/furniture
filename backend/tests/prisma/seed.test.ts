@@ -25,6 +25,7 @@ async function wipe() {
     prisma.siteSetting.deleteMany(),
     prisma.homeSection.deleteMany(),
     prisma.page.deleteMany(),
+    prisma.rateLimit.deleteMany(),
   ]);
 }
 
@@ -41,15 +42,59 @@ afterAll(async () => {
 });
 
 describe('seed (T-002)', () => {
-  it('NFR-05 · prisma db push creates unique indexes on the replica set', async () => {
-    await prisma.category.create({ data: { slug: 'dup', name: { en: 'a', ar: 'ا' } } });
-    await expect(prisma.category.create({ data: { slug: 'dup', name: { en: 'b', ar: 'ب' } } })).rejects.toThrow();
-    await prisma.user.create({
-      data: { email: 'x@x.com', passwordHash: 'h', firstName: 'a', lastName: 'b' },
+  it('NFR-05 · prisma db push creates unique indexes (User.email, Category.slug, Product.slug, SiteSetting.key, RateLimit.key)', async () => {
+    const name = { en: 'a', ar: 'ا' };
+    const cat = await prisma.category.create({ data: { slug: 'dup', name } });
+    const user = { email: 'x@x.com', passwordHash: 'h', firstName: 'a', lastName: 'b' };
+    const product = {
+      slug: 'dup-product',
+      title: name,
+      description: name,
+      price: 1000,
+      type: 'NEW' as const,
+      condition: 'NEW' as const,
+      categoryId: cat.id,
+    };
+    const setting = {
+      key: 'dup-key',
+      storeName: name,
+      contactEmail: 'a@b.com',
+      contactPhone: '+966500000000',
+      vat: { vatRate: 0, applyToDelivery: true, pricesIncludeVat: true },
+    };
+    const rate = { key: 'rl:login:1.1.1.1', hits: 1, resetAt: new Date(Date.now() + 60_000) };
+
+    await prisma.user.create({ data: user });
+    await prisma.product.create({ data: product });
+    await prisma.siteSetting.create({ data: setting });
+    await prisma.rateLimit.create({ data: rate });
+
+    await expect(prisma.category.create({ data: { slug: 'dup', name } })).rejects.toThrow();
+    await expect(prisma.user.create({ data: user })).rejects.toThrow();
+    await expect(prisma.product.create({ data: product })).rejects.toThrow();
+    await expect(prisma.siteSetting.create({ data: setting })).rejects.toThrow();
+    await expect(prisma.rateLimit.create({ data: rate })).rejects.toThrow();
+    await prisma.rateLimit.deleteMany();
+  });
+
+  it('NFR-05 · seeded contact details come from SEED_CONTACT_* options', async () => {
+    const logs: string[] = [];
+    await runSeed(prisma, {
+      ...base,
+      contact: { email: 'hello@shop.sa', phone: '+966555555555' },
+      log: (m) => logs.push(m),
     });
-    await expect(
-      prisma.user.create({ data: { email: 'x@x.com', passwordHash: 'h', firstName: 'a', lastName: 'b' } }),
-    ).rejects.toThrow();
+    const s = (await prisma.siteSetting.findUnique({ where: { key: 'default' } }))!;
+    expect([s.contactEmail, s.contactPhone]).toEqual(['hello@shop.sa', '+966555555555']);
+    expect(logs.some((m) => m.includes('WARNING'))).toBe(false);
+  });
+
+  it('NFR-05 · missing contact details fall back to placeholders and log a warning', async () => {
+    const logs: string[] = [];
+    await runSeed(prisma, { ...base, log: (m) => logs.push(m) });
+    const s = (await prisma.siteSetting.findUnique({ where: { key: 'default' } }))!;
+    expect([s.contactEmail, s.contactPhone]).toEqual(['placeholder@example.com', '+966500000000']);
+    expect(logs.some((m) => m.includes('WARNING') && m.includes('admin dashboard'))).toBe(true);
   });
 
   it('NFR-05 · seed creates exactly 1 admin from env with an argon2id hash', async () => {
@@ -86,9 +131,14 @@ describe('seed (T-002)', () => {
   it('NFR-05 · seed creates the 6 active delivery cities with unique codes', async () => {
     await runSeed(prisma, base);
     const s = (await prisma.siteSetting.findFirst())!;
-    expect(s.deliveryCities.map((c) => c.code).sort()).toEqual(
-      ['dammam', 'jeddah', 'khobar', 'mecca', 'medina', 'riyadh'],
-    );
+    expect(s.deliveryCities.map((c) => c.code).sort()).toEqual([
+      'dammam',
+      'jeddah',
+      'khobar',
+      'mecca',
+      'medina',
+      'riyadh',
+    ]);
     expect(s.deliveryCities.every((c) => c.isActive && c.deliveryFee === null)).toBe(true);
   });
 
@@ -101,8 +151,15 @@ describe('seed (T-002)', () => {
   it('NFR-05 · seed creates 5 pages with en and ar; terms and privacy are unpublished placeholders', async () => {
     await runSeed(prisma, base);
     const pages = await prisma.page.findMany();
-    expect(pages.map((p) => p.slug).sort()).toEqual(['about', 'contact', 'faq', 'privacy', 'terms']);
-    for (const p of pages) expect(p.content.en && p.content.ar && p.title.en && p.title.ar).toBeTruthy();
+    expect(pages.map((p) => p.slug).sort()).toEqual([
+      'about',
+      'contact',
+      'faq',
+      'privacy',
+      'terms',
+    ]);
+    for (const p of pages)
+      expect(p.content.en && p.content.ar && p.title.en && p.title.ar).toBeTruthy();
     for (const slug of ['terms', 'privacy']) {
       const p = pages.find((x) => x.slug === slug)!;
       expect(p.isPublished).toBe(false);
@@ -136,7 +193,9 @@ describe('seed (T-002)', () => {
   });
 
   it('NFR-05 · demo seed refuses to run when NODE_ENV=production', async () => {
-    await expect(runSeed(prisma, { ...base, demo: true, nodeEnv: 'production' })).rejects.toThrow(/production/);
+    await expect(runSeed(prisma, { ...base, demo: true, nodeEnv: 'production' })).rejects.toThrow(
+      /production/,
+    );
     expect(await prisma.user.count()).toBe(0);
     expect(await prisma.product.count()).toBe(0);
   });
@@ -154,7 +213,14 @@ describe('seed (T-002)', () => {
     const first = await counts();
     const second = await runSeed(prisma, { ...base, demo: true });
     expect(await counts()).toEqual(first);
-    expect(second).toEqual({ admin: false, categories: 0, siteSetting: false, homeSections: 0, pages: 0, products: 0 });
+    expect(second).toEqual({
+      admin: false,
+      categories: 0,
+      siteSetting: false,
+      homeSections: 0,
+      pages: 0,
+      products: 0,
+    });
   });
 
   it('NFR-05 · seed does not overwrite an admin-edited SiteSetting (vat 15 stays 15)', async () => {
@@ -165,7 +231,15 @@ describe('seed (T-002)', () => {
         deliveryFee: 2500,
         freeDeliveryThreshold: 50000,
         vat: { vatRate: 15, applyToDelivery: false, pricesIncludeVat: false },
-        deliveryCities: [{ code: 'riyadh', name: { en: 'Riyadh', ar: 'الرياض' }, isActive: true, sortOrder: 1, deliveryFee: 1000 }],
+        deliveryCities: [
+          {
+            code: 'riyadh',
+            name: { en: 'Riyadh', ar: 'الرياض' },
+            isActive: true,
+            sortOrder: 1,
+            deliveryFee: 1000,
+          },
+        ],
       },
     });
     await runSeed(prisma, base);
@@ -178,7 +252,11 @@ describe('seed (T-002)', () => {
 
   it('NFR-05 · seed does not reset an existing admin password', async () => {
     await runSeed(prisma, base);
-    const hash = await argon2.hash('changed-by-admin-123', { type: argon2.argon2id, memoryCost: 1024, timeCost: 1 });
+    const hash = await argon2.hash('changed-by-admin-123', {
+      type: argon2.argon2id,
+      memoryCost: 1024,
+      timeCost: 1,
+    });
     await prisma.user.updateMany({ data: { passwordHash: hash, firstName: 'Renamed' } });
     await runSeed(prisma, base);
     const u = (await prisma.user.findFirst())!;
@@ -196,7 +274,11 @@ describe('seed (T-002)', () => {
     await runSeed(prisma, base);
     const rows = await prisma.homeSection.findMany();
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ sortOrder: 99, isVisible: false, title: { en: 'Edited', ar: 'معدل' } });
+    expect(rows[0]).toMatchObject({
+      sortOrder: 99,
+      isVisible: false,
+      title: { en: 'Edited', ar: 'معدل' },
+    });
   });
 
   it('NFR-05 · seed does not overwrite edited pages or categories', async () => {
@@ -205,19 +287,26 @@ describe('seed (T-002)', () => {
       where: { slug: 'terms' },
       data: { isPublished: true, content: { en: 'Real terms', ar: 'شروط حقيقية' } },
     });
-    await prisma.category.update({ where: { slug: 'bedroom' }, data: { name: { en: 'Sleep', ar: 'نوم' } } });
+    await prisma.category.update({
+      where: { slug: 'bedroom' },
+      data: { name: { en: 'Sleep', ar: 'نوم' } },
+    });
     await runSeed(prisma, base);
     const t = (await prisma.page.findUnique({ where: { slug: 'terms' } }))!;
     expect(t.isPublished).toBe(true);
     expect(t.content.en).toBe('Real terms');
-    expect((await prisma.category.findUnique({ where: { slug: 'bedroom' } }))!.name.en).toBe('Sleep');
+    expect((await prisma.category.findUnique({ where: { slug: 'bedroom' } }))!.name.en).toBe(
+      'Sleep',
+    );
   });
 
   it('NFR-05 · seed fails clearly when admin env vars are missing', async () => {
     await expect(runSeed(prisma, { ...base, admin: { email: 'a@b.com' } })).rejects.toThrow(
       /ADMIN_PASSWORD.*ADMIN_FIRST_NAME.*ADMIN_LAST_NAME/,
     );
-    await expect(runSeed(prisma, { ...base, admin: { ...admin, password: 'short' } })).rejects.toThrow(/12 to 128/);
+    await expect(
+      runSeed(prisma, { ...base, admin: { ...admin, password: 'short' } }),
+    ).rejects.toThrow(/12 to 128/);
     expect(await prisma.user.count()).toBe(0);
   });
 });

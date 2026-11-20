@@ -29,6 +29,8 @@ const schema = z.object({
   ADMIN_FIRST_NAME: optStr,
   ADMIN_LAST_NAME: optStr,
   SEED_DEMO_DATA: optStr,
+  SEED_CONTACT_EMAIL: optStr,
+  SEED_CONTACT_PHONE: optStr,
   ACCESS_TOKEN_SECRET: optStr,
   REFRESH_TOKEN_PEPPER: optStr,
   CSRF_SECRET: optStr,

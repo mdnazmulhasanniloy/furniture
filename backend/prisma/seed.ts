@@ -14,6 +14,7 @@ async function main() {
       firstName: env.ADMIN_FIRST_NAME,
       lastName: env.ADMIN_LAST_NAME,
     },
+    contact: { email: env.SEED_CONTACT_EMAIL, phone: env.SEED_CONTACT_PHONE },
     argon2: {
       memoryCost: env.ARGON2_MEMORY_COST,
       timeCost: env.ARGON2_TIME_COST,

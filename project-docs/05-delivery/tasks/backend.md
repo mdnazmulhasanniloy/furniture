@@ -14,7 +14,7 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 - Done: `prisma/schema.prisma` matches data-model (aligned 2026-11-20: `User.firstName`/`lastName`, `RateLimit`, SAR, `defaultLocale` ar, `deliveryCities`, `cityCode`, `VatSetting`, `OrderVat`; validated with Prisma 6); `prisma db push` works on replica set; `npm run seed` creates 1 admin (`ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FIRST_NAME`, `ADMIN_LAST_NAME`), 6 categories, SiteSetting singleton (`deliveryFee` 0, `freeDeliveryThreshold` null, `vat` = {vatRate 0, applyToDelivery true, pricesIncludeVat true}, 6 active cities: riyadh, jeddah, mecca, medina, dammam, khobar), default HomeSections, sample pages (about, faq, terms, privacy, contact) in en+ar, 12 sample products (6 NEW, 6 RESALE).
 - Amended (approved plan): seed is create-if-missing and never overwrites admin-managed data (admin, SiteSetting, home sections only when empty, pages/categories by slug). Base seed always; demo seed (12 products, `images: []`) only with `SEED_DEMO_DATA=true` and refused when `NODE_ENV=production`. `terms`/`privacy` seeded unpublished with PLACEHOLDER text (en+ar). Missing-image placeholder tracked in B-022.
 
-### T-003 Mailer + templates · todo
+### T-003 Mailer + templates · in-progress
 - Req: AUTH-01, AUTH-03, ORD-04 · Depends: T-001
 - Docs: `04-architecture/integrations.md`
 - Done: `mailer.send({to, template, locale, data})`; templates in en/ar with RTL; unit test renders each template in both locales; dev uses Mailpit.

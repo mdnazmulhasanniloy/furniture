@@ -7,6 +7,17 @@
 - Sending is async (not awaited by HTTP response for order emails); OTP emails are awaited so the user gets an error if sending fails.
 - Gmail limits daily volume (about 500/day on a free account); switch `SMTP_*` to a transactional provider (Brevo, SES) before launch volume (B-005). On Vercel the send must finish before the function returns (await it or use `waitUntil`).
 
+### Email templates (T-003)
+`mailer.send({ to, template, locale, data })` (awaited, rejects on failure) and `mailer.sendInBackground(...)` (never rejects; errors are logged; on Vercel the promise is registered with `waitUntil` from `@vercel/functions`, elsewhere it is fire-and-forget). `locale` is always the recipient's `preferredLocale`; `ar` only when it is missing. Code: `src/emails/`. Money is in halalas and shown as SAR with Western digits.
+
+| Template | Used by | `data` fields |
+|---|---|---|
+| `otp-verify` | AUTH-01, AUTH-04 | `firstName`, `code` (6 digits), `ttlSeconds` (`OTP_TTL_SECONDS`, shown as minutes) |
+| `otp-reset` | AUTH-03 | `firstName`, `code`, `ttlSeconds` |
+| `order-placed` | ORD-04 | `firstName`, `orderNo`, `items[] {title: {en, ar}, qty, unitPrice}`, `subtotal`, `deliveryFee`, `vatAmount` (VAT line shown only when > 0), `total` |
+| `order-status` | ORD-04 | `firstName`, `orderNo`, `status` (`PENDING`..`CANCELLED`) |
+| `admin-invite` | ADM-11 | `firstName`, `code` (OTP, not a link), `ttlSeconds`, `adminUrl` (`ADMIN_URL`) |
+
 ## Socket.IO on Vercel — NOTIF-01..03 (ADR-012)
 - **Server:** `api/socket-io.ts`, `path: '/api/socket-io/socket.io'`, `transports: ['websocket']`, CORS = `CORS_ALLOWED_ORIGINS` with credentials. Auth middleware verifies the access token from `socket.handshake.auth.token`; bad or expired token → `connect_error` `unauthorized`. After auth the socket joins `user:{id}`, and admins also join `admins`.
 - **Cross-instance delivery (no Redis):** `@socket.io/mongo-adapter` on the socket server and `@socket.io/mongo-emitter` in the REST API. Collection `socket.io-adapter-events` (env `SOCKET_ADAPTER_COLLECTION`): a **TTL collection** (documents carry `createdAt`; TTL index `expireAfterSeconds: 3600`, env `SOCKET_ADAPTER_TTL_SECONDS`), not capped, so the cron cleanup can delete from it. Needs change streams (Atlas replica set). The notification service first writes the `Notification` row, then calls `emitter.to('user:{id}' | 'admins').emit('notification:new', payload)`; emit failures are logged and ignored (the row is the source of truth). One `mongodb` client singleton per instance, `maxPoolSize` 2, same `DATABASE_URL`.

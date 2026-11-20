@@ -105,3 +105,11 @@ describe('env', () => {
     expect(() => parseEnv(raw)).not.toThrow();
   });
 });
+
+describe('SEED_DEMO_DATA', () => {
+  it('NFR-05 · defaults to false and parses true/false', () => {
+    expect(parseEnv({ NODE_ENV: 'test' }).SEED_DEMO_DATA).toBe(false);
+    expect(parseEnv({ NODE_ENV: 'test', SEED_DEMO_DATA: 'true' }).SEED_DEMO_DATA).toBe(true);
+    expect(() => parseEnv({ NODE_ENV: 'test', SEED_DEMO_DATA: 'maybe' })).toThrow('SEED_DEMO_DATA');
+  });
+});

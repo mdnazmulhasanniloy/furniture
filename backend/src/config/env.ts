@@ -28,6 +28,7 @@ const schema = z.object({
   ADMIN_PASSWORD: optStr,
   ADMIN_FIRST_NAME: optStr,
   ADMIN_LAST_NAME: optStr,
+  SEED_DEMO_DATA: optStr,
   ACCESS_TOKEN_SECRET: optStr,
   REFRESH_TOKEN_PEPPER: optStr,
   CSRF_SECRET: optStr,
@@ -64,10 +65,11 @@ export type TrustProxy = boolean | number | string;
 
 export interface Env extends Omit<
   z.infer<typeof schema>,
-  'TRUST_PROXY' | 'AUTH_COOKIE_SECURE' | 'CORS_ALLOWED_ORIGINS' | 'ACCESS_TOKEN_SECRET' | 'REFRESH_TOKEN_PEPPER' | 'CSRF_SECRET'
+  'TRUST_PROXY' | 'AUTH_COOKIE_SECURE' | 'SEED_DEMO_DATA' | 'CORS_ALLOWED_ORIGINS' | 'ACCESS_TOKEN_SECRET' | 'REFRESH_TOKEN_PEPPER' | 'CSRF_SECRET'
 > {
   TRUST_PROXY: TrustProxy;
   AUTH_COOKIE_SECURE: boolean;
+  SEED_DEMO_DATA: boolean;
   CORS_ALLOWED_ORIGINS: string[];
   ACCESS_TOKEN_SECRET: string;
   REFRESH_TOKEN_PEPPER: string;
@@ -86,12 +88,12 @@ function parseTrustProxy(raw: string | undefined, production: boolean): TrustPro
   return raw; // subnet / "loopback" style value understood by Express
 }
 
-function parseBool(raw: string | undefined, fallback: boolean): boolean {
+function parseBool(name: string, raw: string | undefined, fallback: boolean): boolean {
   if (raw === undefined) return fallback;
   const v = raw.trim().toLowerCase();
   if (['true', '1', 'yes'].includes(v)) return true;
   if (['false', '0', 'no'].includes(v)) return false;
-  throw new Error(`Invalid environment: AUTH_COOKIE_SECURE must be true or false, got "${raw}"`);
+  throw new Error(`Invalid environment: ${name} must be true or false, got "${raw}"`);
 }
 
 export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefined>): Env {
@@ -134,7 +136,14 @@ export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefi
 
   let AUTH_COOKIE_SECURE = production;
   try {
-    AUTH_COOKIE_SECURE = parseBool(e.AUTH_COOKIE_SECURE, production);
+    AUTH_COOKIE_SECURE = parseBool('AUTH_COOKIE_SECURE', e.AUTH_COOKIE_SECURE, production);
+  } catch (err) {
+    problems.push((err as Error).message.replace('Invalid environment: ', ''));
+  }
+
+  let SEED_DEMO_DATA = false;
+  try {
+    SEED_DEMO_DATA = parseBool('SEED_DEMO_DATA', e.SEED_DEMO_DATA, false);
   } catch (err) {
     problems.push((err as Error).message.replace('Invalid environment: ', ''));
   }
@@ -145,6 +154,7 @@ export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefi
     ...e,
     TRUST_PROXY: parseTrustProxy(e.TRUST_PROXY, production),
     AUTH_COOKIE_SECURE,
+    SEED_DEMO_DATA,
     CORS_ALLOWED_ORIGINS: origins,
     ACCESS_TOKEN_SECRET,
     REFRESH_TOKEN_PEPPER,

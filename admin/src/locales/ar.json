@@ -1,0 +1,5 @@
+{
+  "nav": { "overview": "نظرة عامة", "products": "المنتجات", "categories": "الفئات", "orders": "الطلبات", "customers": "العملاء", "content": "المحتوى", "banners": "البانرات", "sections": "أقسام الرئيسية", "pages": "الصفحات", "settings": "الإعدادات", "admins": "المشرفون" },
+  "common": { "save": "حفظ", "cancel": "إلغاء", "delete": "حذف", "publish": "نشر", "draft": "مسودة", "search": "بحث…", "english": "English", "arabic": "العربية" },
+  "orders": { "newOrderToast": "طلب جديد {orderNo} · {count} منتجات", "printInvoice": "طباعة الفاتورة" }
+}

@@ -1,0 +1,9 @@
+{
+  "nav": { "shop": "Shop", "new": "New", "resale": "Pre-owned", "categories": "Categories", "search": "Search furniture…", "cart": "Cart", "account": "Account", "notifications": "Notifications" },
+  "badge": { "new": "New", "preowned": "Pre-owned · {grade}", "featured": "Featured", "soldOut": "Sold out" },
+  "condition": { "NEW": "New", "LIKE_NEW": "Like new", "GOOD": "Good", "FAIR": "Fair" },
+  "cart": { "addToCart": "Add to cart", "subtotal": "Subtotal", "delivery": "Delivery", "total": "Total", "checkout": "Checkout", "freeDeliveryIn": "Add {amount} more for free delivery" },
+  "checkout": { "payment": "Payment", "cod": "Cash on Delivery", "codInfo": "Pay in cash when your furniture arrives.", "placeOrder": "Place order" },
+  "auth": { "login": "Log in", "register": "Create account", "verifyTitle": "Verify your email", "otpSent": "We sent a 6-digit code to {email}", "resendIn": "Resend in {seconds}s", "resend": "Resend code", "forgot": "Forgot password?" },
+  "orderStatus": { "PENDING": "Pending", "CONFIRMED": "Confirmed", "PROCESSING": "Processing", "OUT_FOR_DELIVERY": "Out for delivery", "DELIVERED": "Delivered", "CANCELLED": "Cancelled" }
+}

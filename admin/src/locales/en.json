@@ -1,0 +1,5 @@
+{
+  "nav": { "overview": "Overview", "products": "Products", "categories": "Categories", "orders": "Orders", "customers": "Customers", "content": "Content", "banners": "Banners", "sections": "Home sections", "pages": "Pages", "settings": "Settings", "admins": "Admins" },
+  "common": { "save": "Save", "cancel": "Cancel", "delete": "Delete", "publish": "Publish", "draft": "Draft", "search": "Search…", "english": "English", "arabic": "العربية" },
+  "orders": { "newOrderToast": "New order {orderNo} · {count} items", "printInvoice": "Print invoice" }
+}

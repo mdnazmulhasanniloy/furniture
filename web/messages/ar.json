@@ -1,0 +1,9 @@
+{
+  "nav": { "shop": "المتجر", "new": "جديد", "resale": "مستعمل", "categories": "الفئات", "search": "ابحث عن الأثاث…", "cart": "السلة", "account": "حسابي", "notifications": "الإشعارات" },
+  "badge": { "new": "جديد", "preowned": "مستعمل · {grade}", "featured": "مميز", "soldOut": "نفدت الكمية" },
+  "condition": { "NEW": "جديد", "LIKE_NEW": "كالجديد", "GOOD": "جيد", "FAIR": "مقبول" },
+  "cart": { "addToCart": "أضف إلى السلة", "subtotal": "المجموع الفرعي", "delivery": "التوصيل", "total": "الإجمالي", "checkout": "إتمام الطلب", "freeDeliveryIn": "أضف {amount} للحصول على توصيل مجاني" },
+  "checkout": { "payment": "الدفع", "cod": "الدفع عند الاستلام", "codInfo": "ادفع نقدًا عند وصول أثاثك.", "placeOrder": "تأكيد الطلب" },
+  "auth": { "login": "تسجيل الدخول", "register": "إنشاء حساب", "verifyTitle": "تأكيد بريدك الإلكتروني", "otpSent": "أرسلنا رمزًا من 6 أرقام إلى {email}", "resendIn": "إعادة الإرسال خلال {seconds} ث", "resend": "إعادة إرسال الرمز", "forgot": "نسيت كلمة المرور؟" },
+  "orderStatus": { "PENDING": "قيد الانتظار", "CONFIRMED": "تم التأكيد", "PROCESSING": "قيد التجهيز", "OUT_FOR_DELIVERY": "في الطريق إليك", "DELIVERED": "تم التوصيل", "CANCELLED": "ملغي" }
+}

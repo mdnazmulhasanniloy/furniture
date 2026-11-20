@@ -1,0 +1,1245 @@
+openapi: 3.1.0
+info:
+  title: Furnixa API
+  version: 0.1.0
+  description: |
+    REST API for the Furnixa furniture marketplace (website + admin).
+    Base path /api/v1. Auth: Bearer access token (JWT). Refresh token in httpOnly cookie `fx_rt` (30 days). Cookie-authenticated calls (`/auth/refresh`, `/auth/logout`) also need header `X-CSRF-Token` from `GET /auth/csrf` (ADR-011).
+    All error responses use the Error schema. Locale for emails/messages via `Accept-Language: ar|en` (default `ar`).
+    Prices are integer halalas (1 SAR = 100 halalas). Phone numbers are Saudi mobile numbers, returned as E.164 `+9665XXXXXXXX`.
+servers:
+  - url: http://localhost:4100/api/v1
+tags:
+  - name: Auth
+  - name: Me
+  - name: Catalog
+  - name: CMS
+  - name: Cart
+  - name: Orders
+  - name: Notifications
+  - name: Admin
+security:
+  - bearerAuth: []
+
+paths:
+  # ---------------- AUTH ----------------
+  /auth/register:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Register and send email OTP (AUTH-01)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string, minLength: 2, maxLength: 80 }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                preferredLocale: { $ref: '#/components/schemas/Locale' }
+      responses:
+        '201': { $ref: '#/components/responses/Message' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /auth/verify-otp:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Verify email OTP and log in (AUTH-01)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email: { type: string, format: email }
+                code: { type: string, pattern: '^[0-9]{6}$' }
+      responses:
+        '200': { $ref: '#/components/responses/AuthSession' }
+        '400': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/resend-otp:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Resend OTP (AUTH-04)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, purpose]
+              properties:
+                email: { type: string, format: email }
+                purpose: { $ref: '#/components/schemas/OtpPurpose' }
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Email + password login (AUTH-02). After LOGIN_MAX_FAILURES failures the account is locked for LOGIN_LOCKOUT_SECONDS (429 ACCOUNT_LOCKED); the oldest session is revoked when MAX_ACTIVE_SESSIONS would be exceeded.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/AuthSession' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403':
+          description: Blocked, or unverified (code EMAIL_NOT_VERIFIED, OTP re-sent)
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '429': { $ref: '#/components/responses/Error' }
+  /auth/csrf:
+    get:
+      tags: [Auth]
+      security: []
+      summary: Issue a CSRF token for cookie-authenticated requests (ADR-011)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, required: [csrfToken], properties: { csrfToken: { type: string } } }
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Rotate refresh cookie, return new access token (AUTH-05). Requires X-CSRF-Token.
+      parameters:
+        - { $ref: '#/components/parameters/CsrfToken' }
+      responses:
+        '200': { $ref: '#/components/responses/AuthSession' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { description: CSRF_INVALID, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke refresh token (AUTH-05). Requires X-CSRF-Token.
+      parameters:
+        - { $ref: '#/components/parameters/CsrfToken' }
+      responses:
+        '204': { description: Logged out }
+        '403': { description: CSRF_INVALID, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Send reset OTP; always 200 (AUTH-03)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Reset password with OTP (AUTH-03)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code, newPassword]
+              properties:
+                email: { type: string, format: email }
+                code: { type: string, pattern: '^[0-9]{6}$' }
+                newPassword: { type: string, minLength: 8 }
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+        '400': { $ref: '#/components/responses/Error' }
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current user
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
+        '401': { $ref: '#/components/responses/Error' }
+
+  # ---------------- ME ----------------
+  /me:
+    patch:
+      tags: [Me]
+      summary: Update profile (PROF-01)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                phone: { $ref: '#/components/schemas/SaudiPhoneInput' }
+                avatar: { type: string, format: uri }
+                preferredLocale: { $ref: '#/components/schemas/Locale' }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
+  /me/addresses:
+    get:
+      tags: [Me]
+      summary: List addresses (PROF-02)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Address' } } } }
+    post:
+      tags: [Me]
+      summary: Add address (PROF-02)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/AddressInput' } } }
+      responses:
+        '201':
+          description: Created
+          content: { application/json: { schema: { $ref: '#/components/schemas/Address' } } }
+        '422':
+          description: OUT_OF_DELIVERY_AREA — cityCode is unknown or inactive (ADR-008); VALIDATION_ERROR for an invalid Saudi phone
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  /me/addresses/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [Me]
+      summary: Update address
+      requestBody:
+        content: { application/json: { schema: { $ref: '#/components/schemas/AddressInput' } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Address' } } }
+        '422':
+          description: OUT_OF_DELIVERY_AREA — cityCode is unknown or inactive (ADR-008); VALIDATION_ERROR for an invalid Saudi phone
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    delete:
+      tags: [Me]
+      summary: Delete address
+      responses:
+        '204': { description: Deleted }
+
+  # ---------------- CATALOG ----------------
+  /categories:
+    get:
+      tags: [Catalog]
+      security: []
+      summary: Active categories tree (CAT-01)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Category' } } } }
+  /products:
+    get:
+      tags: [Catalog]
+      security: []
+      summary: Published products with filters (PROD-01)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: category, in: query, description: category slug, schema: { type: string } }
+        - { name: type, in: query, schema: { $ref: '#/components/schemas/ProductType' } }
+        - { name: condition, in: query, schema: { type: array, items: { $ref: '#/components/schemas/Condition' } }, style: form, explode: false }
+        - { name: minPrice, in: query, schema: { type: integer } }
+        - { name: maxPrice, in: query, schema: { type: integer } }
+        - { name: material, in: query, schema: { type: string } }
+        - { name: inStock, in: query, schema: { type: boolean } }
+        - { name: featured, in: query, schema: { type: boolean } }
+        - { name: sort, in: query, schema: { type: string, enum: [newest, price_asc, price_desc, featured], default: newest } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/ProductPage' } } }
+  /products/{slug}:
+    get:
+      tags: [Catalog]
+      security: []
+      summary: Product detail + related (PROD-02)
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  product: { $ref: '#/components/schemas/Product' }
+                  related: { type: array, items: { $ref: '#/components/schemas/Product' } }
+        '404': { $ref: '#/components/responses/Error' }
+
+  # ---------------- CMS (public) ----------------
+  /cms/home:
+    get:
+      tags: [CMS]
+      security: []
+      summary: Active banners + visible sections with resolved products (ADM-06, ADM-07)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  banners: { type: array, items: { $ref: '#/components/schemas/Banner' } }
+                  sections:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: '#/components/schemas/HomeSection'
+                        - type: object
+                          properties:
+                            products: { type: array, items: { $ref: '#/components/schemas/Product' } }
+                            categories: { type: array, items: { $ref: '#/components/schemas/Category' } }
+  /cms/settings:
+    get:
+      tags: [CMS]
+      security: []
+      summary: Public site settings (ADM-09). `deliveryCities` contains active cities only (ADM-13)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/SiteSetting' } } }
+  /cms/pages/{slug}:
+    get:
+      tags: [CMS]
+      security: []
+      summary: Published static page (ADM-08)
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Page' } } }
+        '404': { $ref: '#/components/responses/Error' }
+
+  # ---------------- CART ----------------
+  /cart:
+    get:
+      tags: [Cart]
+      summary: Current cart with live prices, delivery fee and VAT (CART-01, ADR-009)
+      parameters:
+        - name: addressId
+          in: query
+          required: false
+          description: When given, the delivery fee uses that address's city (override or default); otherwise the default fee.
+          schema: { $ref: '#/components/schemas/ObjectId' }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Cart' } } }
+  /cart/items:
+    put:
+      tags: [Cart]
+      summary: Set quantity for a product (0 removes)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, qty]
+              properties:
+                productId: { $ref: '#/components/schemas/ObjectId' }
+                qty: { type: integer, minimum: 0 }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Cart' } } }
+        '409': { $ref: '#/components/responses/Error' }
+  /cart/merge:
+    post:
+      tags: [Cart]
+      summary: Merge guest cart after login (CART-01)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      productId: { $ref: '#/components/schemas/ObjectId' }
+                      qty: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Cart' } } }
+
+  # ---------------- ORDERS ----------------
+  /orders:
+    post:
+      tags: [Orders]
+      summary: Place COD order from cart (ORD-01)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [addressId]
+              properties:
+                addressId: { $ref: '#/components/schemas/ObjectId' }
+                customerNote: { type: string, maxLength: 500 }
+                expectedTotal: { type: integer, description: Total (halalas) the customer saw; if it differs from the server total the order is rejected with PRICE_CHANGED (ADR-009) }
+      responses:
+        '201':
+          description: Created
+          content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+        '409':
+          description: OUT_OF_STOCK / PRICE_CHANGED (item price, delivery fee, VAT or total differs from what the customer saw) / CART_EMPTY with per-item details
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '422':
+          description: OUT_OF_DELIVERY_AREA — address city is unknown or inactive (ADR-008)
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    get:
+      tags: [Orders]
+      summary: My orders (ORD-02)
+      parameters: [{ $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/OrderPage' } } }
+  /orders/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [Orders]
+      summary: My order detail (ORD-02)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+        '404': { $ref: '#/components/responses/Error' }
+  /orders/{id}/cancel:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [Orders]
+      summary: Cancel own PENDING order (ORD-03)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+        '409':
+          description: INVALID_TRANSITION — order is not PENDING
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  # ---------------- NOTIFICATIONS ----------------
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: My notifications (NOTIF-03)
+      parameters: [{ $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Notification' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+                  unread: { type: integer }
+  /notifications/{id}/read:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [Notifications]
+      summary: Mark one as read
+      responses:
+        '204': { description: OK }
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Mark all as read
+      responses:
+        '204': { description: OK }
+
+  # ---------------- ADMIN ----------------
+  /admin/dashboard/summary:
+    get:
+      tags: [Admin]
+      summary: KPIs, 30-day order series, latest orders, low stock (ADM-01)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  todayOrders: { type: integer }
+                  pendingOrders: { type: integer }
+                  monthRevenue: { type: integer }
+                  lowStockCount: { type: integer }
+                  ordersByDay: { type: array, items: { type: object, properties: { date: { type: string, format: date }, count: { type: integer } } } }
+                  latestOrders: { type: array, items: { $ref: '#/components/schemas/Order' } }
+  /admin/uploads/presign:
+    post:
+      tags: [Admin]
+      summary: Get a presigned PUT URL to upload an image straight to Cloudflare R2 (ADR-010)
+      description: |
+        Admin only. The browser then PUTs the file to `uploadUrl` with the same `Content-Type` and the signed size.
+        Save the returned `key` (not the URL) on the product/banner. Allowed: image/jpeg, image/png, image/webp, max 5 MB.
+        Key format: `furnixa/{env}/{yyyy}/{mm}/{uuid}.{ext}`. Required bucket CORS rule: see integrations.md.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileName, contentType, size]
+              properties:
+                fileName: { type: string, maxLength: 255, description: Informational only; never used in the key }
+                contentType: { type: string, enum: [image/jpeg, image/png, image/webp] }
+                size: { type: integer, minimum: 1, maximum: 5242880, description: Bytes }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [uploadUrl, key, publicUrl, expiresIn]
+                properties:
+                  uploadUrl: { type: string, format: uri }
+                  key: { type: string, examples: ['furnixa/production/2026/11/3f2b8c1e-0c4d-4a52-9d7e-1b2a3c4d5e6f.webp'] }
+                  publicUrl: { type: string, format: uri, description: R2_PUBLIC_BASE_URL + "/" + key }
+                  expiresIn: { type: integer, const: 300, description: Seconds }
+        '403': { $ref: '#/components/responses/Error' }
+        '422':
+          description: UPLOAD_NOT_ALLOWED (type not jpeg/png/webp, or size over 5 MB) or VALIDATION_ERROR
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  /admin/products:
+    get:
+      tags: [Admin]
+      summary: All products incl. drafts (ADM-02)
+      parameters:
+        - { name: q, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ProductStatus' } }
+        - { name: type, in: query, schema: { $ref: '#/components/schemas/ProductType' } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/ProductPage' } } }
+    post:
+      tags: [Admin]
+      summary: Create product
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ProductInput' } } }
+      responses:
+        '201':
+          description: Created
+          content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } }
+  /admin/products/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [Admin]
+      summary: Product by id
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } }
+    patch:
+      tags: [Admin]
+      summary: Update product
+      requestBody:
+        content: { application/json: { schema: { $ref: '#/components/schemas/ProductInput' } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } }
+    delete:
+      tags: [Admin]
+      summary: Delete, or archive if referenced by orders
+      responses:
+        '204': { description: Deleted or archived }
+  /admin/categories:
+    get:
+      tags: [Admin]
+      summary: All categories (ADM-03)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Category' } } } }
+    post:
+      tags: [Admin]
+      summary: Create category
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CategoryInput' } } }
+      responses:
+        '201':
+          description: Created
+          content: { application/json: { schema: { $ref: '#/components/schemas/Category' } } }
+  /admin/categories/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [Admin]
+      summary: Update category
+      requestBody:
+        content: { application/json: { schema: { $ref: '#/components/schemas/CategoryInput' } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Category' } } }
+    delete:
+      tags: [Admin]
+      summary: Delete (409 if it has products)
+      responses:
+        '204': { description: Deleted }
+        '409': { $ref: '#/components/responses/Error' }
+  /admin/orders:
+    get:
+      tags: [Admin]
+      summary: All orders (ADM-04)
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/OrderStatus' } }
+        - { name: q, in: query, description: orderNo / customer email, schema: { type: string } }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/OrderPage' } } }
+  /admin/orders/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [Admin]
+      summary: Order detail
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+  /admin/orders/{id}/status:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [Admin]
+      summary: Transition status; 409 on invalid transition (ADM-04, NOTIF-01)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { $ref: '#/components/schemas/OrderStatus' }
+                note: { type: string }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+        '409': { $ref: '#/components/responses/Error' }
+  /admin/orders/{id}/note:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [Admin]
+      summary: Set internal admin note
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, properties: { adminNote: { type: string } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+  /admin/customers:
+    get:
+      tags: [Admin]
+      summary: Customers with order count (ADM-05)
+      parameters: [{ name: q, in: query, schema: { type: string } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/User' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+  /admin/customers/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [Admin]
+      summary: Customer detail with orders
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user: { $ref: '#/components/schemas/User' }
+                  orders: { type: array, items: { $ref: '#/components/schemas/Order' } }
+  /admin/customers/{id}/block:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [Admin]
+      summary: Block / unblock; blocking revokes refresh tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [isBlocked], properties: { isBlocked: { type: boolean } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
+  /admin/banners:
+    get:
+      tags: [Admin]
+      summary: All banners (ADM-06)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Banner' } } } }
+    post:
+      tags: [Admin]
+      summary: Create banner
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/BannerInput' } } }
+      responses:
+        '201':
+          description: Created
+          content: { application/json: { schema: { $ref: '#/components/schemas/Banner' } } }
+  /admin/banners/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [Admin]
+      summary: Update banner
+      requestBody:
+        content: { application/json: { schema: { $ref: '#/components/schemas/BannerInput' } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Banner' } } }
+    delete:
+      tags: [Admin]
+      summary: Delete banner
+      responses:
+        '204': { description: Deleted }
+  /admin/home-sections:
+    get:
+      tags: [Admin]
+      summary: All sections ordered (ADM-07)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/HomeSection' } } } }
+    post:
+      tags: [Admin]
+      summary: Create section
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/HomeSectionInput' } } }
+      responses:
+        '201':
+          description: Created
+          content: { application/json: { schema: { $ref: '#/components/schemas/HomeSection' } } }
+  /admin/home-sections/reorder:
+    put:
+      tags: [Admin]
+      summary: Set order by id list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, required: [ids], properties: { ids: { type: array, items: { $ref: '#/components/schemas/ObjectId' } } } }
+      responses:
+        '204': { description: OK }
+  /admin/home-sections/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [Admin]
+      summary: Update section
+      requestBody:
+        content: { application/json: { schema: { $ref: '#/components/schemas/HomeSectionInput' } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/HomeSection' } } }
+    delete:
+      tags: [Admin]
+      summary: Delete section
+      responses:
+        '204': { description: Deleted }
+  /admin/pages:
+    get:
+      tags: [Admin]
+      summary: All pages (ADM-08)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Page' } } } }
+    post:
+      tags: [Admin]
+      summary: Create page
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/PageInput' } } }
+      responses:
+        '201':
+          description: Created
+          content: { application/json: { schema: { $ref: '#/components/schemas/Page' } } }
+  /admin/pages/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [Admin]
+      summary: Update page
+      requestBody:
+        content: { application/json: { schema: { $ref: '#/components/schemas/PageInput' } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Page' } } }
+    delete:
+      tags: [Admin]
+      summary: Delete page
+      responses:
+        '204': { description: Deleted }
+  /admin/settings:
+    get:
+      tags: [Admin]
+      summary: Site settings (ADM-09)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/SiteSetting' } } }
+    put:
+      tags: [Admin]
+      summary: Replace site settings (incl. delivery cities, ADM-13)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/SiteSetting' } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/SiteSetting' } } }
+        '409':
+          description: CONFLICT — an existing city code was removed (deactivate it instead) or a code was changed
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '422':
+          description: VALIDATION_ERROR — no active delivery city, duplicate city code, missing ar/en city name, negative fee, VAT rate outside 0–50%, or invalid VAT registration number
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  /admin/admins:
+    get:
+      tags: [Admin]
+      summary: List admins (ADM-11)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/User' } } } }
+    post:
+      tags: [Admin]
+      summary: Invite admin (creates unverified ADMIN, emails OTP)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+      responses:
+        '201':
+          description: Created
+          content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { $ref: '#/components/schemas/ObjectId' } }
+    Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 24 } }
+    CsrfToken: { name: X-CSRF-Token, in: header, required: true, schema: { type: string }, description: Token from GET /auth/csrf }
+  responses:
+    Error:
+      description: Error
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Message:
+      description: OK
+      content:
+        application/json:
+          schema: { type: object, properties: { message: { type: string } } }
+    AuthSession:
+      description: Access token + user; sets `fx_rt` httpOnly refresh cookie
+      headers:
+        Set-Cookie: { schema: { type: string } }
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              accessToken: { type: string }
+              user: { $ref: '#/components/schemas/User' }
+  schemas:
+    ObjectId: { type: string, pattern: '^[a-f0-9]{24}$' }
+    Locale: { type: string, enum: [ar, en], default: ar }
+    SaudiPhoneInput:
+      type: string
+      pattern: '^(\+966|00966|0)?5[0-9]{8}$'
+      description: Saudi mobile number. Accepted as 05XXXXXXXX, 5XXXXXXXX, +9665XXXXXXXX or 009665XXXXXXXX; normalized by the server (ADR-008).
+      examples: ['0551234567', '+966551234567']
+    SaudiPhone:
+      type: string
+      pattern: '^\+9665[0-9]{8}$'
+      description: Normalized E.164 Saudi mobile number returned by the API.
+      examples: ['+966551234567']
+    DeliveryCity:
+      type: object
+      required: [code, name, isActive, sortOrder]
+      properties:
+        code: { type: string, pattern: '^[a-z0-9-]+$', description: Unique, immutable slug (e.g. riyadh) }
+        name: { $ref: '#/components/schemas/LocalizedText' }
+        isActive: { type: boolean }
+        sortOrder: { type: integer }
+        deliveryFee: { type: [integer, 'null'], minimum: 0, description: Optional admin-set per-city fee override in halalas; null = use the base deliveryFee, and if that is unset, 0 (ADR-009) }
+    VatSetting:
+      type: object
+      required: [vatRate, applyToDelivery, pricesIncludeVat]
+      properties:
+        vatRate: { type: number, minimum: 0, maximum: 50, multipleOf: 0.01, default: 0, description: 'VAT percentage, e.g. 15 = 15%. 0 (default) means no VAT line anywhere.' }
+        applyToDelivery: { type: boolean, default: true, description: 'Apply VAT to the delivery fee; only effective when vatRate > 0' }
+        pricesIncludeVat: { type: boolean, default: true }
+        registrationNumber: { type: [string, 'null'], pattern: '^3[0-9]{13}3$', description: 15-digit VAT registration number, printed on invoices }
+    OrderVat:
+      type: object
+      description: Immutable snapshot taken at order placement (ADR-009)
+      required: [vatRate, vatAmount, applyToDelivery, pricesIncludeVat]
+      properties:
+        vatRate: { type: number }
+        vatAmount: { type: integer, description: VAT amount in halalas (0 when vatRate is 0) }
+        applyToDelivery: { type: boolean }
+        pricesIncludeVat: { type: boolean }
+        registrationNumber: { type: [string, 'null'] }
+    Role: { type: string, enum: [ADMIN, CUSTOMER] }
+    OtpPurpose: { type: string, enum: [VERIFY_EMAIL, RESET_PASSWORD] }
+    ProductType: { type: string, enum: [NEW, RESALE] }
+    Condition: { type: string, enum: [NEW, LIKE_NEW, GOOD, FAIR] }
+    ProductStatus: { type: string, enum: [DRAFT, PUBLISHED, ARCHIVED] }
+    OrderStatus: { type: string, enum: [PENDING, CONFIRMED, PROCESSING, OUT_FOR_DELIVERY, DELIVERED, CANCELLED] }
+    SectionType: { type: string, enum: [FEATURED_PRODUCTS, NEW_ARRIVALS, RESALE_PICKS, CATEGORY_GRID, PROMO_BANNER, TESTIMONIALS] }
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, examples: [VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA] }
+        message: { type: string }
+        details: {}
+        requestId: { type: string }
+    PageMeta:
+      type: object
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+    LocalizedText:
+      type: object
+      required: [en, ar]
+      properties:
+        en: { type: string }
+        ar: { type: string }
+    ImageAsset:
+      type: object
+      required: [key, url]
+      description: Stored image. In request bodies only `key` is trusted; the server recomputes `url` from `key` (R2_PUBLIC_BASE_URL + "/" + key) and rejects keys outside `furnixa/{env}/`.
+      properties:
+        key: { type: string, description: R2 object key, examples: ['furnixa/production/2026/11/3f2b8c1e-0c4d-4a52-9d7e-1b2a3c4d5e6f.webp'] }
+        url: { type: string, format: uri }
+        alt: { $ref: '#/components/schemas/LocalizedText' }
+        width: { type: integer }
+        height: { type: integer }
+    User:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        name: { type: string }
+        email: { type: string, format: email }
+        role: { $ref: '#/components/schemas/Role' }
+        phone: { oneOf: [{ $ref: '#/components/schemas/SaudiPhone' }, { type: 'null' }] }
+        avatar: { type: [string, 'null'] }
+        isVerified: { type: boolean }
+        isBlocked: { type: boolean }
+        preferredLocale: { $ref: '#/components/schemas/Locale' }
+        createdAt: { type: string, format: date-time }
+    AddressInput:
+      type: object
+      required: [label, fullName, phone, cityCode, area, street]
+      properties:
+        label: { type: string }
+        fullName: { type: string }
+        phone: { $ref: '#/components/schemas/SaudiPhoneInput' }
+        cityCode: { type: string, description: Code of an active DeliveryCity from /cms/settings (ADR-008) }
+        area: { type: string }
+        street: { type: string }
+        notes: { type: string }
+        isDefault: { type: boolean }
+    Address:
+      allOf:
+        - $ref: '#/components/schemas/AddressInput'
+        - type: object
+          properties:
+            id: { $ref: '#/components/schemas/ObjectId' }
+    CategoryInput:
+      type: object
+      required: [name, slug]
+      properties:
+        name: { $ref: '#/components/schemas/LocalizedText' }
+        slug: { type: string }
+        image: { $ref: '#/components/schemas/ImageAsset' }
+        parentId: { type: [string, 'null'] }
+        sortOrder: { type: integer }
+        isActive: { type: boolean }
+    Category:
+      allOf:
+        - $ref: '#/components/schemas/CategoryInput'
+        - type: object
+          properties:
+            id: { $ref: '#/components/schemas/ObjectId' }
+            children: { type: array, items: { $ref: '#/components/schemas/Category' } }
+            productCount: { type: integer }
+    Dimensions:
+      type: object
+      properties:
+        widthCm: { type: number }
+        depthCm: { type: number }
+        heightCm: { type: number }
+        weightKg: { type: number }
+    ProductInput:
+      type: object
+      required: [title, description, slug, type, condition, price, stock, categoryId]
+      properties:
+        title: { $ref: '#/components/schemas/LocalizedText' }
+        description: { $ref: '#/components/schemas/LocalizedText' }
+        slug: { type: string }
+        sku: { type: string }
+        type: { $ref: '#/components/schemas/ProductType' }
+        condition: { $ref: '#/components/schemas/Condition' }
+        conditionNotes: { $ref: '#/components/schemas/LocalizedText' }
+        price: { type: integer, description: minor units }
+        compareAtPrice: { type: [integer, 'null'] }
+        stock: { type: integer, minimum: 0 }
+        categoryId: { $ref: '#/components/schemas/ObjectId' }
+        images: { type: array, maxItems: 8, items: { $ref: '#/components/schemas/ImageAsset' } }
+        dimensions: { $ref: '#/components/schemas/Dimensions' }
+        material: { type: string }
+        color: { type: string }
+        isFeatured: { type: boolean }
+        status: { $ref: '#/components/schemas/ProductStatus' }
+    Product:
+      allOf:
+        - $ref: '#/components/schemas/ProductInput'
+        - type: object
+          properties:
+            id: { $ref: '#/components/schemas/ObjectId' }
+            category: { $ref: '#/components/schemas/Category' }
+            createdAt: { type: string, format: date-time }
+    ProductPage:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Product' } }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+    Cart:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              product: { $ref: '#/components/schemas/Product' }
+              qty: { type: integer }
+              lineTotal: { type: integer }
+              issue: { type: [string, 'null'], enum: [OUT_OF_STOCK, QTY_REDUCED, UNAVAILABLE, null] }
+        subtotal: { type: integer }
+        deliveryFee: { type: integer, description: 'Resolved fee in halalas; 0 renders as "Free delivery"' }
+        vat: { $ref: '#/components/schemas/OrderVat' }
+        total: { type: integer, description: 'subtotal + deliveryFee, plus vat.vatAmount when prices exclude VAT' }
+    StatusEvent:
+      type: object
+      properties:
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        at: { type: string, format: date-time }
+        byUserId: { $ref: '#/components/schemas/ObjectId' }
+        note: { type: string }
+    Order:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        orderNo: { type: string, examples: [FX-20261120-0042] }
+        user: { $ref: '#/components/schemas/User' }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId: { $ref: '#/components/schemas/ObjectId' }
+              titleSnapshot: { $ref: '#/components/schemas/LocalizedText' }
+              imageSnapshot: { type: string }
+              unitPrice: { type: integer }
+              qty: { type: integer }
+              type: { $ref: '#/components/schemas/ProductType' }
+              condition: { $ref: '#/components/schemas/Condition' }
+        address: { $ref: '#/components/schemas/AddressInput' }
+        subtotal: { type: integer }
+        deliveryFee: { type: integer, description: Snapshot of the fee resolved at placement (free threshold, city override, base fee, else 0) }
+        vat: { $ref: '#/components/schemas/OrderVat' }
+        total: { type: integer, description: 'subtotal + deliveryFee, plus vat.vatAmount when prices exclude VAT' }
+        paymentMethod: { type: string, enum: [COD] }
+        paymentStatus: { type: string, enum: [UNPAID, PAID] }
+        status: { $ref: '#/components/schemas/OrderStatus' }
+        statusHistory: { type: array, items: { $ref: '#/components/schemas/StatusEvent' } }
+        customerNote: { type: [string, 'null'] }
+        adminNote: { type: [string, 'null'], description: admin responses only }
+        createdAt: { type: string, format: date-time }
+    OrderPage:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Order' } }
+        meta: { $ref: '#/components/schemas/PageMeta' }
+    Notification:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        type: { type: string, enum: [ORDER_PLACED, ORDER_STATUS, NEW_ORDER, SYSTEM] }
+        title: { $ref: '#/components/schemas/LocalizedText' }
+        body: { $ref: '#/components/schemas/LocalizedText' }
+        link: { type: [string, 'null'] }
+        readAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+    BannerInput:
+      type: object
+      required: [title, imageDesktop]
+      properties:
+        title: { $ref: '#/components/schemas/LocalizedText' }
+        subtitle: { $ref: '#/components/schemas/LocalizedText' }
+        ctaLabel: { $ref: '#/components/schemas/LocalizedText' }
+        ctaHref: { type: string }
+        imageDesktop: { $ref: '#/components/schemas/ImageAsset' }
+        imageMobile: { $ref: '#/components/schemas/ImageAsset' }
+        startsAt: { type: [string, 'null'], format: date-time }
+        endsAt: { type: [string, 'null'], format: date-time }
+        sortOrder: { type: integer }
+        isActive: { type: boolean }
+    Banner:
+      allOf:
+        - $ref: '#/components/schemas/BannerInput'
+        - type: object
+          properties:
+            id: { $ref: '#/components/schemas/ObjectId' }
+    HomeSectionInput:
+      type: object
+      required: [type, title]
+      properties:
+        type: { $ref: '#/components/schemas/SectionType' }
+        title: { $ref: '#/components/schemas/LocalizedText' }
+        subtitle: { $ref: '#/components/schemas/LocalizedText' }
+        config:
+          type: object
+          properties:
+            productIds: { type: array, items: { $ref: '#/components/schemas/ObjectId' } }
+            categoryIds: { type: array, items: { $ref: '#/components/schemas/ObjectId' } }
+            limit: { type: integer, maximum: 24 }
+            bannerId: { $ref: '#/components/schemas/ObjectId' }
+            testimonials:
+              type: array
+              items:
+                type: object
+                properties:
+                  name: { type: string }
+                  quote: { $ref: '#/components/schemas/LocalizedText' }
+        sortOrder: { type: integer }
+        isVisible: { type: boolean }
+    HomeSection:
+      allOf:
+        - $ref: '#/components/schemas/HomeSectionInput'
+        - type: object
+          properties:
+            id: { $ref: '#/components/schemas/ObjectId' }
+    PageInput:
+      type: object
+      required: [slug, title, content]
+      properties:
+        slug: { type: string }
+        title: { $ref: '#/components/schemas/LocalizedText' }
+        content: { $ref: '#/components/schemas/LocalizedText' }
+        metaTitle: { $ref: '#/components/schemas/LocalizedText' }
+        metaDescription: { $ref: '#/components/schemas/LocalizedText' }
+        isPublished: { type: boolean }
+    Page:
+      allOf:
+        - $ref: '#/components/schemas/PageInput'
+        - type: object
+          properties:
+            id: { $ref: '#/components/schemas/ObjectId' }
+            updatedAt: { type: string, format: date-time }
+    SiteSetting:
+      type: object
+      properties:
+        storeName: { $ref: '#/components/schemas/LocalizedText' }
+        logo: { $ref: '#/components/schemas/ImageAsset' }
+        contactEmail: { type: string, format: email }
+        contactPhone: { type: string, description: Free text; the store may list a landline }
+        address: { $ref: '#/components/schemas/LocalizedText' }
+        socials:
+          type: object
+          properties:
+            facebook: { type: string }
+            instagram: { type: string }
+            whatsapp: { type: string }
+            tiktok: { type: string }
+        deliveryFee: { type: integer, minimum: 0, default: 0, description: Base delivery fee in halalas; 0 = free delivery (ADR-009) }
+        freeDeliveryThreshold: { type: [integer, 'null'], minimum: 0, default: null, description: Optional. Subtotal (halalas) at or above which delivery is free; null = no threshold }
+        vat: { $ref: '#/components/schemas/VatSetting' }
+        currency: { type: string, const: SAR, description: ISO 4217; fixed to SAR (ADR-008) }
+        deliveryCities:
+          type: array
+          description: Delivery cities (ADM-13). Public endpoint returns active cities only; admin endpoint returns all.
+          items: { $ref: '#/components/schemas/DeliveryCity' }
+        defaultLocale: { $ref: '#/components/schemas/Locale' }
+        seo:
+          type: object
+          properties:
+            title: { $ref: '#/components/schemas/LocalizedText' }
+            description: { $ref: '#/components/schemas/LocalizedText' }

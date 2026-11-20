@@ -1,0 +1,380 @@
+// Mirrors project-docs/04-architecture/data-model.md — change that doc first.
+// Prisma ORM 6.x only (ADR-001). Sync with `npx prisma db push` (MongoDB replica set required).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+enum Role {
+  ADMIN
+  CUSTOMER
+}
+
+enum Locale {
+  en
+  ar
+}
+
+enum OtpPurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+enum ProductType {
+  NEW
+  RESALE
+}
+
+enum Condition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  COD
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+}
+
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_STATUS
+  NEW_ORDER
+  SYSTEM
+}
+
+enum SectionType {
+  FEATURED_PRODUCTS
+  NEW_ARRIVALS
+  RESALE_PICKS
+  CATEGORY_GRID
+  PROMO_BANNER
+  TESTIMONIALS
+}
+
+// ---------- Composite types ----------
+type LocalizedText {
+  en String
+  ar String
+}
+
+// R2 object (ADR-010). url = R2_PUBLIC_BASE_URL + "/" + key, recomputed by the server.
+type ImageAsset {
+  key      String
+  url      String
+  alt      LocalizedText?
+  width    Int?
+  height   Int?
+}
+
+type Dimensions {
+  widthCm  Float?
+  depthCm  Float?
+  heightCm Float?
+  weightKg Float?
+}
+
+type AddressSnapshot {
+  fullName String
+  phone    String // E.164 +9665XXXXXXXX
+  cityCode String
+  city     LocalizedText
+  area     String
+  street   String
+  notes    String?
+}
+
+// Delivery city managed by admin (ADM-13); `code` is a unique, immutable slug. Never deleted, only deactivated.
+type DeliveryCity {
+  code        String
+  name        LocalizedText
+  isActive    Boolean       @default(true)
+  sortOrder   Int           @default(0)
+  deliveryFee Int? // halalas; null = use SiteSetting.deliveryFee (ADR-009)
+}
+
+// Admin-managed VAT (ADR-009). vatRate is a percentage (0-50, max 2 decimals); 0 = no VAT shown anywhere.
+type VatSetting {
+  vatRate            Float   @default(0)
+  applyToDelivery    Boolean @default(true)
+  pricesIncludeVat   Boolean @default(true)
+  registrationNumber String? // 15 digits, ^3\d{13}3$
+}
+
+// Immutable snapshot stored on each order.
+type OrderVat {
+  vatRate            Float
+  vatAmount          Int // halalas
+  applyToDelivery    Boolean
+  pricesIncludeVat   Boolean
+  registrationNumber String?
+}
+
+type CartItem {
+  productId String @db.ObjectId
+  qty       Int
+}
+
+type OrderItem {
+  productId     String        @db.ObjectId
+  titleSnapshot LocalizedText
+  imageSnapshot String?
+  unitPrice     Int
+  qty           Int
+  type          ProductType
+  condition     Condition
+}
+
+type StatusEvent {
+  status   OrderStatus
+  at       DateTime
+  byUserId String?     @db.ObjectId
+  note     String?
+}
+
+// ---------- Models ----------
+model User {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  name            String
+  email           String         @unique
+  passwordHash    String
+  role            Role           @default(CUSTOMER)
+  isVerified      Boolean        @default(false)
+  isBlocked       Boolean        @default(false)
+  failedLoginCount Int           @default(0) // login lockout (ADR-011)
+  lockedUntil     DateTime?
+  phone           String?
+  avatar          String?
+  preferredLocale Locale         @default(ar)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  addresses       Address[]
+  refreshTokens   RefreshToken[]
+  orders          Order[]
+  notifications   Notification[]
+  cart            Cart?
+}
+
+model Otp {
+  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  email      String
+  purpose    OtpPurpose
+  codeHash   String
+  attempts   Int        @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+
+  @@index([email, purpose])
+}
+
+model RefreshToken {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String    @db.ObjectId
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Address {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  fullName  String
+  phone     String // E.164 +9665XXXXXXXX
+  cityCode  String // must match an active DeliveryCity.code when written
+  area      String
+  street    String
+  notes     String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Category {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  name      LocalizedText
+  slug      String        @unique
+  image     ImageAsset?
+  parentId  String?       @db.ObjectId
+  parent    Category?     @relation("CategoryTree", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children  Category[]    @relation("CategoryTree")
+  sortOrder Int           @default(0)
+  isActive  Boolean       @default(true)
+  products  Product[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Product {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  title          LocalizedText
+  description    LocalizedText
+  slug           String         @unique
+  sku            String?
+  type           ProductType
+  condition      Condition
+  conditionNotes LocalizedText?
+  price          Int // minor units
+  compareAtPrice Int?
+  stock          Int            @default(0)
+  categoryId     String         @db.ObjectId
+  category       Category       @relation(fields: [categoryId], references: [id])
+  images         ImageAsset[]
+  dimensions     Dimensions?
+  material       String?
+  color          String?
+  isFeatured     Boolean        @default(false)
+  status         ProductStatus  @default(DRAFT)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([status, type])
+  @@index([categoryId])
+  @@index([isFeatured])
+}
+
+model Cart {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String     @unique @db.ObjectId
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  updatedAt DateTime   @updatedAt
+}
+
+model Order {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  orderNo       String          @unique
+  userId        String          @db.ObjectId
+  user          User            @relation(fields: [userId], references: [id])
+  items         OrderItem[]
+  address       AddressSnapshot
+  subtotal      Int
+  deliveryFee   Int // snapshot, halalas (0 = free delivery)
+  vat           OrderVat // snapshot
+  total         Int
+  paymentMethod PaymentMethod   @default(COD)
+  paymentStatus PaymentStatus   @default(UNPAID)
+  status        OrderStatus     @default(PENDING)
+  statusHistory StatusEvent[]
+  customerNote  String?
+  adminNote     String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model Notification {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String           @db.ObjectId
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     LocalizedText
+  body      LocalizedText
+  link      String?
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt])
+}
+
+model Banner {
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  title        LocalizedText
+  subtitle     LocalizedText?
+  ctaLabel     LocalizedText?
+  ctaHref      String?
+  imageDesktop ImageAsset
+  imageMobile  ImageAsset?
+  startsAt     DateTime?
+  endsAt       DateTime?
+  sortOrder    Int            @default(0)
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model HomeSection {
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  type      SectionType
+  title     LocalizedText
+  subtitle  LocalizedText?
+  config    Json?
+  sortOrder Int            @default(0)
+  isVisible Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model Page {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  slug            String         @unique
+  title           LocalizedText
+  content         LocalizedText
+  metaTitle       LocalizedText?
+  metaDescription LocalizedText?
+  isPublished     Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model SiteSetting {
+  id                    String         @id @default(auto()) @map("_id") @db.ObjectId
+  key                   String         @unique @default("default")
+  storeName             LocalizedText
+  logo                  ImageAsset?
+  contactEmail          String
+  contactPhone          String
+  address               LocalizedText?
+  socials               Json?
+  deliveryFee           Int            @default(0) // base fee, halalas (ADR-009)
+  freeDeliveryThreshold Int? // optional; empty = no threshold
+  vat                   VatSetting
+  deliveryCities        DeliveryCity[]
+  currency              String         @default("SAR") // fixed, ADR-008
+  defaultLocale         Locale         @default(ar)
+  seo                   Json?
+  updatedAt             DateTime       @updatedAt
+}
+
+model Counter {
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @unique
+  seq  Int    @default(0)
+}

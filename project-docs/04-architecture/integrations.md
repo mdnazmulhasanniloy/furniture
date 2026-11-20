@@ -1,16 +1,18 @@
 # Integrations
 
 ## Nodemailer (SMTP) — AUTH-01..04, ORD-04
-- Transport from env: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`. Dev: Ethereal or Mailpit.
-- `EMAIL_LINK_TTL_SECONDS` exists in the env but its purpose is unconfirmed (B-019); OTP expiry stays 10 min (AUTH-01).
+- Transport from env: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`. Dev and MVP production: Gmail SMTP (`smtp.gmail.com`, port 587, STARTTLS, app password; `MAIL_FROM` = the Gmail address or a verified alias).
+- OTP lifetime is `OTP_TTL_SECONDS` (default 600 = 10 min, AUTH-01; replaces `EMAIL_LINK_TTL_SECONDS`, B-019).
 - Templates: `src/emails/templates/{en,ar}/` — `otp-verify`, `otp-reset`, `order-placed`, `order-status`, `admin-invite`. Arabic templates use `dir="rtl"`.
 - Sending is async (not awaited by HTTP response for order emails); OTP emails are awaited so the user gets an error if sending fails.
-- Production provider: any SMTP (Brevo, Amazon SES, Gmail Workspace) — client to choose (B-005).
+- Gmail limits daily volume (about 500/day on a free account); switch `SMTP_*` to a transactional provider (Brevo, SES) before launch volume (B-005). On Vercel the send must finish before the function returns (await it or use `waitUntil`).
 
-## Socket.IO — NOTIF-01..03
-- Server attached to the same HTTP server; CORS = `CORS_ALLOWED_ORIGINS` (`STOREFRONT_URL`, `ADMIN_URL`). **Hosting of the realtime server is open (B-017).**
-- Auth middleware verifies access token from `socket.handshake.auth.token`; on expiry client reconnects with refreshed token.
-- Single instance in MVP → no adapter needed (ADR-005). Scaling later: `@socket.io/redis-adapter` (out of MVP scope).
+## Socket.IO on Vercel — NOTIF-01..03 (ADR-012)
+- **Server:** `api/socket-io.ts`, `path: '/api/socket-io/socket.io'`, `transports: ['websocket']`, CORS = `CORS_ALLOWED_ORIGINS` with credentials. Auth middleware verifies the access token from `socket.handshake.auth.token`; bad or expired token → `connect_error` `unauthorized`. After auth the socket joins `user:{id}`, and admins also join `admins`.
+- **Cross-instance delivery (no Redis):** `@socket.io/mongo-adapter` on the socket server and `@socket.io/mongo-emitter` in the REST API. Collection `socket.io-adapter-events` (env `SOCKET_ADAPTER_COLLECTION`): a **TTL collection** (documents carry `createdAt`; TTL index `expireAfterSeconds: 3600`, env `SOCKET_ADAPTER_TTL_SECONDS`), not capped, so the cron cleanup can delete from it. Needs change streams (Atlas replica set). The notification service first writes the `Notification` row, then calls `emitter.to('user:{id}' | 'admins').emit('notification:new', payload)`; emit failures are logged and ignored (the row is the source of truth). One `mongodb` client singleton per instance, `maxPoolSize` 2, same `DATABASE_URL`.
+- **Events:** `notification:new` (Notification), `order:updated` (`{id, status}`).
+- **Client contract (web `NEXT_PUBLIC_SOCKET_URL`, admin `VITE_SOCKET_URL`):** `io(url, { path: '/api/socket-io/socket.io', transports: ['websocket'], reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 15000, randomizationFactor: 0.5, auth: cb => cb({ token: freshAccessToken() }) })`. Refresh the access token before reconnecting (when it expires within 60 s, or after an `unauthorized` error; one retry, then log out). After **every** `connect`, re-fetch `GET /notifications` (page 1; the response carries the `unread` count); show a toast for notifications newer than the last one seen (group when more than 3).
+- Connections are closed by the platform at the duration limit (about 5 min); this is expected and handled by the reconnect + re-fetch above.
 
 ## Cloudflare R2 — ADM-02, ADM-06 (ADR-010, supersedes Cloudinary)
 - S3-compatible API via `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`, `region: "auto"`, `endpoint: R2_ENDPOINT`.
@@ -42,4 +44,8 @@
 - `@sentry/node` initialised only when `SENTRY_DSN` is non-empty; `SENTRY_ENVIRONMENT` tags the environment. Events carry the request id; no secrets, cookies, tokens or request bodies.
 
 ## Cron routes — CRON_SECRET
-- Cron routes (when mounted) require header `x-cron-secret: CRON_SECRET`. Which jobs exist is open (B-021).
+- Vercel Cron calls `GET /internal/cron/cleanup` daily (`0 3 * * *`, `vercel.json`). Vercel sends `Authorization: Bearer <CRON_SECRET>` (it cannot send custom headers); the route also accepts header `x-cron-secret: <CRON_SECRET>` and `POST` for manual runs. Missing/wrong secret → 401; constant-time compare; `CRON_SECRET` unset → route not mounted.
+- Cleanup removes: expired or consumed OTPs, expired or revoked refresh tokens, socket adapter documents older than `SOCKET_ADAPTER_TTL_SECONDS`. Returns `{otps, refreshTokens, socketEvents}` counts. Idempotent.
+
+## Rate limiting store — NFR-01 (ADR-012)
+- `express-rate-limit` with a MongoDB store (`RateLimit` collection, atomic `findAndModify` upsert with `$inc`, TTL index on `resetAt` created by `ensureIndexes()` at start-up). No in-memory or Redis store.

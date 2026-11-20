@@ -11,21 +11,20 @@ furnixa/
 ├── admin/          ← Vite + React admin dashboard
 ├── scripts/        ← traceability.mjs, i18n-check.mjs
 ├── .claude/commands/ ← /gen-prd, /change-request (workspace level)
-└── docker-compose.yml ← Mongo replica set + Mailpit
+└── docker-compose.yml ← optional offline fallback (Mongo replica set + Mailpit); default path is Atlas + Gmail SMTP
 ```
 
 ## Where we are
-Docs v0.5 (Saudi market, SAR, `ar` default, admin-managed delivery fee/VAT defaulting to 0; ADR-007…009 accepted; `schema.prisma` aligned) → **next: final sign-off of the remaining open blockers** (`project-docs/05-delivery/blockers.md`: B-005, B-006, B-007, B-009, B-013…B-015).
+Docs v0.7 (Saudi market, SAR, `ar` default, admin-managed fee/VAT, Cloudflare R2, auth hardening, **Vercel serverless for all apps** ADR-012; `schema.prisma` aligned) → **next: final sign-off of the remaining open blockers** (`project-docs/05-delivery/blockers.md`: B-006, B-007, B-009, B-013…B-015).
 After sign-off, in any repo: `/next-task` → approve plan → build + tests → `/review-task T-xxx` → `/sync-docs T-xxx` → `/clear`.
 
 ## Local setup (after sign-off)
 ```bash
-docker compose up -d
 cd backend && cp .env.example .env && npm i && npm run db:push && npm run seed && npm run dev
 cd web && cp .env.example .env.local && npm i && npm run dev
 cd admin && cp .env.example .env && npm i && npm run dev
 ```
-Mail UI: http://localhost:8025
+Needs a MongoDB Atlas dev database (`DATABASE_URL`) and Gmail SMTP app password in `backend/.env`.
 Ports: API http://localhost:4100 · web http://localhost:3100 · admin http://localhost:3101
 
 ## Checks

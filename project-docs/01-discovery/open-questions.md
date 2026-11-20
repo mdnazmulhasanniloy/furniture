@@ -15,8 +15,8 @@ Each question is also logged as a blocker in `05-delivery/blockers.md`. Answers 
 13. ✅ **VAT on delivery (B-016):** *Answered (SRC-005.3):* admin toggle "Apply VAT to delivery fee", default on.
 11. **Phones (B-014):** Mobile only, or landlines too? Draft: mobile only.
 12. **Digits & dates (B-015):** Western or Arabic-Indic digits, Gregorian or Hijri dates in the Arabic UI? Draft: Western digits, Gregorian.
-14. **Backend hosting (B-017):** Vercel conflicts with Socket.IO and in-memory rate limiting. Options A–D in blockers.md.
-15. **Repo layout (B-018):** three separate repos with `npm`, or a pnpm monorepo?
-16. **`EMAIL_LINK_TTL_SECONDS` (B-019):** OTP expiry, or a link-based flow?
-17. **Names (B-020):** `firstName` + `lastName` instead of `name`?
-18. **Cron jobs (B-021):** which jobs does `CRON_SECRET` protect?
+14. ✅ **Backend hosting (B-017):** *Answered (SRC-007.1):* Vercel for all apps; see ADR-012.
+15. ✅ **Repo layout (B-018):** *Answered (SRC-007.2):* three separate apps with `npm`.
+16. ✅ **`EMAIL_LINK_TTL_SECONDS` (B-019):** *Answered (SRC-007.2):* removed; `OTP_TTL_SECONDS=600`.
+17. ✅ **Names (B-020):** *Answered (SRC-007.3):* `firstName` + `lastName`.
+18. ✅ **Cron jobs (B-021):** *Answered (SRC-007.1):* one cleanup route on Vercel Cron.

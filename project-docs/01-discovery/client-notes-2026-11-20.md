@@ -87,3 +87,14 @@ CR-005. Image storage change and adoption of the backend `.env` as the real envi
 | 2 | Adopt the backend `.env` keys: ports API 4100 / web 3100 / admin 3101; argon2 instead of bcrypt; refresh TTL 30 days; login lockout; `MAX_ACTIVE_SESSIONS`; CSRF for cookie requests; Sentry (off when `SENTRY_DSN` empty). | SRC-006.2 | — |
 | 3 | Not decided, raised as blockers: Vercel hosting vs Socket.IO (B-017), pnpm monorepo vs three repos (B-018), `EMAIL_LINK_TTL_SECONDS` (B-019), `firstName`/`lastName` (B-020), `CRON_SECRET` jobs (B-021). | SRC-006.3 | — |
 
+## Client answers and hosting decision — 2026-11-20 (SRC-007)
+
+CR-006. Answers to B-017…B-021 and the final hosting decision (replaces the earlier "Option A" answer).
+
+| # | Statement | Ref | Resolves |
+|---|-----------|-----|----------|
+| 1 | Backend, web and admin all deploy on Vercel. Vercel Functions support WebSockets natively (GA, Fluid Compute); Socket.IO works with `transports: ['websocket']`; connections close at the function duration limit (about 5 min); Vercel runs multiple instances. Socket.IO in its own function (`api/socket-io.ts`, path `/api/socket-io/socket.io`); `@socket.io/mongo-adapter` + `mongo-emitter` (no Redis); clients: websocket transport, reconnect with backoff, refresh token before reconnect, re-fetch unread count and latest notifications after each reconnect; rate limiting in a MongoDB collection with a TTL index; Vercel Cron + `CRON_SECRET` for `/internal/cron/cleanup` (OTPs, refresh tokens, old adapter documents); `TRUST_PROXY=1` in production; Prisma singleton and Atlas pool settings; ADR-005 superseded; `vercel.json` for the backend. | SRC-007.1 | B-017, B-021, B-005 (hosting) |
+| 2 | Three separate repos with `npm` (B-018). `OTP_TTL_SECONDS=600` replaces `EMAIL_LINK_TTL_SECONDS` (B-019). | SRC-007.2 | B-018, B-019 |
+| 3 | `firstName` + `lastName` (B-020). | SRC-007.3 | B-020 |
+| 4 | Atlas and Gmail SMTP are used instead of Docker. | SRC-007.4 | B-005 (SMTP) |
+| 5 | Assumptions accepted: lockout per account; oldest session revoked at `MAX_ACTIVE_SESSIONS`; `REFRESH_TOKEN_PEPPER` as HMAC key. | SRC-007.5 | — |

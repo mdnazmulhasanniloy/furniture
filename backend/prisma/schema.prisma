@@ -161,7 +161,8 @@ type StatusEvent {
 // ---------- Models ----------
 model User {
   id              String         @id @default(auto()) @map("_id") @db.ObjectId
-  name            String
+  firstName       String
+  lastName        String
   email           String         @unique
   passwordHash    String
   role            Role           @default(CUSTOMER)
@@ -192,6 +193,17 @@ model Otp {
   createdAt  DateTime   @default(now())
 
   @@index([email, purpose])
+}
+
+model RateLimit {
+  id      String   @id @default(auto()) @map("_id") @db.ObjectId
+  key     String   @unique // rl:{limiter}:{ip}
+  hits    Int      @default(0)
+  resetAt DateTime
+  // TTL index { resetAt: 1 }, expireAfterSeconds 0 is created at start-up by ensureIndexes() (ADR-012).
+  // Do not add @@index([resetAt]) here: Prisma would create a plain index with the same keys and the TTL index would conflict.
+
+  @@map("rate_limits")
 }
 
 model RefreshToken {

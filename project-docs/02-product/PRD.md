@@ -1,6 +1,6 @@
 # PRD — Furnixa (working name) · Furniture Marketplace MVP
 
-Status: **DRAFT v0.6 — images on Cloudflare R2 (ADR-010), auth hardening and backend env (ADR-011); B-017…B-021 open, awaiting answers** · Date: 2026-11-20 · Source: `01-discovery/client-notes-2026-11-20.md` (SRC-001…SRC-006)
+Status: **DRAFT v0.7 — Vercel serverless hosting (ADR-012), `firstName`/`lastName`, `OTP_TTL_SECONDS`; B-017…B-021 resolved (SRC-007)** · Date: 2026-11-20 · Source: `01-discovery/client-notes-2026-11-20.md` (SRC-001…SRC-007)
 
 ## 1. Summary
 
@@ -29,8 +29,8 @@ Status values: `draft`, `pending-client` (blocked by a question), `approved`.
 ### 5.1 Authentication (AUTH) — SRC-001.6
 
 **AUTH-01 Register with email OTP** · draft
-As a visitor, I want to sign up with name, email and password and verify my email with an OTP, so that my account is trusted.
-- Given a new email, When I submit the register form, Then an unverified account is created and a 6-digit OTP is emailed (valid 10 min).
+As a visitor, I want to sign up with first name, last name, email and password and verify my email with an OTP, so that my account is trusted.
+- Given a new email, When I submit the register form, Then an unverified account is created and a 6-digit OTP is emailed (valid `OTP_TTL_SECONDS`, default 600 = 10 min).
 - Given a correct, unexpired OTP, When I submit it, Then my account becomes verified and I am logged in.
 - Given a wrong OTP 5 times, When I submit again, Then the OTP is invalidated and I must request a new one.
 - Given an email that is already verified, When I register, Then I get "email already in use" (409).
@@ -41,7 +41,7 @@ As a visitor, I want to sign up with name, email and password and verify my emai
 - Given an unverified account, When I log in, Then a new OTP is sent and I am redirected to the verify screen.
 - Given a blocked account, When I log in, Then I get 403 "account blocked".
 - Given `LOGIN_MAX_FAILURES` (default 5) consecutive failed logins for an account, When I try again within `LOGIN_LOCKOUT_SECONDS` (default 900), Then I get 429 `ACCOUNT_LOCKED`; a successful login resets the counter.
-- Given 10 failed attempts in 15 min from one IP, Then further attempts get 429 (IP rate limiter; hosting impact: B-017).
+- Given 10 failed attempts in 15 min from one IP, Then further attempts get 429 (IP rate limiter with a MongoDB-backed store, ADR-012).
 - Given I already have `MAX_ACTIVE_SESSIONS` (default 5) active sessions, When I log in, Then my oldest session is revoked (ADR-011).
 
 **AUTH-03 Forgot / reset password via OTP** · draft
@@ -64,7 +64,7 @@ As a visitor, I want to sign up with name, email and password and verify my emai
 
 ### 5.2 Profile (PROF)
 
-**PROF-01 Profile** · draft — View/edit name, phone, avatar, preferred language (default `ar`). Changing email is out of scope.
+**PROF-01 Profile** · draft — View/edit first name, last name, phone, avatar, preferred language (default `ar`). Changing email is out of scope.
 - Phone must be a valid Saudi mobile number (NFR-06); Given an invalid number, When I save, Then the field shows a localized error and the API returns 422 `VALIDATION_ERROR`.
 **PROF-02 Address book** · draft — Add/edit/delete addresses (label, full name, phone, city, area, street, notes); one default. Given no address, When checking out, Then I must add one inline.
 - City is chosen from the **active delivery cities** (ADM-13, SRC-003.2), stored as `cityCode`. Given an unknown or inactive city, When the address is saved, Then the API returns 422 `OUT_OF_DELIVERY_AREA`. Area and street stay required.
@@ -118,7 +118,9 @@ Order status flow: `PENDING → CONFIRMED → PROCESSING → OUT_FOR_DELIVERY �
 ### 5.5 Notifications (NOTIF) — SRC-001.10
 
 **NOTIF-01 Customer live notifications** · draft — Given I am logged in on the website, When an admin changes my order status, Then I receive a toast within 2 s and the bell badge count increases, without refreshing.
+- Given my socket was disconnected (network loss or the platform closing it at the function duration limit), When a notification is created and the socket reconnects, Then after the reconnect the bell count and list include it, and a toast shows it (grouped as "N new notifications" when more than 3). The client reconnects with backoff, refreshes the access token first, and re-fetches `GET /notifications` after every connect (ADR-012).
 **NOTIF-02 Admin live notifications** · draft — Given an admin is logged in, When a new order is created, Then all online admins get a toast + sound (toggleable) and the bell count increases.
+- Given an admin socket was disconnected when an order was placed, When it reconnects, Then the bell count and list include the new order notification (same reconnect rules as NOTIF-01).
 **NOTIF-03 Notification centre** · draft — Persistent list (paginated), mark one/all as read, click navigates to the related order. Notifications created while offline appear on next login.
 
 ### 5.6 Internationalisation (I18N) — SRC-001.13
@@ -171,12 +173,13 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 
 ## 6. Non-functional
 
-- NFR-01 Security: helmet, CORS allow-list, zod validation on every input, argon2id password hashing (cost from env), OTPs stored hashed, login lockout, session cap, CSRF protection for cookie requests, rate limit on auth routes (in-memory; B-017), no secrets in repo (ADR-011).
+- NFR-01 Security: helmet, CORS allow-list, zod validation on every input, argon2id password hashing (cost from env), OTPs stored hashed, login lockout, session cap, CSRF protection for cookie requests, rate limit on auth routes (MongoDB-backed store, ADR-012), no secrets in repo (ADR-011).
 - NFR-02 Performance: API p95 < 300 ms for list endpoints at 1k products; Next.js image optimisation.
 - NFR-03 SEO: SSR product pages, localized meta, `hreflang`, sitemap.
 - NFR-04 Observability: structured logs (pino), request ids, central error handler, Sentry error reporting (disabled when `SENTRY_DSN` is empty).
 - NFR-05 Data: MongoDB replica set (Atlas) — required for Prisma transactions (stock decrement).
 - NFR-06 Saudi phone numbers: profile and address phones are Saudi mobile numbers, stored as E.164 `+9665XXXXXXXX`. Accepted input: `05XXXXXXXX`, `5XXXXXXXX`, `+9665XXXXXXXX`, `009665XXXXXXXX`; the server normalizes. One shared zod validator is used by web, admin and backend. Landlines are not accepted until B-014 is answered. (SRC-003.3, ADR-008)
+- NFR-08 Hosting & operations: backend, web and admin run on Vercel; Socket.IO runs in its own function with `@socket.io/mongo-adapter` (no Redis); rate limits are stored in MongoDB; Vercel Cron calls `/internal/cron/cleanup` (protected by `CRON_SECRET`) daily; `TRUST_PROXY=1` in production; one PrismaClient per instance. (ADR-012)
 - NFR-07 Money: all prices are integer halalas (1 SAR = 100 halalas); formatting only at the UI edge via `formatPrice`. Fee, VAT and totals are computed on the server only, in halalas. (SRC-003.1, ADR-008, ADR-009)
 
 ## 7. Release criteria (MVP)

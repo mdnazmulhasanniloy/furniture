@@ -14,7 +14,7 @@
 - Each acceptance criterion in the PRD gets ≥ 1 test named with its ID, e.g. `it('AUTH-01 · locks OTP after 5 wrong attempts')`. `grep -r "AUTH-01" tests/` must find it.
 - Tests never deleted or weakened to make a task pass; reviewers check diff of `tests/` on every PR.
 - Email: captured via a test transport (Nodemailer `jsonTransport`); OTP read from captured mail in tests.
-- Socket: `socket.io-client` in backend tests; Playwright two-context test for live toast.
+- Socket: `socket.io-client` in backend tests (websocket transport); Playwright two-context test for live toast. Cross-instance delivery is tested with two server instances sharing the MongoDB adapter collection (`mongodb-memory-server` replica set).
 
 ## Critical scenarios
 1. Two customers buy the last resale item simultaneously → one order, one OUT_OF_STOCK.
@@ -32,3 +32,8 @@
 13. Image upload (S3 client mocked): presign rejects non-image types and > 5 MB; key format and 300 s expiry; removing an image from a product/banner or deleting a product deletes the R2 objects; a failed delete is logged and the request still succeeds.
 14. Auth hardening: argon2id verification; lockout after `LOGIN_MAX_FAILURES` and reset on success; `MAX_ACTIVE_SESSIONS` revokes the oldest session; refresh/logout without a valid CSRF token → 403; 30-day refresh TTL.
 15. Config: the API refuses to start in production without the required secrets and `CORS_ALLOWED_ORIGINS`; Sentry is not initialised when `SENTRY_DSN` is empty.
+16. Reconnect catch-up: a notification created while the socket was disconnected is shown after the reconnect (bell count, list, toast) — backend (socket.io-client), web and admin tests.
+17. Cross-instance realtime: an event emitted by the REST side (mongo-emitter) reaches a client connected to a different socket server instance.
+18. Rate limiting across instances: two app instances share the `RateLimit` counter; the TTL index exists; the limiter fails open when MongoDB errors.
+19. Cron cleanup: `GET`/`POST /internal/cron/cleanup` with `Authorization: Bearer` or `x-cron-secret` removes expired/consumed OTPs, expired/revoked refresh tokens and old adapter documents and keeps the rest; wrong or missing secret → 401; a user JWT → 401; unset `CRON_SECRET` → route absent.
+20. Names and OTP lifetime: register requires `firstName` and `lastName`; OTP expires after `OTP_TTL_SECONDS`.

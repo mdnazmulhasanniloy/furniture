@@ -1,0 +1,60 @@
+# ADR-012: Vercel serverless deployment (backend, web, admin)
+
+Status: **Accepted 2026-11-20** (client decision, SRC-007.1; replaces the earlier "Option A" answer) · **Supersedes ADR-005** · Amends ADR-011 (cookies, cron) · Resolves B-017, B-021 and the `TRUST_PROXY` / `CRON_SECRET` questions.
+
+## Context
+All three apps deploy on Vercel. Stated platform facts (client, SRC-007.1; re-verify against the Vercel docs and the chosen plan before go-live): Vercel Functions support WebSockets natively (GA, Fluid Compute); Socket.IO works when the client uses `transports: ['websocket']`; a connection is closed at the function duration limit (about 5 minutes by default); Vercel runs many instances at once. ADR-005 assumed one long-lived instance, in-memory rate limiting and no adapter. None of that holds, and Redis stays out of scope.
+
+## Decision
+
+### 1. Functions
+- **API function** `backend/api/index.ts` exports the Express app (`export default app`). `vercel.json` rewrites every path except the socket path to it. Base path stays `/api/v1`; health is `GET /health`.
+- **Socket function** `backend/api/socket-io.ts` runs the Socket.IO server with `path: '/api/socket-io/socket.io'`, `transports: ['websocket']` and CORS = `CORS_ALLOWED_ORIGINS` (credentials). Its own function so connection lifetime and duration limits do not affect the API.
+- Local dev still runs one Node process (`npm run dev`) that mounts both on port 4100; the code is the same, only the entry differs.
+
+### 2. Cross-instance delivery without Redis
+- Socket function: `@socket.io/mongo-adapter` on collection `socket.io-adapter-events` (name from env `SOCKET_ADAPTER_COLLECTION`).
+- REST API (any instance): `@socket.io/mongo-emitter` writes to the same collection, so `emitter.to('user:{id}').emit('notification:new', n)` and `emitter.to('admins').emit(...)` reach whichever instance holds the socket.
+- **Collection type: TTL, not capped.** The collection is created with `createdAt` stamped on each document (adapter option `addCreatedAtField: true`) and a TTL index `{createdAt: 1}, expireAfterSeconds: 3600`. Reason: documents in a capped collection cannot be deleted, which would defeat the cron cleanup below; a TTL collection can be swept by both the TTL monitor and the cron job. The adapter reads new documents with a change stream (Atlas is a replica set, so this works). **T-023 starts with a spike test on the chosen Atlas tier** (adapter + emitter across two server instances); if the tier rejects it the fallback is a capped collection and the cron step skips it.
+- The Notification row in MongoDB remains the source of truth. Emitting is best effort: a failed emit is logged and never fails the REST request.
+- Native `mongodb` driver client: one singleton per instance (`src/lib/mongo.ts`, `maxPoolSize` 2) shared by the adapter and the emitter; same `DATABASE_URL` as Prisma.
+
+### 3. Client behaviour (web and admin)
+- `io(SOCKET_URL, { path: '/api/socket-io/socket.io', transports: ['websocket'], reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 15000, randomizationFactor: 0.5 })` with no attempt limit.
+- `auth` is a callback: before every (re)connect it returns a fresh access token (refresh first if it expires within 60 s). An `unauthorized` connect error triggers one refresh and one retry; a second failure logs the user out.
+- On **every** `connect` (first and re-connect): re-fetch `GET /notifications` (page 1; the response already carries `unread`), then update the bell. Notifications newer than the last one the user saw get a toast (grouped as "N new notifications" when more than 3). The planned close at the duration limit is therefore invisible except for a short reconnect.
+- Required test (NOTIF-01/02/03): *a notification created while the socket was disconnected is shown after the reconnect* (backend/web/admin).
+
+### 4. Rate limiting (replaces in-memory)
+- `express-rate-limit` with a custom MongoDB store. Collection `RateLimit {key (unique), hits, resetAt}`; each hit is one atomic `findAndModify` upsert with `$inc`; a TTL index `{resetAt: 1}, expireAfterSeconds: 0` removes finished windows. The TTL index is created at start-up by an idempotent `ensureIndexes()` (`$runCommandRaw`) because Prisma cannot declare TTL indexes (and must not declare a plain index on the same key).
+- Keys: `rl:{limiterName}:{ip}`. With `TRUST_PROXY=1` the IP comes from the Vercel-set forwarded header. If the store is unreachable the limiter fails open and logs (availability over blocking); the per-account lockout (ADR-011) still protects login.
+- Login lockout already lives on `User` and is unchanged.
+
+### 5. Cron
+- Vercel Cron (`vercel.json` `crons`) calls **`GET /internal/cron/cleanup`**. Vercel Cron always issues `GET` and, when the project env `CRON_SECRET` is set, adds `Authorization: Bearer <CRON_SECRET>`; it cannot add custom headers. The route therefore accepts **either** `Authorization: Bearer <CRON_SECRET>` **or** `x-cron-secret: <CRON_SECRET>` (manual runs, other schedulers), on `GET` or `POST`. Constant-time comparison; missing/wrong secret → 401; `CRON_SECRET` unset → route not mounted.
+- Cleanup deletes: OTPs expired or consumed; refresh tokens expired or revoked; Socket.IO adapter documents older than `SOCKET_ADAPTER_TTL_SECONDS`. Response `{ otps, refreshTokens, socketEvents }` counts. Idempotent and safe to run twice.
+- Schedule `0 3 * * *` (daily, allowed on every Vercel plan; hourly needs Pro). OTP expiry is enforced at verification time, so cleanup frequency affects storage only. This replaces the `node-cron` plan and the "startup + hourly" cleanup.
+- Orphaned R2 uploads cleanup stays out of scope (ADR-010).
+
+### 6. Proxy, Prisma, Atlas
+- `TRUST_PROXY=1` in production (Vercel is the single proxy hop); `false` locally.
+- Prisma: one `PrismaClient` per instance via a `globalThis` singleton (`src/lib/prisma.ts`), also in development to survive hot reload. No `$disconnect()` per request.
+- Atlas connection settings (append to `DATABASE_URL`, tune per plan; verify the options with Prisma 6 at T-001): `maxPoolSize=5`, `minPoolSize=0`, `maxIdleTimeMS=60000`, `serverSelectionTimeoutMS=5000`, `retryWrites=true&w=majority`. **Connection budget** = running instances × (Prisma pool + driver pool of 2). Atlas M0 allows 500 connections, M10 1 500; with Fluid Compute many concurrent requests share one instance, so the real count is low, but monitor it. Atlas network access: Vercel has no fixed egress IPs on the standard plan, so the Atlas IP access list allows `0.0.0.0/0` protected by a strong DB user password (or use Vercel's static IPs / private link on a paid plan).
+- Cold start: Prisma client generated at build (`prisma generate` in `postinstall`, `binaryTargets` includes the Vercel runtime target); env validation runs once per instance.
+
+### 7. Mail and local dev (SRC-007.4)
+Atlas (a dev cluster or database) and Gmail SMTP are used in development as well; Docker is no longer required. Gmail SMTP: `smtp.gmail.com`, port 587, account with 2-step verification and an app password in `SMTP_PASS`; `MAIL_FROM` must be that address or a verified alias. Gmail limits sending volume (roughly 500 messages/day on a free account), enough for the MVP OTP and order emails; move to a transactional provider before launch volume (B-005 note). Tests do not use SMTP (Nodemailer `jsonTransport`) and use `mongodb-memory-server` (replica set).
+
+### 8. Vercel projects
+| Project | Root dir | Framework / build | Notes |
+|---|---|---|---|
+| `furnixa-api` | `backend` | Other; `npm run build` (prisma generate + tsc) | `vercel.json` (functions, rewrites, crons); env from `backend/.env.example`; domain `api.furnixa.com` |
+| `furnixa-web` | `web` | Next.js | env `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SOCKET_URL`, `REVALIDATE_SECRET`; domain `furnixa.com`; `images.remotePatterns` for the R2 host |
+| `furnixa-admin` | `admin` | Vite; build `npm run build`, output `dist` | env `VITE_API_URL`, `VITE_SOCKET_URL`; SPA rewrite `/(.*)` → `/index.html`; domain `admin.furnixa.com` |
+
+## Consequences
+- ADR-005 is superseded: no in-memory limiter, no single-instance rule; still **no Redis, Kafka or queues**. Emails are still sent in-process; on serverless a response must not finish before the send is awaited, so order emails are awaited with `waitUntil` from `@vercel/functions` (or awaited directly), not fire-and-forget.
+- Domain events stay an in-process `EventEmitter` inside one request; fan-out to other instances goes through MongoDB (adapter collection), not memory.
+- New dependencies: `@socket.io/mongo-adapter`, `@socket.io/mongo-emitter`, `mongodb`, `@vercel/functions`. New tasks T-023 (adapter and emitter), T-024 (rate-limit store), T-025 (cron route), T-026 (Vercel config). T-016 now depends on T-023.
+- NOTIF-01's "within 2 s" holds while the socket is connected; during a reconnect the unread-count/list re-fetch closes the gap (new acceptance criteria and tests).
+- Risks: duration-limit and plan limits for WebSocket functions (verify), Atlas connection counts, change-stream support on the chosen Atlas tier (spike in T-023).

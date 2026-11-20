@@ -24,5 +24,5 @@ Status: **Accepted 2026-11-20** (team/client decision, SRC-006.1) · **Supersede
 
 ## Consequences
 - Objects are public-read through `R2_PUBLIC_BASE_URL`; there are no private images.
-- Orphans are possible if a browser uploads and the form is never saved; a cleanup job is out of scope (see B-021 for cron jobs).
+- Orphans are possible if a browser uploads and the form is never saved; a cleanup job is out of scope (the cron job of ADR-012 does not cover R2).
 - `package.json` must drop `cloudinary` and `multer` and add the two AWS SDK packages (T-008).

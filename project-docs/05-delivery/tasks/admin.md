@@ -20,7 +20,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 ### T-068 Home sections (dnd-kit) · todo — Req: ADM-07 · Depends: T-067
 ### T-069 Static pages (Tiptap per locale) · todo — Req: ADM-08 · Depends: T-061, backend T-011
 ### T-070 Site settings (General, Social, SEO) · todo — Req: ADM-09 · Depends: T-061, backend T-011 · Done: ar/en tabs, default locale ar, currency read-only SAR.
-### T-071 Live notifications · todo — Req: ADM-10, NOTIF-02, NOTIF-03 · Depends: T-061, backend T-016 · Done: toast + optional sound on new order; bell; list page.
+### T-071 Live notifications · todo — Req: ADM-10, NOTIF-02, NOTIF-03 · Depends: T-061, backend T-016 · Done: same socket client contract as web T-040 (websocket only, backoff, token refresh before reconnect, re-fetch `GET /notifications` after every connect); toast + optional sound on new order; bell; list page; test `NOTIF-02`: an order notification created while disconnected appears after reconnect.
 ### T-072 Admin users · todo — Req: ADM-11 · Depends: T-061, backend T-017
 ### T-073 Settings → Delivery (fee, threshold, cities) · todo
 - Req: ADM-13, ADM-14 · Depends: T-070, backend T-021, backend T-022 · Docs: `screen-specs.md#A-05`

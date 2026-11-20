@@ -6,12 +6,12 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 ### T-001 Bootstrap backend · todo
 - Req: NFR-01, NFR-04 · Depends: — 
 - Docs: `04-architecture/system-architecture.md`, `04-architecture/infra-deployment.md`
-- Done: Express 5 + TS strict; zod-validated env covering every key in `backend/.env.example` (ADR-011: production requires `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_PEPPER`, `CSRF_SECRET` ≥ 32 chars and `CORS_ALLOWED_ORIGINS`; empty secrets outside production are generated at start-up; `AUTH_COOKIE_SECURE` empty = true in production); dependencies switched per ADR-010/011 (remove `bcryptjs`, `cloudinary`, `multer`; add `argon2`, `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`, `@sentry/node`); port 4100; Sentry initialised only when `SENTRY_DSN` is set; pino logger with request id; helmet, CORS allow-list, cookie-parser; central error handler returning `Error` schema; `GET /health` → 200; vitest + supertest set up with `mongodb-memory-server` replica set; ESLint + Prettier; `npm run typecheck` clean.
+- Done: Express 5 + TS strict, app exported for Vercel (`api/index.ts`, ADR-012); zod-validated env covering every key in `backend/.env.example` (ADR-011: production requires `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_PEPPER`, `CSRF_SECRET` ≥ 32 chars and `CORS_ALLOWED_ORIGINS`; empty secrets outside production are generated at start-up; `AUTH_COOKIE_SECURE` empty = true in production); dependencies switched per ADR-010/011 (remove `bcryptjs`, `cloudinary`, `multer`; add `argon2`, `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`, `@sentry/node`, `mongodb`, `@socket.io/mongo-adapter`, `@socket.io/mongo-emitter`, `@vercel/functions`); `PrismaClient` as a `globalThis` singleton; `TRUST_PROXY` parsed (`1` in production); `OTP_TTL_SECONDS`, `SOCKET_ADAPTER_COLLECTION`, `SOCKET_ADAPTER_TTL_SECONDS` and `CRON_SECRET` validated; `prisma generate` in `postinstall`; port 4100; Sentry initialised only when `SENTRY_DSN` is set; pino logger with request id; helmet, CORS allow-list, cookie-parser; central error handler returning `Error` schema; `GET /health` → 200; vitest + supertest set up with `mongodb-memory-server` replica set; ESLint + Prettier; `npm run typecheck` clean.
 
 ### T-002 Prisma schema + seed · todo
 - Req: NFR-05 (all data) · Depends: T-001
 - Docs: `04-architecture/data-model.md`, `adr/ADR-001`, `adr/ADR-006`
-- Done: `prisma/schema.prisma` matches data-model (aligned 2026-11-20: SAR, `defaultLocale` ar, `deliveryCities`, `cityCode`, `VatSetting`, `OrderVat`; validated with Prisma 6); `prisma db push` works on replica set; `npm run seed` creates 1 admin (from env), 6 categories, SiteSetting singleton (`deliveryFee` 0, `freeDeliveryThreshold` null, `vat` = {vatRate 0, applyToDelivery true, pricesIncludeVat true}, 6 active cities: riyadh, jeddah, mecca, medina, dammam, khobar), default HomeSections, sample pages (about, faq, terms, privacy, contact) in en+ar, 12 sample products (6 NEW, 6 RESALE).
+- Done: `prisma/schema.prisma` matches data-model (aligned 2026-11-20: `User.firstName`/`lastName`, `RateLimit`, SAR, `defaultLocale` ar, `deliveryCities`, `cityCode`, `VatSetting`, `OrderVat`; validated with Prisma 6); `prisma db push` works on replica set; `npm run seed` creates 1 admin (`ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_FIRST_NAME`, `ADMIN_LAST_NAME`), 6 categories, SiteSetting singleton (`deliveryFee` 0, `freeDeliveryThreshold` null, `vat` = {vatRate 0, applyToDelivery true, pricesIncludeVat true}, 6 active cities: riyadh, jeddah, mecca, medina, dammam, khobar), default HomeSections, sample pages (about, faq, terms, privacy, contact) in en+ar, 12 sample products (6 NEW, 6 RESALE).
 
 ### T-003 Mailer + templates · todo
 - Req: AUTH-01, AUTH-03, ORD-04 · Depends: T-001
@@ -21,7 +21,7 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 ### T-004 Register, verify OTP, resend OTP · todo
 - Req: AUTH-01, AUTH-04 · Depends: T-002, T-003
 - Docs: `02-product/PRD.md#5.1`, `adr/ADR-003`, `api-spec.yaml` (/auth/register, /auth/verify-otp, /auth/resend-otp)
-- Done: all AUTH-01/04 Given/When/Then covered by tests incl. 5 wrong attempts, expiry, 60 s cooldown, 5/hour cap.
+- Done: all AUTH-01/04 Given/When/Then covered by tests incl. 5 wrong attempts, expiry after `OTP_TTL_SECONDS` (fake timers; default 600), 60 s cooldown, 5/hour cap; register requires `firstName` and `lastName` (422 otherwise).
 
 ### T-005 Login, refresh, logout, me, auth/role middleware · todo
 - Req: AUTH-02, AUTH-05, AUTH-06 · Depends: T-004
@@ -70,9 +70,9 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 - Req: ORD-03 · Depends: T-014
 - Done: tests named `ORD-03`: customer cancels own PENDING order -> CANCELLED, stock restored; CONFIRMED or later -> 409 `INVALID_TRANSITION`; another user's order -> 404.
 
-### T-016 Socket.IO + notifications · todo
-- Req: NOTIF-01, NOTIF-02, NOTIF-03, ADM-10 · Depends: T-014
-- Done: socket auth rejects bad token; new order → each admin gets a Notification row + `notification:new`; status change → customer gets one; list/read/read-all/unread count tested with socket.io-client in tests.
+### T-016 Notifications service + socket server · todo
+- Req: NOTIF-01, NOTIF-02, NOTIF-03, ADM-10 · Depends: T-014, T-023
+- Done: socket auth rejects bad token (`unauthorized`); new order → each admin gets a Notification row + `notification:new` to room `admins`; status change → customer gets one in room `user:{id}`; list/read/read-all/unread count tested with socket.io-client; the row is written before the emit and a failing emit is logged without failing the request. Tests named `NOTIF-01`, `NOTIF-02`, `NOTIF-03` including **"notification created while the socket was disconnected is shown after reconnect"** (client disconnects, order status changes, client reconnects, `GET /notifications` returns it with `unread` incremented).
 
 ### T-017 Admin customers + admin users · todo
 - Req: ADM-05, ADM-11 · Depends: T-005
@@ -98,3 +98,19 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 ### T-022 Delivery cities admin API rules · todo
 - Req: ADM-13 · Depends: T-011 · Docs: `adr/ADR-008`
 - Done: add city (both names required, unique immutable `code`), rename, reorder, toggle active; removing or changing a code -> 409; cannot deactivate the last active city -> 422; deactivated city hidden from `/cms/settings` and rejected by address create/checkout; existing orders unchanged; per-city `deliveryFee` override validated (>= 0 or null). Tests named `ADM-13`.
+
+### T-023 Socket.IO on MongoDB adapter + emitter (serverless) · todo
+- Req: NOTIF-01, NOTIF-02, NOTIF-03 · Depends: T-001, T-002 · Docs: `adr/ADR-012`, `integrations.md#socketio-on-vercel`
+- Done: `src/lib/mongo.ts` driver singleton (`maxPoolSize` 2, `DATABASE_URL`); `api/socket-io.ts` serves path `/api/socket-io/socket.io`, websocket transport, CORS from `CORS_ALLOWED_ORIGINS`; `@socket.io/mongo-adapter` on collection `SOCKET_ADAPTER_COLLECTION` with `createdAt` and TTL index `SOCKET_ADAPTER_TTL_SECONDS`; `src/lib/emitter.ts` wraps `@socket.io/mongo-emitter` (`toUser(id)`, `toAdmins()`). **Spike first:** tests start **two separate Socket.IO server instances** and an emitter on a third client against `mongodb-memory-server` (replica set); a client on instance B receives an event emitted from the emitter (`NOTIF-01 · cross-instance delivery`). If the Atlas tier cannot run change streams, record it in blockers and fall back to a capped collection. Dev entry `server.ts` mounts the same server on port 4100.
+
+### T-024 MongoDB rate-limit store · todo
+- Req: NFR-01, AUTH-02 · Depends: T-002 · Docs: `adr/ADR-012`, `data-model.md` (RateLimit)
+- Done: `rateLimit.ts` uses `express-rate-limit` with a custom store (`increment`, `decrement`, `resetKey`, `resetAll`) over `RateLimit` with one atomic `findAndModify` upsert (`$inc`); `ensureIndexes()` creates the TTL index idempotently and is called at start-up; keys `rl:{limiter}:{ip}`; fails open with a logged error when MongoDB errors. Tests named `NFR-01`: two app instances share one counter (the 11th login attempt from one IP in 15 min gets 429 across instances); window expiry resets; the TTL index exists with `expireAfterSeconds: 0`; fail-open path; `TRUST_PROXY=1` uses the forwarded IP.
+
+### T-025 Cron cleanup route · todo
+- Req: NFR-08, NFR-01 · Depends: T-005, T-023 · Docs: `adr/ADR-012`, `integrations.md#cron-routes--cron_secret`
+- Done: `GET|POST /internal/cron/cleanup` (not under `/api/v1`), `cronAuth` accepts `Authorization: Bearer CRON_SECRET` or `x-cron-secret`, constant-time compare, 401 otherwise, not mounted when `CRON_SECRET` is unset, a normal user JWT is rejected. Deletes: OTPs with `expiresAt` < now or `consumedAt` set; refresh tokens with `expiresAt` < now or `revokedAt` set; adapter documents with `createdAt` older than `SOCKET_ADAPTER_TTL_SECONDS`. Returns `{otps, refreshTokens, socketEvents}`; running twice is safe. Tests named `NFR-08` with seeded rows (kept rows stay, removed rows go) and secret handling.
+
+### T-026 Vercel configuration · todo
+- Req: NFR-08 · Depends: T-001, T-023 · Docs: `adr/ADR-012`, `infra-deployment.md`
+- Done: `api/index.ts` (`export default app`) and `api/socket-io.ts`; `backend/vercel.json` (functions, rewrites, crons; already drafted); `prisma generate` runs on build with the right `binaryTargets`; Atlas URL options documented in `.env.example`; preview deploy answers `GET /health`, a login, and a websocket connect; the daily cron fires on the preview/production project (`CRON_SECRET` set in Vercel). Verify duration limits and WebSocket support against the current Vercel plan and note the result in `infra-deployment.md`.

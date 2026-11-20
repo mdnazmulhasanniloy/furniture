@@ -20,8 +20,8 @@ Source of truth for the schema is this document; `backend/prisma/schema.prisma` 
 
 | Model | Key fields | Indexes / notes |
 |---|---|---|
-| **User** | name, email (unique, lowercase), passwordHash, role, isVerified, isBlocked, failedLoginCount (default 0), lockedUntil?, phone? (E.164 `+9665XXXXXXXX`), avatar?, preferredLocale (default `ar`), createdAt | unique email |
-| **Otp** | email, purpose, codeHash, attempts, expiresAt, consumedAt? | index (email, purpose); TTL cleanup job on startup + hourly |
+| **User** | firstName, lastName, email (unique, lowercase), passwordHash, role, isVerified, isBlocked, failedLoginCount (default 0), lockedUntil?, phone? (E.164 `+9665XXXXXXXX`), avatar?, preferredLocale (default `ar`), createdAt | unique email |
+| **Otp** | email, purpose, codeHash, attempts, expiresAt, consumedAt? | index (email, purpose); `expiresAt` = now + `OTP_TTL_SECONDS` (default 600); expired/consumed rows removed by the cron cleanup (ADR-012) |
 | **RefreshToken** | userId, tokenHash (keyed HMAC, ADR-011), expiresAt (30 days), revokedAt?, userAgent? | index userId; at most `MAX_ACTIVE_SESSIONS` unrevoked per user |
 | **Address** | userId, label, fullName, phone (E.164 `+9665XXXXXXXX`), cityCode (must match an active `DeliveryCity.code` when written), area, street, notes?, isDefault | index userId |
 | **Category** | name: LocalizedText, slug (unique), image?, parentId?, sortOrder, isActive | unique slug |
@@ -33,6 +33,7 @@ Source of truth for the schema is this document; `backend/prisma/schema.prisma` 
 | **HomeSection** | type, title: LocalizedText, subtitle?, config Json (e.g. {productIds?, limit}), sortOrder, isVisible | |
 | **Page** | slug (unique), title, content (HTML): LocalizedText, metaTitle?, metaDescription?, isPublished | |
 | **SiteSetting** | singleton key="default": storeName: LocalizedText, logo?, contactEmail, contactPhone, address: LocalizedText, socials Json, deliveryFee Int (base fee, halalas, default 0), freeDeliveryThreshold Int? (default empty), vat: VatSetting (defaults: vatRate 0, applyToDelivery true, pricesIncludeVat true), currency String (fixed "SAR", ADR-008), deliveryCities DeliveryCity[] (seeded: riyadh, jeddah, mecca, medina, dammam, khobar), defaultLocale (default `ar`), seo Json | unique key; at least one city active; cities are never deleted, only deactivated |
+| **RateLimit** | key (unique, `rl:{limiter}:{ip}`), hits Int, resetAt DateTime | **TTL index** `{resetAt: 1}, expireAfterSeconds: 0` created at start-up by `ensureIndexes()` (Prisma cannot declare TTL indexes, so the schema has no `@@index` on `resetAt`); atomic `findAndModify` upsert with `$inc` (ADR-012) |
 | **Counter** | name (unique), seq | used for `orderNo` daily sequence via atomic `upsert` + `increment` |
 
 Money is stored as **integers in minor units** (**halalas**, 1 SAR = 100 halalas) to avoid float errors; currency is SAR (ADR-008). Delivery fee and VAT are admin settings (ADR-009). Defaults are 0 (no fee, no VAT). Delivery fee = 0 if the threshold is set and met, else city override, else base fee. Per order, with `bp = round(vatRate × 100)` and `base = subtotal + (applyToDelivery ? deliveryFee : 0)`: `vatRate = 0` → `vatAmount = 0`; inclusive `vatAmount = round(base × bp / (10000 + bp))`, `total = subtotal + deliveryFee`; exclusive `vatAmount = round(base × bp / 10000)`, `total = subtotal + deliveryFee + vatAmount`; rounded half up, once per order. `Order.deliveryFee` and `Order.vat` are snapshots and are never recomputed. ZATCA e-invoice data is not modelled (pending B-013).
@@ -40,4 +41,7 @@ Money is stored as **integers in minor units** (**halalas**, 1 SAR = 100 halalas
 ## Deferred (post-MVP, SRC-002.1)
 `SellRequest` — userId, title, description, images, expectedPrice, city, status {NEW CONTACTED ACCEPTED REJECTED}, adminNote. **Not in the schema**; customer submissions were declined for the MVP.
 
-Password hashes are argon2id (ADR-011). `User.name` stays a single field pending B-020 (`firstName`/`lastName` question).
+Password hashes are argon2id (ADR-011). `User` has `firstName` and `lastName` (B-020, SRC-007.3); the display name is `firstName + " " + lastName`; `Address.fullName` (the recipient) is separate.
+
+## Collections outside Prisma (ADR-012)
+`socket.io-adapter-events` — owned by `@socket.io/mongo-adapter` / `mongo-emitter` (native driver, not in `schema.prisma`). TTL collection: documents carry `createdAt`; TTL index `{createdAt: 1}, expireAfterSeconds: SOCKET_ADAPTER_TTL_SECONDS` (3600). Old documents are also deleted by the cron cleanup.

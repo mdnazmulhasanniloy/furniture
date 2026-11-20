@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/index.ts": { "maxDuration": 30 },
+    "api/socket-io.ts": { "maxDuration": 300 }
+  },
+  "rewrites": [
+    { "source": "/api/socket-io/(.*)", "destination": "/api/socket-io" },
+    { "source": "/(.*)", "destination": "/api/index" }
+  ],
+  "crons": [
+    { "path": "/internal/cron/cleanup", "schedule": "0 3 * * *" }
+  ]
+}

@@ -18,6 +18,7 @@ tags:
   - name: Orders
   - name: Notifications
   - name: Admin
+  - name: Internal
 security:
   - bearerAuth: []
 
@@ -34,9 +35,10 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, email, password]
+              required: [firstName, lastName, email, password]
               properties:
-                name: { type: string, minLength: 2, maxLength: 80 }
+                firstName: { type: string, minLength: 1, maxLength: 40 }
+                lastName: { type: string, minLength: 1, maxLength: 40 }
                 email: { type: string, format: email }
                 password: { type: string, minLength: 8 }
                 preferredLocale: { $ref: '#/components/schemas/Locale' }
@@ -190,7 +192,8 @@ paths:
             schema:
               type: object
               properties:
-                name: { type: string }
+                firstName: { type: string, minLength: 1, maxLength: 40 }
+                lastName: { type: string, minLength: 1, maxLength: 40 }
                 phone: { $ref: '#/components/schemas/SaudiPhoneInput' }
                 avatar: { type: string, format: uri }
                 preferredLocale: { $ref: '#/components/schemas/Locale' }
@@ -449,6 +452,38 @@ paths:
         '409':
           description: INVALID_TRANSITION — order is not PENDING
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  # ---------------- INTERNAL (Vercel Cron, ADR-012) ----------------
+  /internal/cron/cleanup:
+    servers: [{ url: 'http://localhost:4100' }]   # not under /api/v1
+    get:
+      tags: [Internal]
+      summary: Cleanup job called by Vercel Cron (daily). Also accepts POST for manual runs.
+      description: >
+        Deletes expired or consumed OTPs, expired or revoked refresh tokens and Socket.IO adapter documents older than
+        SOCKET_ADAPTER_TTL_SECONDS. Authenticated by `Authorization: Bearer CRON_SECRET` (what Vercel Cron sends) or header
+        `x-cron-secret: CRON_SECRET`; not available to bearer JWTs. Idempotent. Not mounted when CRON_SECRET is unset.
+      security: [{ cronBearer: [] }, { cronHeader: [] }]
+      responses:
+        '200':
+          description: Counts of removed documents
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [otps, refreshTokens, socketEvents]
+                properties:
+                  otps: { type: integer }
+                  refreshTokens: { type: integer }
+                  socketEvents: { type: integer }
+        '401': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [Internal]
+      summary: Same as GET (manual run)
+      security: [{ cronBearer: [] }, { cronHeader: [] }]
+      responses:
+        '200': { description: Counts of removed documents }
+        '401': { $ref: '#/components/responses/Error' }
 
   # ---------------- NOTIFICATIONS ----------------
   /notifications:
@@ -874,9 +909,10 @@ paths:
           application/json:
             schema:
               type: object
-              required: [name, email, password]
+              required: [firstName, lastName, email, password]
               properties:
-                name: { type: string }
+                firstName: { type: string, minLength: 1, maxLength: 40 }
+                lastName: { type: string, minLength: 1, maxLength: 40 }
                 email: { type: string, format: email }
                 password: { type: string, minLength: 8 }
       responses:
@@ -887,6 +923,8 @@ paths:
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+    cronBearer: { type: http, scheme: bearer, description: CRON_SECRET (sent by Vercel Cron) }
+    cronHeader: { type: apiKey, in: header, name: x-cron-secret }
   parameters:
     Id: { name: id, in: path, required: true, schema: { $ref: '#/components/schemas/ObjectId' } }
     Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
@@ -994,7 +1032,8 @@ components:
       type: object
       properties:
         id: { $ref: '#/components/schemas/ObjectId' }
-        name: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
         email: { type: string, format: email }
         role: { $ref: '#/components/schemas/Role' }
         phone: { oneOf: [{ $ref: '#/components/schemas/SaudiPhone' }, { type: 'null' }] }

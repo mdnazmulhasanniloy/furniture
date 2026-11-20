@@ -6,7 +6,7 @@
 
 ## Commands
 `npm run dev` · `npm run build` · `npm run typecheck` · `npm run lint` · `npm test` · `npm run db:push` · `npm run seed`
-Local infra: `docker compose up -d` in the workspace root (Mongo replica set + Mailpit).
+Local infra: MongoDB Atlas + Gmail SMTP (see `.env.example`); no Docker needed. Deployed on Vercel (ADR-012): `api/index.ts`, `api/socket-io.ts`, `vercel.json`.
 
 ## Structure
 `src/modules/<name>/{routes,controller,service,schema}.ts` — controllers handle HTTP only; business rules live in services; validation with zod in `schema.ts`. Shared code in `src/lib`, `src/middleware`.
@@ -23,4 +23,4 @@ Local infra: `docker compose up -d` in the workspace root (Mongo replica set + M
 ## Never
 - Remove/rename fields in `schema.prisma` without an ADR + data-migration script.
 - Commit `.env` or secrets. Use `.env.example`.
-- Invent requirements, add Redis/queues (ADR-005), or weaken/delete tests to make them pass.
+- Invent requirements, add Redis/queues (ADR-012), use in-memory state for rate limits or sockets, or weaken/delete tests to make them pass.

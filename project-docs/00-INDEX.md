@@ -17,8 +17,8 @@ Single source of truth. Numbered in production order. Read only what your task l
 | `04-architecture/data-model.md` | Collections, fields, enums | Schema / Prisma changes |
 | `04-architecture/api-spec.yaml` | OpenAPI 3.1 contract | Any endpoint or API call |
 | `04-architecture/integrations.md` | Nodemailer, Socket.IO, Cloudflare R2, Sentry, revalidation | Integration tasks |
-| `04-architecture/infra-deployment.md` | Envs, hosting, docker | DevOps |
-| `04-architecture/adr/` | Decision records (ADR-001…011; 007 = Cloudinary (superseded by 010 = Cloudflare R2), 011 = auth hardening + env, 008 = Saudi market: SAR, cities, phones, 009 = delivery fee + VAT settings) | Before changing a decision |
+| `04-architecture/infra-deployment.md` | Envs, Vercel hosting, Atlas, Gmail | DevOps |
+| `04-architecture/adr/` | Decision records (ADR-001…012; 005 = no Redis (superseded by 012 = Vercel serverless deployment), 007 = Cloudinary (superseded by 010 = Cloudflare R2), 011 = auth hardening + env, 008 = Saudi market: SAR, cities, phones, 009 = delivery fee + VAT settings) | Before changing a decision |
 | `05-delivery/implementation-plan.md` | Milestones + critical path | Planning |
 | `05-delivery/tasks/{backend,web,admin}.md` | Tasks T-xxx with deps and done criteria | Picking the next task |
 | `05-delivery/traceability.md` | Requirement → task matrix | Completeness checks |

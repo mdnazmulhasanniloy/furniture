@@ -28,7 +28,7 @@
 
 ## Cloudflare R2 — ADM-02, ADM-06 (ADR-010, supersedes Cloudinary)
 - S3-compatible API via `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`, `region: "auto"`, `endpoint: R2_ENDPOINT`.
-- Env: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`, `R2_PUBLIC_BASE_URL` (public custom domain or `r2.dev` URL, no trailing slash).
+- Env: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`, `R2_PUBLIC_BASE_URL` (public custom domain or `r2.dev` URL, no trailing slash). All six are required when `NODE_ENV=production` (start-up fails naming the missing keys); optional in dev/test.
 - Flow: admin browser → `POST /admin/uploads/presign` `{fileName, contentType, size}` → `{uploadUrl, key, publicUrl, expiresIn}` → browser `PUT`s the file to `uploadUrl` with the same `Content-Type` → the form saves `{key, width?, height?, alt?}`; the server recomputes `url = R2_PUBLIC_BASE_URL + "/" + key`.
 - Rules: jpeg/png/webp only, max 5 MB, URL valid 300 s, key `furnixa/{env}/{yyyy}/{mm}/{uuid}.{ext}`.
 - Deleting: remove the object by `key` when an image is removed from a product/banner or a product is deleted; failures are logged and never fail the request.
@@ -46,7 +46,9 @@
 ]
 ```
   Public image reads (`<img>`, Next.js image optimizer) need no CORS rule. `Content-Length` is set by the browser and must match the signed `size`.
-- Tests mock the S3 client; no test touches a real bucket.
+- **Upload tracking (T-008).** Every presign inserts an `Upload` row (`data-model.md`). Saves call `syncImages(tx, oldKeys, newKeys, scope)` (never the lower-level helpers directly): added keys are attached (the row must be unattached with the same scope; `avatar` uploads must belong to the user, admin uploads may be attached by any admin), and `HeadObject` must show the object with the approved `ContentType` and size (else 422 `UPLOAD_NOT_ALLOWED`). Removed keys are released (R2 object, then row); unchanged keys and reorders make no S3 calls. Unattached rows older than 24 h are removed by the cron cleanup together with their R2 object. At most 30 presigns per admin per 10 minutes (429 `RATE_LIMITED`).
+- **Serving safety.** The R2 public domain (`R2_PUBLIC_BASE_URL`) must send `X-Content-Type-Options: nosniff` on every response (Cloudflare → Rules → Transform Rules → Modify Response Header, set static header). SVG (and any other type outside jpeg/png/webp) is never allowed, so uploaded files cannot carry script. Never log a presigned URL or R2 credentials.
+- Tests mock the S3 client (`PutObject` presigner, `DeleteObject`, `HeadObject`); no test touches a real bucket.
 - Local `uploads/` disk storage is **not** supported; use a dev bucket (`{env}` in the key keeps environments apart).
 
 ## Next.js on-demand revalidation
@@ -57,7 +59,7 @@
 
 ## Cron routes — CRON_SECRET
 - Vercel Cron calls `GET /internal/cron/cleanup` daily (`0 3 * * *`, `vercel.json`). Vercel sends `Authorization: Bearer <CRON_SECRET>` (it cannot send custom headers); the route also accepts header `x-cron-secret: <CRON_SECRET>` and `POST` for manual runs. Missing/wrong secret → 401; constant-time compare; `CRON_SECRET` unset → route not mounted.
-- Cleanup removes: expired or consumed OTPs, expired or revoked refresh tokens, socket adapter documents older than `SOCKET_ADAPTER_TTL_SECONDS`. Returns `{otps, refreshTokens, socketEvents}` counts. Idempotent.
+- Cleanup removes: expired or consumed OTPs, expired or revoked refresh tokens, socket adapter documents older than `SOCKET_ADAPTER_TTL_SECONDS`, and `Upload` rows never attached after 24 h (with their R2 object; 200 per run). Returns `{otps, refreshTokens, socketEvents, uploads}` counts. Idempotent.
 
 ## Rate limiting store — NFR-01 (ADR-012)
 - `express-rate-limit` with a MongoDB store (`RateLimit` collection, one atomic `findAndModify` upsert with an update pipeline, so an expired window resets atomically; TTL index on `resetAt` created idempotently by `ensureIndexes()`, called at start-up and lazily on first use, which is what covers Vercel cold starts). No in-memory or Redis store.

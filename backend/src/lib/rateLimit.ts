@@ -85,9 +85,15 @@ export function hashEmail(email: string): string {
     .digest('hex');
 }
 
-/** Namespaced counter key, e.g. `login:ip:203.0.113.7` or `login:email:<hmac>` (stored with an `rl:` prefix). */
-export function limitKey(scope: string, kind: 'ip' | 'email', value: string | undefined): string {
-  return `${scope}:${kind}:${kind === 'ip' ? normalizeIp(value) : hashEmail(value ?? '')}`;
+/** Namespaced counter key, e.g. `login:ip:203.0.113.7`, `login:email:<hmac>` or `upload:user:<userId>` (stored with an `rl:` prefix). */
+export function limitKey(
+  scope: string,
+  kind: 'ip' | 'email' | 'user',
+  value: string | undefined,
+): string {
+  const id =
+    kind === 'ip' ? normalizeIp(value) : kind === 'email' ? hashEmail(value ?? '') : (value ?? '');
+  return `${scope}:${kind}:${id}`;
 }
 
 // ---------------------------------------------------------------- indexes

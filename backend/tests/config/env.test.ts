@@ -11,6 +11,12 @@ const prod = {
   REFRESH_TOKEN_PEPPER: LONG,
   CSRF_SECRET: LONG,
   CORS_ALLOWED_ORIGINS: 'https://furnixa.com',
+  R2_ACCOUNT_ID: 'acct',
+  R2_ACCESS_KEY_ID: 'key',
+  R2_SECRET_ACCESS_KEY: 'secret',
+  R2_BUCKET_NAME: 'bucket',
+  R2_ENDPOINT: 'https://acct.r2.cloudflarestorage.com',
+  R2_PUBLIC_BASE_URL: 'https://cdn.furnixa.com',
 };
 const dev = { NODE_ENV: 'development', DATABASE_URL: 'mongodb://localhost/x' };
 
@@ -23,6 +29,28 @@ describe('env', () => {
       expect(() => parseEnv(prod)).not.toThrow();
     },
   );
+
+  it.each([
+    'R2_ACCOUNT_ID',
+    'R2_ACCESS_KEY_ID',
+    'R2_SECRET_ACCESS_KEY',
+    'R2_BUCKET_NAME',
+    'R2_ENDPOINT',
+    'R2_PUBLIC_BASE_URL',
+  ])('ADM-02 · production start-up fails when %s is missing, naming the key', (key) => {
+    expect(() => parseEnv({ ...prod, [key]: '' })).toThrow(key);
+    expect(() => parseEnv({ ...prod, [key]: undefined })).toThrow(/required in production/);
+  });
+
+  it('ADM-02 · production lists every missing R2 variable at once', () => {
+    const bare = { ...prod, R2_BUCKET_NAME: '', R2_ENDPOINT: '' };
+    expect(() => parseEnv(bare)).toThrow(/R2_BUCKET_NAME, R2_ENDPOINT required in production/);
+  });
+
+  it('ADM-02 · R2 variables are optional in development and test', () => {
+    expect(() => parseEnv(dev)).not.toThrow();
+    expect(() => parseEnv({ NODE_ENV: 'test' })).not.toThrow();
+  });
 
   it('NFR-01 · production requires CORS_ALLOWED_ORIGINS', () => {
     expect(() => parseEnv({ ...prod, CORS_ALLOWED_ORIGINS: '' })).toThrow('CORS_ALLOWED_ORIGINS');

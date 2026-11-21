@@ -89,6 +89,15 @@ export interface Env extends Omit<
 }
 
 const MIN_SECRET = 32;
+/** Required when NODE_ENV=production (ADR-010, T-008); optional in dev and test. */
+const R2_KEYS = [
+  'R2_ACCOUNT_ID',
+  'R2_ACCESS_KEY_ID',
+  'R2_SECRET_ACCESS_KEY',
+  'R2_BUCKET_NAME',
+  'R2_ENDPOINT',
+  'R2_PUBLIC_BASE_URL',
+] as const;
 
 function parseTrustProxy(raw: string | undefined, production: boolean): TrustProxy {
   if (raw === undefined) return production ? 1 : false;
@@ -142,6 +151,11 @@ export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefi
   const REFRESH_TOKEN_PEPPER = secret('REFRESH_TOKEN_PEPPER');
   const CSRF_SECRET = secret('CSRF_SECRET');
 
+  if (production) {
+    const missing = R2_KEYS.filter((k) => !e[k]);
+    if (missing.length)
+      problems.push(`${missing.join(', ')} required in production (Cloudflare R2)`);
+  }
   if (e.CRON_SECRET && e.CRON_SECRET.length < MIN_SECRET)
     problems.push(`CRON_SECRET must be at least ${MIN_SECRET} characters when set`);
   if (e.NODE_ENV !== 'test' && !e.DATABASE_URL) problems.push('DATABASE_URL is required');

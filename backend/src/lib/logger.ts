@@ -14,10 +14,15 @@ export const REDACT_PATHS = [
   'req.headers.cookie',
   'req.headers["x-csrf-token"]',
   'res.headers["set-cookie"]',
-  ...['password', 'newPassword', 'code', 'token', 'accessToken', 'refreshToken'].flatMap((k) => [
-    k,
-    `*.${k}`,
-  ]),
+  ...[
+    'password',
+    'newPassword',
+    'code',
+    'token',
+    'accessToken',
+    'refreshToken',
+    'uploadUrl', // presigned R2 URL (T-008): carries a signature
+  ].flatMap((k) => [k, `*.${k}`]),
 ];
 
 /** `destination` is for tests that need to capture real output (the test environment logs nothing). */

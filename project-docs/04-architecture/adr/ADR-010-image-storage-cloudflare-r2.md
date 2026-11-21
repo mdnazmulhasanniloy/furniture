@@ -24,5 +24,5 @@ Status: **Accepted 2026-11-20** (team/client decision, SRC-006.1) · **Supersede
 
 ## Consequences
 - Objects are public-read through `R2_PUBLIC_BASE_URL`; there are no private images.
-- Orphans are possible if a browser uploads and the form is never saved; a cleanup job is out of scope (the cron job of ADR-012 does not cover R2).
+- Orphans (a browser uploads and the form is never saved) are tracked by the `Upload` collection and removed by the ADR-012 cron cleanup after 24 h (amended 2026-11-21, T-008): presign records the upload, saves attach it after a `HeadObject` check, removals release it. The presign route is limited to 30 per admin per 10 minutes. The public domain must send `X-Content-Type-Options: nosniff`; SVG is never allowed.
 - `package.json` must drop `cloudinary` and `multer` and add the two AWS SDK packages (T-008).

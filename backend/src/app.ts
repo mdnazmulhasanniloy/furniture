@@ -9,6 +9,7 @@ import { createErrorHandler, notFoundHandler } from './middleware/error.js';
 import { requestId } from './middleware/requestId.js';
 import { authRouter } from './modules/auth/routes.js';
 import { meRouter } from './modules/me/routes.js';
+import { uploadsRouter } from './modules/uploads/routes.js';
 
 export interface CreateAppOptions {
   env?: Env;
@@ -56,6 +57,7 @@ export function createApp(arg: Env | CreateAppOptions = {}) {
   const v1 = Router();
   v1.use('/auth', authRouter);
   v1.use('/me', meRouter);
+  v1.use('/admin/uploads', uploadsRouter);
   for (const { path, router } of extraRouters) v1.use(path, router);
   app.use('/api/v1', v1);
 

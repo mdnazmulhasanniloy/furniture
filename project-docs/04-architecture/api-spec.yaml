@@ -662,6 +662,8 @@ paths:
         Admin only. The browser then PUTs the file to `uploadUrl` with the same `Content-Type` and the signed size.
         Save the returned `key` (not the URL) on the product/banner. Allowed: image/jpeg, image/png, image/webp, max 5 MB.
         Key format: `furnixa/{env}/{yyyy}/{mm}/{uuid}.{ext}`. Required bucket CORS rule: see integrations.md.
+        Each call records an `Upload` row (data-model.md); saves that add the key must attach it (the object must exist with the approved type and size, otherwise 422 `UPLOAD_NOT_ALLOWED` on the saving route). SVG is never allowed.
+        Limit: 30 presigns per admin per 10 minutes (429 `RATE_LIMITED`, `Retry-After`).
       requestBody:
         required: true
         content:
@@ -686,7 +688,9 @@ paths:
                   key: { type: string, examples: ['furnixa/production/2026/11/3f2b8c1e-0c4d-4a52-9d7e-1b2a3c4d5e6f.webp'] }
                   publicUrl: { type: string, format: uri, description: R2_PUBLIC_BASE_URL + "/" + key }
                   expiresIn: { type: integer, const: 300, description: Seconds }
+        '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (30 presigns per admin per 10 minutes)" }
         '422':
           description: UPLOAD_NOT_ALLOWED (type not jpeg/png/webp, or size over 5 MB) or VALIDATION_ERROR
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }

@@ -216,6 +216,20 @@ model RateLimit {
   @@map("rate_limits")
 }
 
+model Upload {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  key          String    @unique // furnixa/{env}/...
+  uploadedById String    @db.ObjectId // User id, no relation (T-008)
+  contentType  String
+  size         Int // bytes
+  scope        String // "admin" | "avatar"
+  createdAt    DateTime  @default(now())
+  attachedAt   DateTime?
+
+  @@index([attachedAt, createdAt])
+  @@map("uploads")
+}
+
 model RefreshToken {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   userId    String    @db.ObjectId

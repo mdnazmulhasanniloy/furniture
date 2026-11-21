@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026-11-21 (T-008 status `done`)
+- **T-008 review passed.** Two follow-up items applied before closing: Prettier on `service.ts` and `helpers.test.ts`; `release()` deferred-release criterion added to T-009/T-010/T-011/T-028 (with Vercel `waitUntil` note); new test `ADM-02 · release() does nothing until called; skipping it after a rollback keeps the R2 object in place`. Suite 433/433; typecheck, lint, format clean. T-008 → `done`.
+
+## 2026-11-21 (T-008 code, status `review`)
+- **T-008 Image uploads (R2 presign, upload tracking, delete helpers).** `POST /admin/uploads/presign` (admin only), `src/lib/r2.ts` helpers, `Upload` collection.
+  - **Code:** `src/modules/uploads/{routes,controller,service,schema}.ts` (auth -> per-admin limiter -> zod -> presign); `src/lib/r2.ts` (`getS3`, `newObjectKey`, `buildImageAsset`, `assertUploadAllowed`, `createUploadPresign`, `deleteObjects`, `attachUploads`, `releaseUploads`, `syncImages`); `schema.prisma` `Upload` (additive, `db:push`, no migration script); `limitKey` gained kind `user`; `uploadUrl` added to log redaction; `R2_*` required when `NODE_ENV=production` (`env.ts`, `.env.example` note); S3 client sets `requestChecksumCalculation: WHEN_REQUIRED` so the presigned URL has no CRC32 query parameters.
+  - **`syncImages` contract:** attaches added keys inside the caller's transaction, returns `{added, removed, release}`; the caller MUST await `release()` after commit (deleting before commit could leave a rolled-back row pointing at a deleted file). T-009/T-010/T-011/T-028 call it on save.
+  - **Tests:** `tests/uploads/presign.test.ts` (24) and `tests/uploads/helpers.test.ts` (42), `tests/config/env.test.ts` (+9), all `ADM-02`, S3 and presigner mocked (`tests/helpers/s3Mock.ts`). Full suite 432/432; typecheck, lint, format clean.
+  - **Repo fix:** `backend/.gitignore` entry `uploads` (old local-disk storage) ignored `src/modules/uploads` and `tests/uploads`; now `/uploads`.
+  - **Open items:** T-025 (orphan cleanup), T-009/T-010/T-011/T-028 (use `syncImages`); owner to add the Cloudflare nosniff transform rule on the R2 public domain and the bucket CORS rule in each environment; `PRESIGN` limit values are constants in `src/modules/uploads/service.ts`.
+
+## 2026-11-21 (B-024 resolved, T-008 scope, docs only)
+- **B-024 resolved** (owner): T-008 = presign route + `buildImageAsset`/`deleteObjects` + upload tracking; route-level image criteria move to T-010 (`ADM-02`) and T-011 (`ADM-06`), both now depend on T-008. T-008 status `in-progress` (plan awaiting approval; no code yet).
+  - Owner additions to T-008: `Upload` collection (`data-model.md`), `attachUploads` (with `HeadObject` check) / `releaseUploads`, presign limit 30 per admin per 10 min (429 `RATE_LIMITED`), nosniff + no-SVG note (`integrations.md`), log redaction of presigned URLs. T-025 gains the 24 h orphan cleanup (`uploads` count, depends on T-008); T-028 uses the same helpers.
+  - **Plan approved with changes (same day):** scope rules (`admin` uploads attachable by any admin, `avatar` only by the owner, scopes never cross); new `syncImages(tx, oldKeys, newKeys, scope)` used by T-009/T-010/T-011/T-028 (no S3 calls for unchanged keys or reorders); `R2_*` required in production; category image moves into T-009 (now depends on T-008), site logo stays in T-011.
+  - Docs updated first: `api-spec.yaml` (presign 401/429 and tracking note), `data-model.md`, `integrations.md`, ADR-010 consequences, `tasks/backend.md` (T-008, T-010, T-011, T-025, T-028). `schema.prisma` not yet changed.
+
 ## 2026-11-21 (T-007 closed)
 - **T-007 Profile + addresses: status `done`.** `/review-task` T-007: PASS (3 non-blocking notes, all applied, docs first). Typecheck, lint, format clean; 358/358 tests; no deleted/skipped/weakened tests.
   - `api-spec.yaml`: `Address` is now a standalone response schema (the earlier `allOf` with a strict `AddressInput` would have rejected `id`), `notes` nullable, new read-only `isDeliverable`. Code: `getActiveCityCodes()` in `src/lib/deliveryCities.ts` (one read per request, no cache); list/create/update responses carry `isDeliverable`. Test `PROF-02 · an address in a deactivated city returns isDeliverable false and stays editable`.

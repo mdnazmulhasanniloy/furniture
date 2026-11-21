@@ -267,7 +267,8 @@ describe('POST /auth/reset-password (AUTH-03)', () => {
     expect(rejected.status).toBe(401);
     expect(rejected.body.code).toBe('UNAUTHORIZED');
 
-    // a token from a login right after the reset (same second) works
+    // the reset does not log in, so a legitimate new token is issued in a later second and works
+    advance(1);
     const fresh = await login(EMAIL, NEW);
     expect(fresh.status).toBe(200);
     expect(
@@ -277,6 +278,29 @@ describe('POST /auth/reset-password (AUTH-03)', () => {
           .set('Authorization', `Bearer ${fresh.body.accessToken as string}`)
       ).status,
     ).toBe(200);
+  });
+
+  it('AUTH-03 · an access token issued in the same second as the reset, before it, is rejected', async () => {
+    await mkUser();
+    // pin the clock 100 ms into a second so everything below stays inside that second
+    now = Math.floor(now / 1000) * 1000 + 100;
+    vi.setSystemTime(now);
+    const oldToken = (await login()).body.accessToken as string;
+    advance(0.3);
+    const code = await requestCode();
+    advance(0.3);
+    expect((await reset(EMAIL, code)).status).toBe(200);
+
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } });
+    const iat = (
+      JSON.parse(Buffer.from(oldToken.split('.')[1]!, 'base64url').toString()) as { iat: number }
+    ).iat;
+    expect(iat).toBe(Math.floor(user.passwordChangedAt!.getTime() / 1000)); // same second
+    const res = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', `Bearer ${oldToken}`);
+    expect(res.status).toBe(401);
+    expect(res.body.code).toBe('UNAUTHORIZED');
   });
 
   it('AUTH-03 · a weak new password → 422 and the code stays usable', async () => {

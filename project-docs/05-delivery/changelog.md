@@ -1,7 +1,7 @@
 # Changelog
 
 ## 2026-11-21 (T-006 closed)
-- **T-006 Forgot / reset password: status `done`.** `/review-task` T-006: PASS (typecheck, lint and format clean, 266/266 tests, every AUTH-03 criterion and owner addition covered by a named test, no deleted/skipped/weakened tests, spec and data-model match, every error code in `api-spec.yaml`, no secrets in logs or responses, en/ar parity). Open, non-blocking: reset returns `OTP_INVALID` for expired codes too; `iat` check has 1 s granularity; no per-email limit on failed resets beyond the 5-wrong-codes burn and the IP limiter.
+- **T-006 Forgot / reset password: status `done`.** `/review-task` T-006: PASS (typecheck, lint and format clean, 266/266 tests, every AUTH-03 criterion and owner addition covered by a named test, no deleted/skipped/weakened tests, spec and data-model match, every error code in `api-spec.yaml`, no secrets in logs or responses, en/ar parity). Open items resolved by the owner: (1) `OTP_INVALID` for expired codes: accepted; (3) no extra per-email reset limit: accepted (the 5-wrong-codes burn plus the 5-codes-per-hour cap bounds guessing to about 25 per hour per email); (2) the 1 s `iat` granularity: fixed, `requireAuth` now rejects when `iat <= floor(passwordChangedAt / 1000)` (inclusive), so a token issued in the same second as the reset, before it, is rejected. Test `AUTH-03 · an access token issued in the same second as the reset, before it, is rejected`; the earlier fresh-login assertion now advances one second first. Trade-off: the reset does not log in, but a login that lands in the same second as the reset gets a token that is rejected (the client's next refresh in a later second fixes it).
   - Unblocks: web T-037 (backend T-004..T-006 now all done).
 
 ## 2026-11-21 (T-006)

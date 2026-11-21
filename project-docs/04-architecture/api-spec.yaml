@@ -230,8 +230,8 @@ paths:
         **On success, in one transaction:** the new argon2id hash and `User.passwordChangedAt` are stored, every
         refresh token of the user is revoked, every `RESET_PASSWORD` OTP of the email is consumed, and the login lockout
         (`User.failedLoginCount`, `lockedUntil` and the `login:email:<hmac>` rate-limit key) is cleared. Access tokens
-        issued before `passwordChangedAt` are rejected with 401 `UNAUTHORIZED` (compared at 1 s granularity, the `iat`
-        precision). A "Your password was changed" email (no code, no password) is then sent in the user's
+        issued before or in the same second as `passwordChangedAt` are rejected with 401 `UNAUTHORIZED` (`iat <= floor(passwordChangedAt / 1000)`,
+        `iat` has 1 s precision). A "Your password was changed" email (no code, no password) is then sent in the user's
         `preferredLocale`, in the background.
 
         **IP limit:** 10 failed attempts per 15 min per IP (successful resets do not count), so codes cannot be

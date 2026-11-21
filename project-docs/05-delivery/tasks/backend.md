@@ -53,7 +53,7 @@ Done = every listed acceptance criterion of the linked requirement has a passing
   7. Logs: `newPassword` and `code` stay redacted (T-005); test that a reset request leaves neither in the request log.
 
 ### T-007 Profile + addresses · todo
-- Req: PROF-01, PROF-02 · Depends: T-005
+- Req: PROF-01, PROF-02 · Depends: T-005, T-020 · Docs: `PRD#5.2`, `api-spec.yaml` (`/me`, `/me/addresses`), `data-model.md` (Address), `adr/ADR-008`
 - Done: CRUD tests; only one default address; cannot access another user's address (404). Tests named `PROF-02`: unknown/inactive `cityCode` -> 422 `OUT_OF_DELIVERY_AREA`; phone normalization via the shared Saudi phone validator (T-020).
 
 ### T-008 Image uploads (R2 presign + delete) · todo
@@ -106,9 +106,9 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 - Req: NFR-01, NFR-02 · Depends: T-001..T-018
 - Done: response validation test against `api-spec.yaml` for every route (e.g. `jest-openapi`/`openapi-response-validator`); rate limits on auth; p95 check script with 1k products.
 
-### T-020 Saudi phone validator + city validation helper · todo
+### T-020 Saudi phone validator + city validation helper · done
 - Req: NFR-06, PROF-01, PROF-02 · Depends: T-001 · Docs: `adr/ADR-008`, `api-spec.yaml#SaudiPhoneInput`
-- Done: shared zod `saudiPhone` accepts `05XXXXXXXX`, `5XXXXXXXX`, `+9665XXXXXXXX`, `009665XXXXXXXX` and normalizes to `+9665XXXXXXXX`; rejects landlines, wrong length, non-digits; used by profile and address; tests named `NFR-06`. Helper `assertActiveCity(cityCode)` throws 422 `OUT_OF_DELIVERY_AREA`.
+- Done: shared zod `saudiPhone` accepts `05XXXXXXXX`, `5XXXXXXXX`, `+9665XXXXXXXX`, `009665XXXXXXXX` and normalizes (trim, Arabic-Indic digits to ASCII, strip spaces/dashes/dots/parentheses, max 25 characters) to `+9665XXXXXXXX`; rejects landlines, wrong length, letters/mixed scripts; used by profile and address; tests named `NFR-06`. Helper `assertActiveCity(cityCode)` throws 422 `OUT_OF_DELIVERY_AREA`.
 
 ### T-021 Pricing: delivery fee, VAT, totals (pure function + settings) · todo
 - Req: ADM-14, NFR-07, CART-01, ORD-01 · Depends: T-002 · Docs: `adr/ADR-009`, `data-model.md` (money note)

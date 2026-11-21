@@ -41,7 +41,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 ### T-039 Account area · todo
 - Req: PROF-01, PROF-02, ORD-02, ORD-03 · Depends: T-038
-- Done: profile, addresses, orders list/detail with timeline.
+- Done: profile, addresses, orders list/detail with timeline. Phone input (SRC/T-020, `api-spec.yaml#SaudiPhoneInput`): apply the same normalisation as the backend (trim, Arabic-Indic and Extended Arabic-Indic digits to ASCII, strip spaces/dashes/dots/parentheses, reject >25 characters), then the same `x-canonical-pattern`; the backend validator is the authority. Test named `NFR-06` that reads the pattern from the spec.
 
 ### T-040 Live notifications · todo
 - Req: NOTIF-01, NOTIF-03 · Depends: T-039, backend T-016
@@ -57,7 +57,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 ### T-043 Saudi market formatting + default locale · todo
 - Req: I18N-01, NFR-06, NFR-07 · Depends: T-030 · Docs: `design-system.md` §8, `adr/ADR-008`
-- Done: next-intl `defaultLocale` ar (`/` -> `/ar`); shared `formatPrice(halalas, locale)` (SAR, `ar-SA` / `en-SA`, whole riyals without decimals, `<bdi>` in RTL), Saudi phone display helper and client-side phone validation matching backend (T-020); unit tests named `NFR-07` and `NFR-06`.
+- Done: next-intl `defaultLocale` ar (`/` -> `/ar`); shared `formatPrice(halalas, locale)` (SAR, `ar-SA` / `en-SA`, whole riyals without decimals, `<bdi>` in RTL), Saudi phone display helper and client-side phone validation matching backend (T-020: same normalisation, then the `x-canonical-pattern` read from `api-spec.yaml`); unit tests named `NFR-07` and `NFR-06`.
 
 ### T-044 Cart / checkout fee + VAT display · todo
 - Req: CART-01, ORD-01 · Depends: T-036, T-038, backend T-021 · Docs: `screen-specs.md`

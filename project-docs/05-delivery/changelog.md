@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-21 (T-020 closed)
+- **T-020 Saudi phone validator + city validation helper: status `done`.** `/review-task` T-020: PASS (typecheck, lint and format clean, 325/325 tests, `NFR-06` and `PROF-02` covered by named tests, no deleted/skipped/weakened tests, spec matches code, `OUT_OF_DELIVERY_AREA` already in `api-spec.yaml`, no secrets in logs or responses).
+  - Unblocks: backend T-007 (profile + addresses). Still open for the owner: dev refresh-token migration from T-005 (`npm run migrate:refresh-family -- --all`, then `--confirm`); B-014 (landlines) affects the validator.
+
+## 2026-11-21 (T-020)
+- **T-020 Saudi phone validator + city validation helper (code, status `review`).** Also: B-023 resolved (T-007 now `Depends: T-005, T-020` with a `Docs:` line).
+  - **Docs first:** `api-spec.yaml` `SaudiPhoneInput` is now `maxLength: 25` with the strict pattern in `x-canonical-pattern` and the normalisation steps in the description (the raw input no longer matches the pattern, so it is not a `pattern`). Web T-039/T-043 and admin T-070 notes: clients apply the same normalisation, then the same pattern, with a test reading it from the spec. No `data-model.md` or `schema.prisma` change.
+  - **Code:** `src/lib/phone.ts` (`normalizeSaudiPhone`, zod `saudiPhone`, always `+9665XXXXXXXX`) and `src/lib/deliveryCities.ts` (`assertActiveCity`: reads `SiteSetting.deliveryCities` on every call, no cache because of Vercel serverless; trimmed and lowercased match; returns the canonical city; unknown/inactive/empty/missing settings -> 422 `OUT_OF_DELIVERY_AREA`). Not wired into routes yet (T-007).
+  - **Tests:** `tests/lib/phone.test.ts` (`NFR-06`, 42) and `tests/lib/deliveryCities.test.ts` (`PROF-02`, 16, own database). Typecheck, lint, format clean; 325/325 tests.
+  - **Owner decisions applied:** separators and Arabic digits accepted; invisible direction marks (U+200E/F) are rejected, not stripped (not requested).
+
 ## 2026-11-21 (T-006 closed)
 - **T-006 Forgot / reset password: status `done`.** `/review-task` T-006: PASS (typecheck, lint and format clean, 266/266 tests, every AUTH-03 criterion and owner addition covered by a named test, no deleted/skipped/weakened tests, spec and data-model match, every error code in `api-spec.yaml`, no secrets in logs or responses, en/ar parity). Open items resolved by the owner: (1) `OTP_INVALID` for expired codes: accepted; (3) no extra per-email reset limit: accepted (the 5-wrong-codes burn plus the 5-codes-per-hour cap bounds guessing to about 25 per hour per email); (2) the 1 s `iat` granularity: fixed, `requireAuth` now rejects when `iat <= floor(passwordChangedAt / 1000)` (inclusive), so a token issued in the same second as the reset, before it, is rejected. Test `AUTH-03 · an access token issued in the same second as the reset, before it, is rejected`; the earlier fresh-login assertion now advances one second first. Trade-off: the reset does not log in, but a login that lands in the same second as the reset gets a token that is rejected (the client's next refresh in a later second fixes it).
   - Unblocks: web T-037 (backend T-004..T-006 now all done).

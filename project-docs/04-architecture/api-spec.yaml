@@ -1048,9 +1048,17 @@ components:
     Locale: { type: string, enum: [ar, en], default: ar }
     SaudiPhoneInput:
       type: string
-      pattern: '^(\+966|00966|0)?5[0-9]{8}$'
-      description: Saudi mobile number. Accepted as 05XXXXXXXX, 5XXXXXXXX, +9665XXXXXXXX or 009665XXXXXXXX; normalized by the server (ADR-008).
-      examples: ['0551234567', '+966551234567']
+      maxLength: 25
+      x-canonical-pattern: '^(\+966|00966|0)?5[0-9]{8}$'
+      description: >-
+        Saudi mobile number (ADR-008). Input longer than 25 characters is rejected before anything else.
+        Normalisation steps, in order: (1) trim; (2) convert Arabic-Indic (٠-٩) and Extended Arabic-Indic (۰-۹)
+        digits to ASCII 0-9; (3) remove spaces, dashes, dots and parentheses; (4) the result must match
+        `x-canonical-pattern` (`05XXXXXXXX`, `5XXXXXXXX`, `+9665XXXXXXXX` or `009665XXXXXXXX`). Anything else
+        (letters, mixed scripts, landlines, wrong length) is VALIDATION_ERROR. The stored and returned value is
+        always `+9665XXXXXXXX` (SaudiPhone). Clients must apply the same normalisation and then the same pattern.
+        The pattern is in `x-canonical-pattern` (not `pattern`) because it applies after normalisation, not to the raw input.
+      examples: ['0551234567', '055 123 4567', '+966-55-123-4567', '٠٥٥١٢٣٤٥٦٧']
     SaudiPhone:
       type: string
       pattern: '^\+9665[0-9]{8}$'

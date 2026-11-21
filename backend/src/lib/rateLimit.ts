@@ -236,6 +236,51 @@ export async function hit(
   }
 }
 
+/**
+ * Read-only check: is `key` at or over `limit` in its current window? Does not count a hit.
+ * Fails open (not locked) when MongoDB errors; logged.
+ */
+export async function peek(
+  key: string,
+  limit: number,
+  opts: { log?: LogLike; requestId?: string; now?: Date } = {},
+): Promise<{ locked: boolean; retryAfterSeconds: number }> {
+  const now = opts.now ?? new Date();
+  try {
+    const doc = await prisma.rateLimit.findUnique({ where: { key: KEY_PREFIX + key } });
+    if (!doc || doc.hits < limit || doc.resetAt.getTime() <= now.getTime()) {
+      return { locked: false, retryAfterSeconds: 0 };
+    }
+    return {
+      locked: true,
+      retryAfterSeconds: Math.max(1, Math.ceil((doc.resetAt.getTime() - now.getTime()) / 1000)),
+    };
+  } catch (err) {
+    (opts.log ?? defaultLog()).error({ err, requestId: opts.requestId }, 'rate limit peek failed');
+    return { locked: false, retryAfterSeconds: 0 };
+  }
+}
+
+/** Move the end of a key's window to now + `seconds` (e.g. a lockout that starts when the limit is reached). Fails open (logged). */
+export async function extendWindow(
+  key: string,
+  seconds: number,
+  opts: { log?: LogLike; requestId?: string; now?: Date } = {},
+): Promise<void> {
+  const now = opts.now ?? new Date();
+  try {
+    await prisma.rateLimit.updateMany({
+      where: { key: KEY_PREFIX + key },
+      data: { resetAt: new Date(now.getTime() + seconds * 1000) },
+    });
+  } catch (err) {
+    (opts.log ?? defaultLog()).error(
+      { err, requestId: opts.requestId },
+      'rate limit extend failed',
+    );
+  }
+}
+
 /** Forget a counter, e.g. after a successful login. Fails open (logged). */
 export async function resetKey(key: string, opts: { log?: LogLike; requestId?: string } = {}) {
   try {
@@ -287,6 +332,8 @@ export interface RateLimiterOptions {
   name: string;
   limit: number;
   windowSeconds: number;
+  /** Do not count responses with status < 400 (e.g. only failed logins count). */
+  skipSuccessful?: boolean;
 }
 
 /**
@@ -301,6 +348,7 @@ export function createRateLimiter(opts: RateLimiterOptions): RequestHandler {
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     store: new MongoRateLimitStore(opts.name),
+    skipSuccessfulRequests: opts.skipSuccessful ?? false,
     keyGenerator: (req) => limitKey(opts.name, 'ip', req.ip),
     // We own `trust proxy`; the library's own IP/proxy sanity checks would only log noise.
     validate: false,

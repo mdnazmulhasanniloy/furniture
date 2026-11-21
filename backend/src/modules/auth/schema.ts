@@ -24,6 +24,9 @@ export const registerBody = z.object({
   preferredLocale: locale.optional(),
 });
 
+/** No complexity rules on login: only the registration/reset rules apply when a password is chosen. */
+export const loginBody = z.object({ email, password: z.string().min(1).max(128) });
+
 export const verifyOtpBody = z.object({ email, code: z.string().regex(/^\d{6}$/) });
 
 /** VERIFY_EMAIL resend must prove knowledge of the registration password (T-027); RESET_PASSWORD takes none. */

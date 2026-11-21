@@ -1,7 +1,8 @@
 import type { Request, RequestHandler } from 'express';
 import { parseAcceptLanguage } from '../../lib/locale.js';
-import { setRefreshCookie } from '../../lib/tokens.js';
+import { clearRefreshCookie, setRefreshCookie } from '../../lib/tokens.js';
 import * as auth from './auth.service.js';
+import * as session from './session.service.js';
 import type { RegisterBody, ResendOtpBody } from './schema.js';
 
 const locale = (req: Request) => parseAcceptLanguage(req.get('accept-language'));
@@ -31,6 +32,37 @@ export const verifyOtp: RequestHandler = async (req, res) => {
   );
   setRefreshCookie(res, refreshToken);
   res.status(200).json({ accessToken, user: auth.toPublicUser(user) });
+};
+
+export const login: RequestHandler = async (req, res) => {
+  const { email, password } = req.body as { email: string; password: string };
+  const { user, accessToken, refreshToken } = await session.login(email, password, {
+    userAgent: req.get('user-agent'),
+    requestId: req.id,
+    locale: locale(req),
+  });
+  setRefreshCookie(res, refreshToken);
+  res.status(200).json({ accessToken, user: auth.toPublicUser(user) });
+};
+
+export const csrf: RequestHandler = async (req, res) => {
+  res.status(200).json({ csrfToken: await session.issueCsrf(req) });
+};
+
+export const refresh: RequestHandler = async (req, res) => {
+  const { user, accessToken, refreshToken } = await session.refresh(req);
+  setRefreshCookie(res, refreshToken);
+  res.status(200).json({ accessToken, user: auth.toPublicUser(user) });
+};
+
+export const logout: RequestHandler = async (req, res) => {
+  await session.logout(req);
+  clearRefreshCookie(res);
+  res.status(204).end();
+};
+
+export const me: RequestHandler = (req, res) => {
+  res.status(200).json(auth.toPublicUser(req.user!));
 };
 
 export const resendOtp: RequestHandler = async (req, res) => {

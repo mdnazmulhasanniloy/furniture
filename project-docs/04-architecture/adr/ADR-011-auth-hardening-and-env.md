@@ -14,6 +14,12 @@ Status: **Accepted 2026-11-20** (team decision, SRC-006.2; assumptions confirmed
 - **Sentry:** `SENTRY_DSN` / `SENTRY_ENVIRONMENT`; Sentry is disabled when `SENTRY_DSN` is empty. Errors reported with the request id; no PII or secrets in events.
 - **Admin seed:** `ADMIN_EMAIL`, `ADMIN_PASSWORD` (12–128 chars), `ADMIN_FIRST_NAME`, `ADMIN_LAST_NAME`, read only by the seed script. `User` has `firstName` and `lastName` (B-020, SRC-007.3).
 
+## Amended 2026-11-21 (T-005)
+- **Refresh reuse:** reuse of a rotated token revokes the session **family** (`RefreshToken.familyId`), not all of the user's tokens (which are revoked only on password reset and block). 10 s grace window: `REFRESH_RACE`, nothing revoked. See ADR-003.
+- **Login lockout, source of truth:** the lockout counter is the RateLimit key `login:email:<hmac>` (ADR-012 store), not the user row. While the email is locked every attempt gets 429 `ACCOUNT_LOCKED` before any password check, for known and unknown emails alike (no password oracle, no enumeration). `User.failedLoginCount` and `User.lockedUntil` remain as a **mirror** for admin visibility; the decision never reads them. This replaces "state is stored on the user" in the Login lockout bullet above.
+- **CSRF scheme (the implementation detail left to T-005):** the token is `HMAC(CSRF_SECRET, familyId)`, bound to the session family, not to the cookie value, so it survives refresh rotations. It is validated by looking up the refresh cookie's row and comparing against its `familyId`. `GET /auth/csrf` without a live refresh cookie is 401. A cookie-authenticated request whose `Origin` header is present and not in `CORS_ALLOWED_ORIGINS` is 403 `CSRF_INVALID`. Bearer-only requests stay exempt.
+- **Logging (NFR-04):** pino redacts `Authorization`, `Cookie`, `X-CSRF-Token`, `Set-Cookie` and `password` / `newPassword` / `code` / `token` / `accessToken` / `refreshToken` fields in every logger; Sentry events carry no request headers, cookies or body.
+
 ## Open items resolved later (SRC-007, ADR-012)
 Hosting and realtime (B-017) and cron (B-021): ADR-012. Repo layout: three separate apps with `npm` (B-018). `EMAIL_LINK_TTL_SECONDS` is removed; OTP lifetime is `OTP_TTL_SECONDS=600` (B-019). `firstName` + `lastName` (B-020). Cookies: host-only on the origin that proxies `/api`, unchanged.
 

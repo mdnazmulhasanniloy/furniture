@@ -5,6 +5,7 @@ info:
   description: |
     REST API for the Furnixa furniture marketplace (website + admin).
     Base path /api/v1. Auth: Bearer access token (JWT). Refresh token in cookie `fx_rt` (30 days): `HttpOnly`, `Secure` from env `AUTH_COOKIE_SECURE`, `SameSite` from env `AUTH_COOKIE_SAME_SITE`, `Path=/api/v1/auth` (so it is only sent to the auth routes), optional `Domain` from `AUTH_COOKIE_DOMAIN`. Cookie-authenticated calls (`/auth/refresh`, `/auth/logout`) also need header `X-CSRF-Token` from `GET /auth/csrf` (ADR-011).
+    Access token JWT: HS256 only, `iss` = `furnixa-api`, `aud` = `furnixa`, claims `sub` (user id), `role`, `jti`; all verified on every request. The server loads the user from the database on every authenticated request (401 if missing or blocked) and takes `role` from the database, not from the token. Refresh is rotating with a 10 s grace window: a just-rotated token presented again within 10 s gets 401 `REFRESH_RACE` (nothing revoked; retry with the new cookie), after that the session family is revoked. Clients must make refresh single-flight.
     All error responses use the Error schema. Locale for emails/messages via `Accept-Language: ar|en` (default `ar`).
     Prices are integer halalas (1 SAR = 100 halalas). Phone numbers are Saudi mobile numbers, returned as E.164 `+9665XXXXXXXX`.
 servers:
@@ -134,7 +135,12 @@ paths:
     post:
       tags: [Auth]
       security: []
-      summary: Email + password login (AUTH-02). For an unverified account the password is matched against its pending registrations (same rule as resend-otp) and the new OTP is bound to the matching one. After LOGIN_MAX_FAILURES failures the account is locked for LOGIN_LOCKOUT_SECONDS (429 ACCOUNT_LOCKED); the oldest session is revoked when MAX_ACTIVE_SESSIONS would be exceeded.
+      summary: |
+        Email + password login (AUTH-02). Order: per-IP limit -> email lockout check -> password check -> status checks.
+        While an email is locked (LOGIN_MAX_FAILURES failures within LOGIN_LOCKOUT_SECONDS) every attempt gets 429 `ACCOUNT_LOCKED` WITHOUT checking the password, for known and unknown emails alike (no password oracle); `Retry-After` is set.
+        An unknown email and a wrong password both give the identical 401 `INVALID_CREDENTIALS`. `EMAIL_NOT_VERIFIED` and `ACCOUNT_BLOCKED` are returned only after the password verified.
+        For an unverified account the password is matched against its pending registrations (same rule as resend-otp), the new OTP is bound to the matching one and sent, and the response is 403 `EMAIL_NOT_VERIFIED` (if the OTP cooldown or cap blocks the mail it is not sent, the response is the same).
+        The per-IP limit (10 failed attempts / 15 min) does not count successful logins. The oldest session is revoked when MAX_ACTIVE_SESSIONS would be exceeded.
       requestBody:
         required: true
         content:
@@ -147,41 +153,44 @@ paths:
                 password: { type: string }
       responses:
         '200': { $ref: '#/components/responses/AuthSession' }
-        '401': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error', description: "`INVALID_CREDENTIALS` (unknown email or wrong password, identical body)" }
         '403':
-          description: Blocked, or unverified (code EMAIL_NOT_VERIFIED, OTP re-sent)
+          description: Blocked (`ACCOUNT_BLOCKED`), or unverified (`EMAIL_NOT_VERIFIED`, OTP re-sent); only after the password verified
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (per-IP limit) or `ACCOUNT_LOCKED` (per-account lockout)" }
   /auth/csrf:
     get:
       tags: [Auth]
       security: []
-      summary: Issue a CSRF token for cookie-authenticated requests (ADR-011)
+      summary: Issue a CSRF token for cookie-authenticated requests (ADR-011). The token is HMAC(CSRF_SECRET, session familyId), so it stays valid across refresh rotations. Needs a valid refresh cookie.
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema: { type: object, required: [csrfToken], properties: { csrfToken: { type: string } } }
+        '401': { $ref: '#/components/responses/Error', description: "`UNAUTHORIZED`: no valid refresh cookie" }
   /auth/refresh:
     post:
       tags: [Auth]
       security: []
-      summary: Rotate refresh cookie, return new access token (AUTH-05). Requires X-CSRF-Token.
+      summary: Rotate refresh cookie, return new access token (AUTH-05). Requires X-CSRF-Token; a present `Origin` header must be in CORS_ALLOWED_ORIGINS (else 403 `CSRF_INVALID`).
       parameters:
         - { $ref: '#/components/parameters/CsrfToken' }
       responses:
         '200': { $ref: '#/components/responses/AuthSession' }
-        '401': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error', description: "`UNAUTHORIZED` (missing, unknown, expired or revoked token, reuse after the grace window: the session family is revoked) or `REFRESH_RACE` (token rotated less than 10 s ago: retry with the new cookie, nothing revoked)" }
         '403': { description: CSRF_INVALID, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /auth/logout:
     post:
       tags: [Auth]
-      summary: Revoke refresh token (AUTH-05). Requires X-CSRF-Token.
+      security: [{ bearerAuth: [] }, {}]
+      summary: Revoke the session (AUTH-05) and clear the cookie. With the refresh cookie present it requires X-CSRF-Token (and the Origin rule of /auth/refresh) and revokes the whole session family; with only a Bearer token there is no cookie to revoke and the call just succeeds.
       parameters:
         - { $ref: '#/components/parameters/CsrfToken' }
       responses:
         '204': { description: Logged out }
+        '401': { $ref: '#/components/responses/Error', description: "`UNAUTHORIZED`: neither a refresh cookie nor a valid Bearer token" }
         '403': { description: CSRF_INVALID, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /auth/forgot-password:
     post:
@@ -1059,7 +1068,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }

@@ -4,13 +4,30 @@ import express, { Router } from 'express';
 import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
 import { getEnv, type Env } from './config/env.js';
-import { createLogger } from './lib/logger.js';
+import { createLogger, type Logger } from './lib/logger.js';
 import { createErrorHandler, notFoundHandler } from './middleware/error.js';
 import { requestId } from './middleware/requestId.js';
 import { authRouter } from './modules/auth/routes.js';
 
-export function createApp(env: Env = getEnv()) {
-  const logger = createLogger(env);
+export interface CreateAppOptions {
+  env?: Env;
+  /** Extra routers mounted under /api/v1 (tests mount a test-only admin router; none in production). */
+  extraRouters?: { path: string; router: Router }[];
+  /** Tests that must capture real log output pass their own logger (the test environment logs nothing). */
+  logger?: Logger;
+}
+
+const isOptions = (v: Env | CreateAppOptions): v is CreateAppOptions =>
+  'extraRouters' in v || 'env' in v || 'logger' in v;
+
+/** `createApp()`, `createApp(env)` or `createApp({ env?, extraRouters?, logger? })`. */
+export function createApp(arg: Env | CreateAppOptions = {}) {
+  const {
+    env = getEnv(),
+    extraRouters = [],
+    logger: given,
+  }: CreateAppOptions = 'NODE_ENV' in arg ? { env: arg } : isOptions(arg) ? arg : {};
+  const logger = given ?? createLogger(env);
   const app = express();
 
   app.set('trust proxy', env.TRUST_PROXY);
@@ -37,6 +54,7 @@ export function createApp(env: Env = getEnv()) {
 
   const v1 = Router();
   v1.use('/auth', authRouter);
+  for (const { path, router } of extraRouters) v1.use(path, router);
   app.use('/api/v1', v1);
 
   app.use(notFoundHandler);

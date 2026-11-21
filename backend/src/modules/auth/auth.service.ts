@@ -34,7 +34,7 @@ export function toPublicUser(u: User) {
 
 const isUniqueViolation = (e: unknown) => (e as { code?: string })?.code === 'P2002';
 
-async function sendOtpEmail(args: {
+export async function sendOtpEmail(args: {
   email: string;
   template: 'otp-verify' | 'otp-reset';
   code: string;

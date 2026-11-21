@@ -39,6 +39,11 @@ export function createErrorHandler(logger: Logger): ErrorRequestHandler {
       captureException(err, req.id);
     }
 
+    const retryAfter = (details as { retryAfterSeconds?: unknown } | undefined)?.retryAfterSeconds;
+    if (status === 429 && typeof retryAfter === 'number' && !res.getHeader('Retry-After')) {
+      res.setHeader('Retry-After', String(Math.max(1, Math.ceil(retryAfter))));
+    }
+
     res.status(status).json({ code, message, details, requestId: req.id });
   };
 }

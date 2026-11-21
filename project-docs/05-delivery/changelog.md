@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-21 (T-024 closed)
+- **T-024 MongoDB rate-limit store: status `done`.** `/review-task` re-run: PASS on code and tests (typecheck and lint clean, 185/185 tests, 22 `NFR-01` tests in `tests/lib/rateLimit.test.ts`, no deleted/skipped/weakened tests, spec and data-model match). The first pass of that re-run missed the two open items below; they were found while syncing docs.
+  - Fixed: `integrations.md` (Rate limiting store) now describes the update-pipeline upsert and the start-up + lazy `ensureIndexes()` instead of `$inc` and "at start-up".
+  - Signed off, moved to T-005: the AUTH-02 criterion "10 failures / 15 min / IP -> 429" is proven at limiter level by `NFR-01` tests only. T-005 must add the login-level test named `AUTH-02`.
+
 ## 2026-11-21 (T-024 review follow-up)
 - **T-024 stays `review`.** `/review-task` re-run: CHANGES NEEDED (docs only; typecheck clean, 185/185 tests, no deleted/skipped/weakened tests, traceability `missing=0`).
   - Done: `schema.prisma` RateLimit.key comment now `rl:{scope}:{kind}:{id}`; 3 new `NFR-01` tests for `MongoRateLimitStore` (`decrement` lowers the count and never goes below 0, `resetKey` clears one key, `resetAll` clears only its own scope). The earlier count of 19 tests / 182 is now 22 tests / 185. `decrement`, `resetKey` and `resetAll` are kept (express-rate-limit uses `decrement` with `skipFailedRequests` / `skipSuccessfulRequests`; T-005 may need it). The `server.ts` start-up `ensureIndexes()` call is accepted; production on Vercel relies on the lazy call inside `increment()`.

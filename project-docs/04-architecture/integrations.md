@@ -59,4 +59,4 @@
 - Cleanup removes: expired or consumed OTPs, expired or revoked refresh tokens, socket adapter documents older than `SOCKET_ADAPTER_TTL_SECONDS`. Returns `{otps, refreshTokens, socketEvents}` counts. Idempotent.
 
 ## Rate limiting store — NFR-01 (ADR-012)
-- `express-rate-limit` with a MongoDB store (`RateLimit` collection, atomic `findAndModify` upsert with `$inc`, TTL index on `resetAt` created by `ensureIndexes()` at start-up). No in-memory or Redis store.
+- `express-rate-limit` with a MongoDB store (`RateLimit` collection, one atomic `findAndModify` upsert with an update pipeline, so an expired window resets atomically; TTL index on `resetAt` created idempotently by `ensureIndexes()`, called at start-up and lazily on first use, which is what covers Vercel cold starts). No in-memory or Redis store.

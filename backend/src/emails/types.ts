@@ -40,6 +40,10 @@ export interface OrderStatusEmailData {
   status: OrderStatusName;
 }
 
+export interface PasswordChangedEmailData {
+  firstName: string;
+}
+
 export interface AdminInviteEmailData {
   firstName: string;
   code: string;
@@ -51,6 +55,7 @@ export interface AdminInviteEmailData {
 export interface TemplateDataMap {
   'otp-verify': OtpEmailData;
   'otp-reset': OtpEmailData;
+  'password-changed': PasswordChangedEmailData;
   'order-placed': OrderPlacedEmailData;
   'order-status': OrderStatusEmailData;
   'admin-invite': AdminInviteEmailData;
@@ -60,6 +65,7 @@ export type TemplateName = keyof TemplateDataMap;
 export const TEMPLATE_NAMES: TemplateName[] = [
   'otp-verify',
   'otp-reset',
+  'password-changed',
   'order-placed',
   'order-status',
   'admin-invite',

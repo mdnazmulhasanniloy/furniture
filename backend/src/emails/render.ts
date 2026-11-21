@@ -2,11 +2,13 @@ import { adminInvite as adminInviteAr } from './templates/ar/admin-invite.js';
 import { orderPlaced as orderPlacedAr } from './templates/ar/order-placed.js';
 import { orderStatus as orderStatusAr } from './templates/ar/order-status.js';
 import { otpReset as otpResetAr } from './templates/ar/otp-reset.js';
+import { passwordChanged as passwordChangedAr } from './templates/ar/password-changed.js';
 import { otpVerify as otpVerifyAr } from './templates/ar/otp-verify.js';
 import { adminInvite as adminInviteEn } from './templates/en/admin-invite.js';
 import { orderPlaced as orderPlacedEn } from './templates/en/order-placed.js';
 import { orderStatus as orderStatusEn } from './templates/en/order-status.js';
 import { otpReset as otpResetEn } from './templates/en/otp-reset.js';
+import { passwordChanged as passwordChangedEn } from './templates/en/password-changed.js';
 import { otpVerify as otpVerifyEn } from './templates/en/otp-verify.js';
 import {
   DEFAULT_LOCALE,
@@ -20,6 +22,7 @@ import {
 const registry: { [K in TemplateName]: Record<Locale, TemplateFn<TemplateDataMap[K]>> } = {
   'otp-verify': { en: otpVerifyEn, ar: otpVerifyAr },
   'otp-reset': { en: otpResetEn, ar: otpResetAr },
+  'password-changed': { en: passwordChangedEn, ar: passwordChangedAr },
   'order-placed': { en: orderPlacedEn, ar: orderPlacedAr },
   'order-status': { en: orderStatusEn, ar: orderStatusAr },
   'admin-invite': { en: adminInviteEn, ar: adminInviteAr },

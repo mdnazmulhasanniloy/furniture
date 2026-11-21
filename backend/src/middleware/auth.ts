@@ -24,6 +24,10 @@ export async function authenticateBearer(req: Request): Promise<User> {
   if (!user || user.isBlocked || !user.isVerified) {
     throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
   }
+  // AUTH-03: a password reset invalidates access tokens issued before it (`iat` has 1 s precision).
+  if (user.passwordChangedAt && claims.iat < Math.floor(user.passwordChangedAt.getTime() / 1000)) {
+    throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
+  }
   return user;
 }
 

@@ -46,7 +46,8 @@ As a visitor, I want to sign up with first name, last name, email and password a
 
 **AUTH-03 Forgot / reset password via OTP** · draft
 - Given a registered email, When I request reset, Then an OTP (purpose `RESET_PASSWORD`) is emailed; the response is identical for unknown emails.
-- Given a valid OTP and new password (min 8 chars, 1 letter + 1 number), When I submit, Then the password is changed and all refresh tokens are revoked.
+- Given a valid OTP and new password (min 8 chars, 1 letter + 1 number), When I submit, Then the password is changed, all refresh tokens are revoked and access tokens issued before the reset stop working; I am not logged in by the reset and must log in.
+- Given a successful reset, Then a "Your password was changed" email (no code, no password) is sent in my `preferredLocale` (en/ar), telling me to contact support if it was not me. *(Source: owner decision 2026-11-21.)*
 
 **AUTH-04 Resend OTP** · draft
 - Given I requested an OTP, When I click resend before 60 s, Then the button is disabled with a countdown and the API returns 429.

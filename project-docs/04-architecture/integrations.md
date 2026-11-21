@@ -3,7 +3,7 @@
 ## Nodemailer (SMTP) — AUTH-01..04, ORD-04
 - Transport from env: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM`. Dev and MVP production: Gmail SMTP (`smtp.gmail.com`, port 587, STARTTLS, app password; `MAIL_FROM` = the Gmail address or a verified alias).
 - OTP lifetime is `OTP_TTL_SECONDS` (default 600 = 10 min, AUTH-01; replaces `EMAIL_LINK_TTL_SECONDS`, B-019).
-- Templates: `src/emails/templates/{en,ar}/` — `otp-verify`, `otp-reset`, `order-placed`, `order-status`, `admin-invite`. Arabic templates use `dir="rtl"`.
+- Templates: `src/emails/templates/{en,ar}/` — `otp-verify`, `otp-reset`, `password-changed`, `order-placed`, `order-status`, `admin-invite`. Arabic templates use `dir="rtl"`.
 - Sending is async (not awaited by HTTP response for order emails); OTP emails are awaited so the user gets an error if sending fails.
 - Gmail limits daily volume (about 500/day on a free account); switch `SMTP_*` to a transactional provider (Brevo, SES) before launch volume (B-005). On Vercel the send must finish before the function returns (await it or use `waitUntil`).
 
@@ -14,6 +14,7 @@
 |---|---|---|
 | `otp-verify` | AUTH-01, AUTH-04 | `firstName`, `code` (6 digits), `ttlSeconds` (`OTP_TTL_SECONDS`, shown as minutes) |
 | `otp-reset` | AUTH-03 | `firstName`, `code`, `ttlSeconds` |
+| `password-changed` | AUTH-03 | `firstName` only (never a code or password); sent in the background after a successful reset, in the user's `preferredLocale`; says to contact support if it was not them |
 | `order-placed` | ORD-04 | `firstName`, `orderNo`, `items[] {title: {en, ar}, qty, unitPrice}`, `subtotal`, `deliveryFee`, `vatAmount` (VAT line shown only when > 0), `total` |
 | `order-status` | ORD-04 | `firstName`, `orderNo`, `status` (`PENDING`..`CANCELLED`) |
 | `admin-invite` | ADM-11 | `firstName`, `code` (OTP, not a link), `ttlSeconds`, `adminUrl` (`ADMIN_URL`) |

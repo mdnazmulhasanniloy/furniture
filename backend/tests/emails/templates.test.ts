@@ -38,6 +38,7 @@ const adminInvite = {
 const samples: TemplateDataMap = {
   'otp-verify': otp,
   'otp-reset': otp,
+  'password-changed': { firstName: 'Sara' },
   'order-placed': placed,
   'order-status': { firstName: 'Sara', orderNo: 'FX-1001', status: 'CONFIRMED' },
   'admin-invite': adminInvite,

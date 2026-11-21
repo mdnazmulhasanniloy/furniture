@@ -37,5 +37,13 @@ export const resendOtpBody = z
     message: 'password is required for VERIFY_EMAIL',
   });
 
+export const forgotPasswordBody = z.object({ email });
+
+export const resetPasswordBody = z.object({
+  email,
+  code: z.string().regex(/^\d{6}$/),
+  newPassword: password,
+});
+
 export type ResendOtpBody = z.infer<typeof resendOtpBody>;
 export type RegisterBody = z.infer<typeof registerBody>;

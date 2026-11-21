@@ -170,6 +170,7 @@ model User {
   isBlocked       Boolean        @default(false)
   failedLoginCount Int           @default(0) // login lockout (ADR-011)
   lockedUntil     DateTime?
+  passwordChangedAt DateTime? // set on password reset; older access tokens are rejected (AUTH-03)
   phone           String?
   avatar          String?
   preferredLocale Locale         @default(ar)

@@ -290,6 +290,14 @@ export async function resetKey(key: string, opts: { log?: LogLike; requestId?: s
   }
 }
 
+/** Same as `resetKey` but inside a caller's transaction: errors propagate (they abort it) instead of failing open. */
+export async function resetKeyInTx(
+  tx: Pick<Prisma.TransactionClient, 'rateLimit'>,
+  key: string,
+): Promise<void> {
+  await tx.rateLimit.deleteMany({ where: { key: KEY_PREFIX + key } });
+}
+
 // ---------------------------------------------------------------- express-rate-limit store
 
 export class MongoRateLimitStore implements Store {

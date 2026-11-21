@@ -15,6 +15,10 @@ const MESSAGES = {
     en: 'If the account exists, a new code was sent',
     ar: 'إذا كان الحساب موجوداً، فقد تم إرسال رمز جديد',
   },
+  passwordReset: {
+    en: 'Your password was changed. Please log in with the new password',
+    ar: 'تم تغيير كلمة المرور. يرجى تسجيل الدخول بكلمة المرور الجديدة',
+  },
 };
 const msg = (key: keyof typeof MESSAGES, req: Request) => MESSAGES[key][locale(req) ?? 'ar'];
 
@@ -69,4 +73,19 @@ export const resendOtp: RequestHandler = async (req, res) => {
   const { email, purpose, password } = req.body as ResendOtpBody;
   await auth.resendOtp(email, purpose, password, locale(req));
   res.status(200).json({ message: msg('resent', req) });
+};
+
+export const forgotPassword: RequestHandler = async (req, res) => {
+  await auth.forgotPassword((req.body as { email: string }).email, locale(req));
+  res.status(200).json({ message: msg('resent', req) });
+};
+
+export const resetPassword: RequestHandler = async (req, res) => {
+  const { email, code, newPassword } = req.body as {
+    email: string;
+    code: string;
+    newPassword: string;
+  };
+  await auth.resetPassword(email, code, newPassword);
+  res.status(200).json({ message: msg('passwordReset', req) });
 };

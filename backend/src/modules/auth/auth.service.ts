@@ -2,14 +2,16 @@ import type { Locale, Prisma, User } from '@prisma/client';
 import { getEnv } from '../../config/env.js';
 import { mailer } from '../../emails/mailer.js';
 import { AppError } from '../../lib/errors.js';
-import { hashPassword } from '../../lib/password.js';
+import { dummyVerify, hashPassword } from '../../lib/password.js';
 import { prisma } from '../../lib/prisma.js';
-import { issueRefreshToken, signAccessToken } from '../../lib/tokens.js';
+import { limitKey, resetKeyInTx } from '../../lib/rateLimit.js';
+import { issueRefreshToken, revokeAllForUser, signAccessToken } from '../../lib/tokens.js';
 import {
   assertCanIssue,
   createDecoyOtp,
   createOtp,
   findPendingByPassword,
+  matchOtp,
   matchVerifyOtp,
   UNCONSUMED,
   type PendingRegistration,
@@ -163,5 +165,69 @@ export async function resendOtp(
     code,
     firstName: user.firstName,
     locale: headerLocale ?? user.preferredLocale,
+  });
+}
+
+/** AUTH-03: same flow, limits and identical response as the RESET_PASSWORD resend. */
+export const forgotPassword = (email: string, headerLocale: Locale | undefined) =>
+  resendOtp(email, 'RESET_PASSWORD', undefined, headerLocale);
+
+const otpInvalid = () => new AppError(400, 'OTP_INVALID', 'Invalid code');
+const isWriteConflict = (e: unknown) => (e as { code?: string })?.code === 'P2034';
+
+/**
+ * AUTH-03. Every failure to match a live code is the same 400 OTP_INVALID (unknown email included) and
+ * spends one argon2 verify, so neither the body nor the timing reveals whether the account exists.
+ * ACCOUNT_BLOCKED only follows a correct code. Does not log the user in.
+ */
+export async function resetPassword(
+  email: string,
+  code: string,
+  newPassword: string,
+): Promise<void> {
+  let match;
+  try {
+    match = await matchOtp(email, 'RESET_PASSWORD', code, 'OTP_INVALID');
+  } catch (err) {
+    await dummyVerify(newPassword);
+    throw err;
+  }
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || !user.isVerified) {
+    await dummyVerify(newPassword);
+    throw otpInvalid();
+  }
+  if (user.isBlocked) throw new AppError(403, 'ACCOUNT_BLOCKED', 'Account blocked');
+
+  const passwordHash = await hashPassword(newPassword);
+  const now = new Date();
+  try {
+    await prisma.$transaction(async (tx) => {
+      const claimed = await tx.otp.updateMany({
+        where: { id: match.id, ...UNCONSUMED, expiresAt: { gt: now } },
+        data: { consumedAt: now },
+      });
+      if (claimed.count === 0) throw otpInvalid(); // lost the race for this one-time code
+      await tx.otp.updateMany({
+        where: { email, purpose: 'RESET_PASSWORD', ...UNCONSUMED },
+        data: { consumedAt: now },
+      });
+      await tx.user.update({
+        where: { id: user.id },
+        data: { passwordHash, passwordChangedAt: now, failedLoginCount: 0, lockedUntil: null },
+      });
+      await revokeAllForUser(user.id, tx);
+      await resetKeyInTx(tx, limitKey('login', 'email', email));
+    });
+  } catch (err) {
+    if (isWriteConflict(err)) throw otpInvalid(); // a concurrent reset with the same code won
+    throw err;
+  }
+
+  void mailer.sendInBackground({
+    to: email,
+    template: 'password-changed',
+    locale: user.preferredLocale,
+    data: { firstName: user.firstName },
   });
 }

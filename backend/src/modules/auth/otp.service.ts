@@ -140,15 +140,25 @@ export async function createDecoyOtp(email: string, purpose: OtpPurpose): Promis
 }
 
 /**
- * Finds the live VERIFY_EMAIL OTP matching `code`. Wrong codes count per email across all live rows;
- * the 5th wrong code invalidates every row.
+ * Finds the live OTP of `purpose` matching `code`. Wrong codes count per email across all live rows;
+ * the 5th wrong code invalidates every row. With no live row the error is `noLiveRow` (VERIFY_EMAIL says
+ * `OTP_EXPIRED`; RESET_PASSWORD says `OTP_INVALID` so it cannot reveal whether an account exists).
  */
-export async function matchVerifyOtp(email: string, code: string) {
+export async function matchOtp(
+  email: string,
+  purpose: OtpPurpose,
+  code: string,
+  noLiveRow: 'OTP_EXPIRED' | 'OTP_INVALID' = 'OTP_EXPIRED',
+) {
   const now = new Date();
   const live = await prisma.otp.findMany({
-    where: { email, purpose: 'VERIFY_EMAIL', ...UNCONSUMED, expiresAt: { gt: now } },
+    where: { email, purpose, ...UNCONSUMED, expiresAt: { gt: now } },
   });
-  if (live.length === 0) throw new AppError(400, 'OTP_EXPIRED', 'Code expired or not found');
+  if (live.length === 0) {
+    throw noLiveRow === 'OTP_INVALID'
+      ? new AppError(400, 'OTP_INVALID', 'Invalid code')
+      : new AppError(400, 'OTP_EXPIRED', 'Code expired or not found');
+  }
 
   const hash = hashOtp(email, code);
   const match = live.find((row) => safeEqual(row.codeHash, hash));
@@ -162,3 +172,6 @@ export async function matchVerifyOtp(email: string, code: string) {
   });
   throw new AppError(400, 'OTP_INVALID', 'Invalid code');
 }
+
+export const matchVerifyOtp = (email: string, code: string) =>
+  matchOtp(email, 'VERIFY_EMAIL', code);

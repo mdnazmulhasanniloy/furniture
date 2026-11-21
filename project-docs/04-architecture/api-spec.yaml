@@ -197,6 +197,10 @@ paths:
       tags: [Auth]
       security: []
       summary: Send reset OTP; always 200 (AUTH-03)
+      description: |
+        Same flow and limits as `POST /auth/resend-otp` with purpose `RESET_PASSWORD`: the identical 200 message for
+        known and unknown emails (and for blocked or unverified accounts, which get no mail); the 60 s cooldown and
+        the 5-per-hour cap apply per email, also for unknown emails, so a 429 does not reveal whether an account exists.
       requestBody:
         required: true
         content:
@@ -208,11 +212,30 @@ paths:
                 email: { type: string, format: email }
       responses:
         '200': { $ref: '#/components/responses/Message' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (OTP cooldown or hourly cap)" }
   /auth/reset-password:
     post:
       tags: [Auth]
       security: []
       summary: Reset password with OTP (AUTH-03)
+      description: |
+        Does **not** log the user in: it returns 200 `Message` and the user then logs in with the new password.
+
+        **No enumeration.** Every failure to match a live `RESET_PASSWORD` code (unknown email, no live code, expired,
+        already used, wrong code) is the identical 400 `OTP_INVALID` (so `OTP_EXPIRED` is never returned here), and each
+        failure path spends one argon2 verify so timing matches. The 5th wrong code for an email burns every live code.
+        `ACCOUNT_BLOCKED` (403) is returned only after a correct code.
+
+        **On success, in one transaction:** the new argon2id hash and `User.passwordChangedAt` are stored, every
+        refresh token of the user is revoked, every `RESET_PASSWORD` OTP of the email is consumed, and the login lockout
+        (`User.failedLoginCount`, `lockedUntil` and the `login:email:<hmac>` rate-limit key) is cleared. Access tokens
+        issued before `passwordChangedAt` are rejected with 401 `UNAUTHORIZED` (compared at 1 s granularity, the `iat`
+        precision). A "Your password was changed" email (no code, no password) is then sent in the user's
+        `preferredLocale`, in the background.
+
+        **IP limit:** 10 failed attempts per 15 min per IP (successful resets do not count), so codes cannot be
+        guessed across many emails; over the limit -> 429 `RATE_LIMITED` with `Retry-After`.
       requestBody:
         required: true
         content:
@@ -223,10 +246,13 @@ paths:
               properties:
                 email: { type: string, format: email }
                 code: { type: string, pattern: '^[0-9]{6}$' }
-                newPassword: { type: string, minLength: 8 }
+                newPassword: { type: string, minLength: 8, maxLength: 128, description: "At least one letter and one number (same rule as registration)" }
       responses:
         '200': { $ref: '#/components/responses/Message' }
-        '400': { $ref: '#/components/responses/Error' }
+        '400': { $ref: '#/components/responses/Error', description: "`OTP_INVALID` (any failure to match a live code; see above)" }
+        '403': { description: "`ACCOUNT_BLOCKED`, only after a correct code", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/Error', description: "Validation error (malformed email or code, weak password); the code stays usable" }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (per-IP limit on failed attempts)" }
   /auth/me:
     get:
       tags: [Auth]

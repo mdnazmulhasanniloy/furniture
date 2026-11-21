@@ -35,7 +35,12 @@ export function signAccessToken(user: { id: string; role: string }): string {
 }
 
 /** HS256 only, `iss` and `aud` verified. Any failure -> 401 UNAUTHORIZED. */
-export function verifyAccessToken(token: string): { sub: string; role: string; jti: string } {
+export function verifyAccessToken(token: string): {
+  sub: string;
+  role: string;
+  jti: string;
+  iat: number;
+} {
   try {
     const p = jwt.verify(token, getEnv().ACCESS_TOKEN_SECRET, {
       algorithms: ['HS256'],
@@ -45,7 +50,8 @@ export function verifyAccessToken(token: string): { sub: string; role: string; j
     if (typeof p === 'string' || typeof p.sub !== 'string' || typeof p.jti !== 'string') {
       throw new Error('malformed claims');
     }
-    return { sub: p.sub, role: String(p.role), jti: p.jti };
+    if (typeof p.iat !== 'number') throw new Error('missing iat');
+    return { sub: p.sub, role: String(p.role), jti: p.jti, iat: p.iat };
   } catch {
     throw new AppError(401, 'UNAUTHORIZED', 'Invalid or expired access token');
   }
@@ -172,8 +178,11 @@ export async function revokeFamily(familyId: string): Promise<void> {
 }
 
 /** Password reset and block only (T-006, T-017). */
-export async function revokeAllForUser(userId: string): Promise<void> {
-  await prisma.refreshToken.updateMany({
+export async function revokeAllForUser(
+  userId: string,
+  db: Pick<Prisma.TransactionClient, 'refreshToken'> = prisma,
+): Promise<void> {
+  await db.refreshToken.updateMany({
     where: { userId, ...UNREVOKED },
     data: { revokedAt: new Date() },
   });

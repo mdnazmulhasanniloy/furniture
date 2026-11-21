@@ -40,9 +40,17 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 - Logging and Sentry (added during the T-005 review, NFR-04): `createLogger` redacts `req.headers.authorization`, `req.headers.cookie`, `req.headers["x-csrf-token"]`, `res.headers["set-cookie"]` and `password`, `newPassword`, `code`, `token`, `accessToken`, `refreshToken` (root and one level down) with `[REDACTED]`; Sentry events lose request headers, cookies and body (`beforeSend`). Tests: `NFR-04 · request logs redact credentials` and the Sentry scrub test. Note: `*.code` also hides `err.code` in logs.
 - Unverified login (added by T-027): uses the same rule as `POST /auth/resend-otp` for VERIFY_EMAIL. The submitted password is matched (argon2 verify) against the unexpired `pendingRegistration.passwordHash` rows of the email, and the new OTP is bound to the matching row only. No match -> the generic 401 `INVALID_CREDENTIALS` (counted as a failed login); **no decoy OTP row is written** (login answers identically for every miss, so there is nothing to disguise). A correct password inside the OTP cooldown / hourly cap still returns 403 `EMAIL_NOT_VERIFIED` but sends no mail (a 429 there would reveal the password was right). Test named `AUTH-01`/`AUTH-02`: an attacker who registered later does not get a code bound to their data when the victim logs in.
 
-### T-006 Forgot / reset password · todo
+### T-006 Forgot / reset password · done
 - Req: AUTH-03 · Depends: T-005
-- Done: identical response for unknown email; reset revokes all refresh tokens (tested).
+- Docs: `PRD#5.1` (AUTH-03), `api-spec.yaml` (/auth/forgot-password, /auth/reset-password), `data-model.md` (User.passwordChangedAt), `adr/ADR-003`
+- Done (plan approved 2026-11-21, with owner additions): all tests named `AUTH-03 · …`.
+  1. `POST /auth/forgot-password` = the `RESET_PASSWORD` flow of resend-otp: identical 200 for unknown, blocked and unverified emails; cooldown and cap apply to all.
+  2. `POST /auth/reset-password`: every failure to match a live code (unknown email, none live, expired, used, wrong) -> the same 400 `OTP_INVALID` with a dummy argon2 verify on each failure path (no enumeration; `OTP_EXPIRED` never returned); 5 wrong codes burn the live codes; `ACCOUNT_BLOCKED` 403 only after a correct code; weak password -> 422 and the code stays usable; one-time use, atomic claim (concurrent resets: exactly one wins).
+  3. On success, one transaction: new argon2id hash, `User.passwordChangedAt`, revoke all refresh tokens, consume all `RESET_PASSWORD` OTPs, reset `login:email:<hmac>` and `failedLoginCount`/`lockedUntil`. No auto-login (200 `Message`).
+  4. `User.passwordChangedAt` (nullable, additive): `requireAuth` rejects (401) an access token whose `iat` is earlier than it (1 s granularity). Test: `AUTH-03 · an access token issued before the reset is rejected after the reset`.
+  5. IP limiter on `/auth/reset-password`: 10 failed attempts / 15 min / IP via the T-024 store (failures only).
+  6. "Your password was changed" email (`password-changed`, en/ar, no code or password) via `sendInBackground` after commit, in `preferredLocale`. PRD criterion added (owner decision 2026-11-21).
+  7. Logs: `newPassword` and `code` stay redacted (T-005); test that a reset request leaves neither in the request log.
 
 ### T-007 Profile + addresses · todo
 - Req: PROF-01, PROF-02 · Depends: T-005

@@ -48,6 +48,12 @@ paths:
       tags: [Auth]
       security: []
       summary: Register and send email OTP (AUTH-01)
+      description: |
+        Email is trimmed and lower-cased. Password: 8-128 characters, at least one letter and one number.
+        The OTP email is sent in the locale of `Accept-Language` (`ar`|`en`), else `preferredLocale`, else `ar`.
+        Registering an email that already has an **unverified** account never changes that account: the submitted
+        data (password hash, names, locale) is stored on the new OTP row and applied only when *that* OTP is verified
+        (prevents pre-account takeover). Subject to the 60 s cooldown and the 5-per-hour OTP cap (429 `RATE_LIMITED`).
       requestBody:
         required: true
         content:
@@ -59,17 +65,24 @@ paths:
                 firstName: { type: string, minLength: 1, maxLength: 40 }
                 lastName: { type: string, minLength: 1, maxLength: 40 }
                 email: { type: string, format: email }
-                password: { type: string, minLength: 8 }
+                password: { type: string, minLength: 8, maxLength: 128, description: At least one letter and one number }
                 preferredLocale: { $ref: '#/components/schemas/Locale' }
       responses:
         '201': { $ref: '#/components/responses/Message' }
-        '409': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error', description: "`EMAIL_IN_USE` - the email belongs to a verified account" }
         '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error', description: "`RATE_LIMITED` - cooldown or hourly OTP cap" }
   /auth/verify-otp:
     post:
       tags: [Auth]
       security: []
       summary: Verify email OTP and log in (AUTH-01)
+      description: |
+        Finds the unconsumed, unexpired VERIFY_EMAIL OTP whose code matches, applies that OTP's pending registration
+        data to the user, marks the user verified, consumes **all** VERIFY_EMAIL OTPs of the email, and returns an
+        access token plus the `fx_rt` cookie. Wrong codes are counted per email across all its VERIFY_EMAIL OTPs; the
+        5th wrong code invalidates all of them. Errors (400): `OTP_INVALID` wrong code; `OTP_EXPIRED` expired,
+        invalidated, already used, or no OTP.
       requestBody:
         required: true
         content:
@@ -82,13 +95,19 @@ paths:
                 code: { type: string, pattern: '^[0-9]{6}$' }
       responses:
         '200': { $ref: '#/components/responses/AuthSession' }
-        '400': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error' }
+        '400': { $ref: '#/components/responses/Error', description: "`OTP_INVALID` or `OTP_EXPIRED`" }
+        '403': { $ref: '#/components/responses/Error', description: "`ACCOUNT_BLOCKED`" }
+        '422': { $ref: '#/components/responses/Error' }
   /auth/resend-otp:
     post:
       tags: [Auth]
       security: []
       summary: Resend OTP (AUTH-04)
+      description: |
+        Always answers the same 200 message for known and unknown emails (no email is sent for unknown ones or for
+        a purpose that does not apply to the account). The 60 s cooldown and the 5-per-hour cap apply per email and
+        purpose, also for unknown emails, so 429 does not reveal whether an account exists.
+        A resent VERIFY_EMAIL OTP carries the pending registration data of the latest VERIFY_EMAIL OTP.
       requestBody:
         required: true
         content:
@@ -101,7 +120,8 @@ paths:
                 purpose: { $ref: '#/components/schemas/OtpPurpose' }
       responses:
         '200': { $ref: '#/components/responses/Message' }
-        '429': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error', description: "`RATE_LIMITED`" }
   /auth/login:
     post:
       tags: [Auth]
@@ -1022,7 +1042,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA] }
+        code: { type: string, examples: [VALIDATION_ERROR, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA] }
         message: { type: string }
         details: {}
         requestId: { type: string }

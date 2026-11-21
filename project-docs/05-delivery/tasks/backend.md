@@ -19,7 +19,7 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 - Docs: `04-architecture/integrations.md`
 - Done: `mailer.send({to, template, locale, data})`; templates in en/ar with RTL; unit test renders each template in both locales; Gmail SMTP by default, Mailpit optional (SMTP_HOST=localhost, SMTP_PORT=1025).
 
-### T-004 Register, verify OTP, resend OTP · todo
+### T-004 Register, verify OTP, resend OTP · done
 - Req: AUTH-01, AUTH-04 · Depends: T-002, T-003
 - Docs: `02-product/PRD.md#5.1`, `adr/ADR-003`, `api-spec.yaml` (/auth/register, /auth/verify-otp, /auth/resend-otp)
 - Done: all AUTH-01/04 Given/When/Then covered by tests incl. 5 wrong attempts, expiry after `OTP_TTL_SECONDS` (fake timers; default 600), 60 s cooldown, 5/hour cap; register requires `firstName` and `lastName` (422 otherwise).

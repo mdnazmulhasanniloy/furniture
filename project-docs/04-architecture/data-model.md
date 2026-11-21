@@ -5,6 +5,7 @@ Source of truth for the schema is this document; `backend/prisma/schema.prisma` 
 ## Composite types
 
 - `LocalizedText { en String, ar String }`
+- `PendingRegistration { passwordHash String, firstName String, lastName String, preferredLocale Locale }` — embedded in `Otp.pendingRegistration` (VERIFY_EMAIL only); applied to the `User` only when that OTP is verified (prevents pre-account takeover)
 - `ImageAsset { key String, url String, alt LocalizedText?, width Int?, height Int? }` — `key` = R2 object key `furnixa/{env}/{yyyy}/{mm}/{uuid}.{ext}`; `url` = `R2_PUBLIC_BASE_URL + "/" + key` (recomputed by the server); `publicId` removed (ADR-010)
 - `Dimensions { widthCm Float?, depthCm Float?, heightCm Float?, weightKg Float? }`
 - `VatSetting { vatRate Float (percent 0–50, ≤2 decimals, default 0), applyToDelivery Boolean (default true), pricesIncludeVat Boolean (default true), registrationNumber String? (15 digits, `^3\d{13}3$`) }` (embedded in `SiteSetting.vat`)
@@ -21,7 +22,7 @@ Source of truth for the schema is this document; `backend/prisma/schema.prisma` 
 | Model | Key fields | Indexes / notes |
 |---|---|---|
 | **User** | firstName, lastName, email (unique, lowercase), passwordHash, role, isVerified, isBlocked, failedLoginCount (default 0), lockedUntil?, phone? (E.164 `+9665XXXXXXXX`), avatar?, preferredLocale (default `ar`), createdAt | unique email |
-| **Otp** | email, purpose, codeHash, attempts, expiresAt, consumedAt? | index (email, purpose); `expiresAt` = now + `OTP_TTL_SECONDS` (default 600); expired/consumed rows removed by the cron cleanup (ADR-012) |
+| **Otp** | email, purpose, codeHash (keyed HMAC over email + code), attempts, expiresAt, consumedAt?, createdAt, pendingRegistration: PendingRegistration? | index (email, purpose); wrong-code attempts are counted per email across its VERIFY_EMAIL rows (5 invalidates all); cooldown (60 s) and hourly cap (5) are computed from `createdAt`; `expiresAt` = now + `OTP_TTL_SECONDS` (default 600); expired/consumed rows removed by the cron cleanup (ADR-012) |
 | **RefreshToken** | userId, tokenHash (keyed HMAC, ADR-011), expiresAt (30 days), revokedAt?, userAgent? | index userId; at most `MAX_ACTIVE_SESSIONS` unrevoked per user |
 | **Address** | userId, label, fullName, phone (E.164 `+9665XXXXXXXX`), cityCode (must match an active `DeliveryCity.code` when written), area, street, notes?, isDefault | index userId |
 | **Category** | name: LocalizedText, slug (unique), image?, parentId?, sortOrder, isActive | unique slug |

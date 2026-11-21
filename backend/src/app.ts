@@ -7,6 +7,7 @@ import { getEnv, type Env } from './config/env.js';
 import { createLogger } from './lib/logger.js';
 import { createErrorHandler, notFoundHandler } from './middleware/error.js';
 import { requestId } from './middleware/requestId.js';
+import { authRouter } from './modules/auth/routes.js';
 
 export function createApp(env: Env = getEnv()) {
   const logger = createLogger(env);
@@ -35,6 +36,7 @@ export function createApp(env: Env = getEnv()) {
   });
 
   const v1 = Router();
+  v1.use('/auth', authRouter);
   app.use('/api/v1', v1);
 
   app.use(notFoundHandler);

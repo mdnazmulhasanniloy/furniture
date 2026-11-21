@@ -7,7 +7,7 @@ export const otpVerify: TemplateFn<OtpEmailData> = (d) => {
   const html = `<p>Hi ${escapeHtml(d.firstName)},</p>
 <p>Use this code to verify your email address:</p>
 ${otpBox(d.code)}
-<p>The code is valid for ${mins}. If you did not create an account, ignore this email.</p>`;
-  const text = `Hi ${d.firstName},\n\nYour verification code is ${d.code}. It is valid for ${mins}.\nIf you did not create an account, ignore this email.`;
+<p>The code is valid for ${mins}. If you did not request this, ignore this email.</p>`;
+  const text = `Hi ${d.firstName},\n\nYour verification code is ${d.code}. It is valid for ${mins}.\nIf you did not request this, ignore this email.`;
   return layout('en', subject, html, text);
 };

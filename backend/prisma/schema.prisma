@@ -182,15 +182,24 @@ model User {
   cart            Cart?
 }
 
+// Registration data bound to a VERIFY_EMAIL OTP; applied to the User only when that OTP is verified.
+type PendingRegistration {
+  passwordHash    String
+  firstName       String
+  lastName        String
+  preferredLocale Locale
+}
+
 model Otp {
-  id         String     @id @default(auto()) @map("_id") @db.ObjectId
-  email      String
-  purpose    OtpPurpose
-  codeHash   String
-  attempts   Int        @default(0)
-  expiresAt  DateTime
-  consumedAt DateTime?
-  createdAt  DateTime   @default(now())
+  id                  String               @id @default(auto()) @map("_id") @db.ObjectId
+  email               String
+  purpose             OtpPurpose
+  codeHash            String
+  attempts            Int                  @default(0)
+  expiresAt           DateTime
+  consumedAt          DateTime?
+  createdAt           DateTime             @default(now())
+  pendingRegistration PendingRegistration?
 
   @@index([email, purpose])
 }

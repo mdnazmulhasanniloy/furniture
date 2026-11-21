@@ -71,7 +71,7 @@ paths:
         '201': { $ref: '#/components/responses/Message' }
         '409': { $ref: '#/components/responses/Error', description: "`EMAIL_IN_USE` - the email belongs to a verified account" }
         '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error', description: "`RATE_LIMITED` - cooldown or hourly OTP cap" }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` - cooldown or hourly OTP cap" }
   /auth/verify-otp:
     post:
       tags: [Auth]
@@ -129,7 +129,7 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Message' }
         '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/Error', description: "`RATE_LIMITED`" }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED`" }
   /auth/login:
     post:
       tags: [Auth]
@@ -151,7 +151,7 @@ paths:
         '403':
           description: Blocked, or unverified (code EMAIL_NOT_VERIFIED, OTP re-sent)
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        '429': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (per-IP limit) or `ACCOUNT_LOCKED` (per-account lockout)" }
   /auth/csrf:
     get:
       tags: [Auth]
@@ -982,6 +982,15 @@ components:
       description: Error (always carries `requestId`, also sent as response header `x-request-id`)
       headers:
         x-request-id: { schema: { type: string } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    RateLimited:
+      description: |
+        Too many requests (NFR-01). Error code `RATE_LIMITED`. Counters live in MongoDB (shared by all instances), fixed window per key. `Retry-After` is the number of seconds until the window resets; `RateLimit` is the IETF draft-7 structured header (`limit=<n>, remaining=<n>, reset=<seconds>`) and `RateLimit-Policy` its policy (`<n>;w=<window seconds>`). The same `RateLimit` headers are also sent on successful responses of rate-limited routes. If the counter store is unavailable the request is allowed (fail open) and the error is logged.
+      headers:
+        x-request-id: { schema: { type: string } }
+        Retry-After: { schema: { type: integer, minimum: 0 }, description: Seconds until the window resets }
+        RateLimit: { schema: { type: string, examples: ['limit=10, remaining=0, reset=840'] } }
+        RateLimit-Policy: { schema: { type: string, examples: ['10;w=900'] } }
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
     Message:
       description: OK

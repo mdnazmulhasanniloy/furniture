@@ -1,5 +1,6 @@
 import argon2 from 'argon2';
 import type { Prisma, PrismaClient } from '@prisma/client';
+import { buildSearchText } from '../../src/lib/searchText.js';
 import { CATEGORIES, DELIVERY_CITIES, DEMO_PRODUCTS, HOME_SECTIONS, PAGES } from './data.js';
 
 export const PLACEHOLDER_CONTACT_EMAIL = 'placeholder@example.com';
@@ -79,7 +80,10 @@ export async function runSeed(prisma: PrismaClient, opts: SeedOptions): Promise<
 
   for (const c of CATEGORIES) {
     if (await prisma.category.findUnique({ where: { slug: c.slug } })) continue;
-    await prisma.category.create({ data: { slug: c.slug, name: c.name, sortOrder: c.sortOrder } });
+    // Optional fields written as explicit null (null-vs-missing, CLAUDE.md rule 8).
+    await prisma.category.create({
+      data: { slug: c.slug, name: c.name, sortOrder: c.sortOrder, parentId: null, image: null },
+    });
     result.categories++;
   }
 
@@ -150,16 +154,23 @@ export async function runSeed(prisma: PrismaClient, opts: SeedOptions): Promise<
           description: p.description,
           type: p.type,
           condition: p.condition,
+          // Optional fields are written as explicit null (null-vs-missing, CLAUDE.md rule 8).
           conditionNotes:
             p.type === 'RESALE'
               ? { en: 'Sample pre-owned item.', ar: 'قطعة مستعملة للعرض.' }
-              : undefined,
+              : null,
+          sku: null,
+          compareAtPrice: null,
+          dimensions: null,
+          material: null,
+          color: null,
           price: p.price,
           stock: p.stock,
           isFeatured: p.isFeatured ?? false,
           status: 'PUBLISHED',
           categoryId: category.id,
           images: [],
+          searchText: buildSearchText(p.title), // T-010
         },
       });
       result.products++;

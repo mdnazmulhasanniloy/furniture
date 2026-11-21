@@ -145,6 +145,8 @@ type OrderItem {
   productId     String        @db.ObjectId
   titleSnapshot LocalizedText
   imageSnapshot String?
+  // T-010/T-013: R2 key of the snapshot image; releaseUploads never deletes a referenced object.
+  imageKey      String?
   unitPrice     Int
   qty           Int
   type          ProductType
@@ -299,6 +301,8 @@ model Product {
   color          String?
   isFeatured     Boolean        @default(false)
   status         ProductStatus  @default(DRAFT)
+  // T-010: lowercased title.en + normalised title.ar (see src/lib/searchText.ts); recomputed on every write.
+  searchText     String         @default("")
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 

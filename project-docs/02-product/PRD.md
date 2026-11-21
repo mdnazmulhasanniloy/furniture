@@ -129,6 +129,7 @@ Order status flow: `PENDING → CONFIRMED → PROCESSING → OUT_FOR_DELIVERY �
 
 **I18N-01 Language switch & RTL** · draft (SRC-003.4) — Default locale is **`ar`**; switcher in header; URL prefix `/ar`, `/en`; Given I open `/`, Then I am redirected to `/ar` (or to `/en` if I previously chose English). `<html dir="rtl" lang="ar">` for Arabic; layouts mirror using logical CSS properties; numbers, prices and dates formatted with `Intl` for `ar-SA` / `en-SA` (`design-system.md` §8). Admin dashboard also supports ar/en and defaults to `ar`.
 **I18N-02 Localized content** · draft — Every admin-editable customer-facing text (product, category, banner, page, section titles, delivery city names) has `ar` and `en` fields; admin form shows both side by side with Arabic first; `ar` required, `en` required before publishing. Missing text falls back to `ar` (ADR-006).
+- Products (owner decision 2026-11-22, T-010): a `DRAFT` product requires **at least one locale non-empty** (trimmed) for `title` and for `description`; saving a product as `PUBLISHED` (create or update) requires **both `en` and `ar` non-empty** for `title` and `description`. Violations return 422 `VALIDATION_ERROR`.
 
 ### 5.7 UI quality (UI) — SRC-001.5, .7, .8, .12
 

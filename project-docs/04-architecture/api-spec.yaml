@@ -409,6 +409,10 @@ paths:
       tags: [Catalog]
       security: []
       summary: Active categories tree (CAT-01)
+      description: >-
+        Roots with their active children nested one level in `children`, both sorted by `sortOrder` then `slug`.
+        Inactive categories are omitted; an inactive parent hides its whole subtree (children are not re-rooted).
+        `productCount` is not included here (admin list only).
       responses:
         '200':
           description: OK
@@ -418,9 +422,17 @@ paths:
       tags: [Catalog]
       security: []
       summary: Published products with filters (PROD-01)
+      description: >-
+        Only PUBLISHED products. `q` (max 100 chars, 422 above) searches `searchText`: the query is lowercased,
+        Arabic-normalised (diacritics/tatweel removed, أ/إ/آ→ا, ة→ه, ى→ي, Arabic-Indic digits→ASCII), regex
+        characters are escaped, and matched with case-insensitive `contains`. `category` is a category slug and
+        includes products of its direct sub-categories; an unknown slug returns an empty page (not 404).
+        `material` matches case-insensitively (exact). `inStock=true` means stock > 0. Category `isActive`
+        does not hide products (it affects navigation only, T-009). Sort `featured` = isFeatured desc, then
+        newest; default `newest`. Prices are halalas, min/max inclusive (owner decisions 2026-11-22, T-010).
       parameters:
-        - { name: q, in: query, schema: { type: string } }
-        - { name: category, in: query, description: category slug, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: category, in: query, description: category slug (includes its sub-categories' products), schema: { type: string } }
         - { name: type, in: query, schema: { $ref: '#/components/schemas/ProductType' } }
         - { name: condition, in: query, schema: { type: array, items: { $ref: '#/components/schemas/Condition' } }, style: form, explode: false }
         - { name: minPrice, in: query, schema: { type: integer } }
@@ -440,6 +452,9 @@ paths:
       tags: [Catalog]
       security: []
       summary: Product detail + related (PROD-02)
+      description: >-
+        Only a PUBLISHED product resolves; DRAFT, ARCHIVED and unknown slugs -> 404. `related` holds up to 8
+        PUBLISHED products of the same category, excluding the product itself, newest first (owner 2026-11-22).
       parameters:
         - { name: slug, in: path, required: true, schema: { type: string } }
       responses:
@@ -753,6 +768,11 @@ paths:
     post:
       tags: [Admin]
       summary: Create product
+      description: >-
+        Images carry only `key` (+ optional `alt`); the server recomputes `url` and attaches the uploads
+        (`syncImages`, scope admin). Rules (owner 2026-11-22, T-010): type NEW requires condition NEW; type
+        RESALE requires LIKE_NEW/GOOD/FAIR; `compareAtPrice` > `price` when set; DRAFT needs at least one
+        non-empty locale, PUBLISHED both locales, for title and description (I18N-02) -> 422 otherwise.
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/ProductInput' } } }
@@ -760,6 +780,8 @@ paths:
         '201':
           description: Created
           content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } }
+        '409': { $ref: '#/components/responses/Error', description: "`SLUG_TAKEN`" }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` (incl. unknown categoryId, type/condition mismatch, publish gate) or `UPLOAD_NOT_ALLOWED`" }
   /admin/products/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     get:
@@ -769,31 +791,55 @@ paths:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } }
+        '404': { $ref: '#/components/responses/Error' }
     patch:
       tags: [Admin]
-      summary: Update product
+      summary: Update product (optimistic concurrency)
+      description: >-
+        Partial update; `expectedUpdatedAt` (the `updatedAt` the admin loaded) is required. The update is one
+        conditional write (`where id AND updatedAt = expectedUpdatedAt`); when nothing matches the response is
+        409 `STALE_UPDATE` with the current product in `details.current` and nothing is changed (owner
+        2026-11-22, T-010). The create rules (type/condition, compareAtPrice, publish gate) apply to the merged
+        result. Admin UI (T-064): on 409 STALE_UPDATE show "This product was changed, reload" and keep the edits.
       requestBody:
-        content: { application/json: { schema: { $ref: '#/components/schemas/ProductInput' } } }
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ProductPatch' } } }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error', description: "`SLUG_TAKEN` or `STALE_UPDATE` (current product in `details.current`)" }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` or `UPLOAD_NOT_ALLOWED`" }
     delete:
       tags: [Admin]
       summary: Delete, or archive if referenced by orders
+      description: >-
+        Hard delete releases every image (R2 object + Upload row; a failed DeleteObject is logged, the request
+        still succeeds). A product that appears in any order's items is archived instead (status ARCHIVED,
+        images kept). An R2 object referenced by an order item's `imageKey` is never deleted (detach only).
       responses:
         '204': { description: Deleted or archived }
+        '404': { $ref: '#/components/responses/Error' }
   /admin/categories:
     get:
       tags: [Admin]
       summary: All categories (ADM-03)
+      description: Flat list (no `children`), including inactive, sorted by `sortOrder` then `slug`, each with `productCount` (products in any status, incl. ARCHIVED).
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Category' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
     post:
       tags: [Admin]
-      summary: Create category
+      summary: Create category (ADM-03)
+      description: >-
+        `image` takes an R2 `key` from `POST /admin/uploads/presign`; the server recomputes `url` and attaches the
+        upload (scope `admin`): a key outside `furnixa/{env}/`, a missing object, or a type/size mismatch -> 422
+        `UPLOAD_NOT_ALLOWED`. `parentId` must reference a root category (one level of sub-categories, CAT-01); a
+        deeper parent or self-reference -> 422 `VALIDATION_ERROR`.
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/CategoryInput' } } }
@@ -801,23 +847,51 @@ paths:
         '201':
           description: Created
           content: { application/json: { schema: { $ref: '#/components/schemas/Category' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error', description: "`SLUG_TAKEN` — another category already uses this slug" }
+        '422':
+          description: VALIDATION_ERROR (bad slug/name/parent, unknown field) or UPLOAD_NOT_ALLOWED (bad image key)
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /admin/categories/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
       tags: [Admin]
-      summary: Update category
+      summary: Update category (ADM-03)
+      description: >-
+        Partial update. Same image and parent rules as create; additionally, a category that has children cannot be
+        given a parent (one level, 422). Replacing or removing (`image: null`) the image deletes the old R2 object
+        after commit. Changing `slug` is allowed; uniqueness is enforced (409 `SLUG_TAKEN`).
       requestBody:
-        content: { application/json: { schema: { $ref: '#/components/schemas/CategoryInput' } } }
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CategoryPatch' } } }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Category' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404':
+          description: NOT_FOUND — missing or malformed id
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '409': { $ref: '#/components/responses/Error', description: "`SLUG_TAKEN`" }
+        '422':
+          description: VALIDATION_ERROR (empty body, bad value, unknown field, depth rule) or UPLOAD_NOT_ALLOWED
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
     delete:
       tags: [Admin]
-      summary: Delete (409 if it has products)
+      summary: Delete category (ADM-03)
+      description: >-
+        Hard delete; releases the category's image from R2 after commit (a failed R2 delete is logged, the request
+        still succeeds). Refused while the category has products (any status, incl. ARCHIVED) or child categories.
       responses:
         '204': { description: Deleted }
-        '409': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404':
+          description: NOT_FOUND — missing or malformed id
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '409': { $ref: '#/components/responses/Error', description: "`CATEGORY_HAS_PRODUCTS` or `CATEGORY_HAS_CHILDREN`" }
   /admin/orders:
     get:
       tags: [Admin]
@@ -1185,7 +1259,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }
@@ -1212,6 +1286,17 @@ components:
         alt: { $ref: '#/components/schemas/LocalizedText' }
         width: { type: integer }
         height: { type: integer }
+    ImageAssetInput:
+      type: object
+      additionalProperties: false
+      required: [key]
+      description: >-
+        Image in a request body: only the R2 `key` (from the presign route) plus optional `alt`. The server
+        recomputes `url` from `key`; a sent `url` is rejected (unknown field). Keys outside `furnixa/{env}/` or
+        without a matching unattached `Upload` row -> 422 `UPLOAD_NOT_ALLOWED`.
+      properties:
+        key: { type: string, description: R2 object key, examples: ['furnixa/production/2026/11/3f2b8c1e-0c4d-4a52-9d7e-1b2a3c4d5e6f.webp'] }
+        alt: { $ref: '#/components/schemas/LocalizedText' }
     User:
       type: object
       properties:
@@ -1274,24 +1359,55 @@ components:
             (read per request, no cache; compared trimmed and lowercased like `assertActiveCity`). A saved address
             whose city was deactivated later returns false and stays editable. Clients show "Not deliverable" from this
             field; checkout still re-checks the city on the server (422 OUT_OF_DELIVERY_AREA).
+    CategoryName:
+      type: object
+      required: [en, ar]
+      description: Localized category name; both locales required (I18N-02), trimmed, 1-60 chars each.
+      properties:
+        en: { type: string, minLength: 1, maxLength: 60 }
+        ar: { type: string, minLength: 1, maxLength: 60 }
     CategoryInput:
       type: object
+      additionalProperties: false
       required: [name, slug]
       properties:
-        name: { $ref: '#/components/schemas/LocalizedText' }
+        name: { $ref: '#/components/schemas/CategoryName' }
+        slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', maxLength: 60 }
+        image: { oneOf: [{ $ref: '#/components/schemas/ImageAssetInput' }, { type: 'null' }] }
+        parentId: { type: [string, 'null'], description: Id of a ROOT category (one level of nesting, CAT-01) or null }
+        sortOrder: { type: integer, minimum: 0, default: 0 }
+        isActive: { type: boolean, default: true }
+    CategoryPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      description: Any subset of CategoryInput (same limits).
+      properties:
+        name: { $ref: '#/components/schemas/CategoryName' }
+        slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', maxLength: 60 }
+        image: { oneOf: [{ $ref: '#/components/schemas/ImageAssetInput' }, { type: 'null' }] }
+        parentId: { type: [string, 'null'] }
+        sortOrder: { type: integer, minimum: 0 }
+        isActive: { type: boolean }
+    Category:
+      type: object
+      required: [id, name, slug, parentId, sortOrder, isActive]
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        name: { $ref: '#/components/schemas/CategoryName' }
         slug: { type: string }
-        image: { $ref: '#/components/schemas/ImageAsset' }
+        image: { oneOf: [{ $ref: '#/components/schemas/ImageAsset' }, { type: 'null' }] }
         parentId: { type: [string, 'null'] }
         sortOrder: { type: integer }
         isActive: { type: boolean }
-    Category:
-      allOf:
-        - $ref: '#/components/schemas/CategoryInput'
-        - type: object
-          properties:
-            id: { $ref: '#/components/schemas/ObjectId' }
-            children: { type: array, items: { $ref: '#/components/schemas/Category' } }
-            productCount: { type: integer }
+        children:
+          type: array
+          items: { $ref: '#/components/schemas/Category' }
+          description: Only in the public tree (GET /categories), one level deep.
+        productCount:
+          type: integer
+          readOnly: true
+          description: Only in the admin list (GET /admin/categories); products in any status, incl. ARCHIVED.
     Dimensions:
       type: object
       properties:
@@ -1299,35 +1415,101 @@ components:
         depthCm: { type: number }
         heightCm: { type: number }
         weightKg: { type: number }
+    ProductTitle:
+      type: object
+      required: [en, ar]
+      description: >-
+        Localized, each locale ≤ 120 chars. DRAFT requires at least one non-empty locale; PUBLISHED requires
+        both non-empty (trimmed; I18N-02, owner 2026-11-22).
+      properties:
+        en: { type: string, maxLength: 120 }
+        ar: { type: string, maxLength: 120 }
+    ProductDescription:
+      type: object
+      required: [en, ar]
+      description: Same locale rules as ProductTitle; each locale ≤ 5000 chars.
+      properties:
+        en: { type: string, maxLength: 5000 }
+        ar: { type: string, maxLength: 5000 }
     ProductInput:
       type: object
+      additionalProperties: false
       required: [title, description, slug, type, condition, price, stock, categoryId]
+      description: >-
+        Limits (owner 2026-11-22, T-010): price/compareAtPrice 0..100000000 halalas (1,000,000 SAR),
+        `compareAtPrice` > `price` when set, stock 0..100000. Type NEW ⇔ condition NEW; RESALE ⇔
+        LIKE_NEW/GOOD/FAIR. Image keys must be distinct.
       properties:
-        title: { $ref: '#/components/schemas/LocalizedText' }
-        description: { $ref: '#/components/schemas/LocalizedText' }
-        slug: { type: string }
-        sku: { type: string }
+        title: { $ref: '#/components/schemas/ProductTitle' }
+        description: { $ref: '#/components/schemas/ProductDescription' }
+        slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', maxLength: 60 }
+        sku: { type: [string, 'null'], minLength: 1, maxLength: 40 }
         type: { $ref: '#/components/schemas/ProductType' }
         condition: { $ref: '#/components/schemas/Condition' }
-        conditionNotes: { $ref: '#/components/schemas/LocalizedText' }
-        price: { type: integer, description: minor units }
-        compareAtPrice: { type: [integer, 'null'] }
-        stock: { type: integer, minimum: 0 }
+        conditionNotes: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }], description: '≤ 1000 chars per locale' }
+        price: { type: integer, minimum: 0, maximum: 100000000, description: halalas }
+        compareAtPrice: { type: [integer, 'null'], minimum: 0, maximum: 100000000, description: must be greater than price when set }
+        stock: { type: integer, minimum: 0, maximum: 100000 }
         categoryId: { $ref: '#/components/schemas/ObjectId' }
-        images: { type: array, maxItems: 8, items: { $ref: '#/components/schemas/ImageAsset' } }
-        dimensions: { $ref: '#/components/schemas/Dimensions' }
-        material: { type: string }
-        color: { type: string }
+        images: { type: array, maxItems: 8, items: { $ref: '#/components/schemas/ImageAssetInput' } }
+        dimensions: { oneOf: [{ $ref: '#/components/schemas/Dimensions' }, { type: 'null' }] }
+        material: { type: [string, 'null'], minLength: 1, maxLength: 60 }
+        color: { type: [string, 'null'], minLength: 1, maxLength: 60 }
+        isFeatured: { type: boolean, default: false }
+        status: { $ref: '#/components/schemas/ProductStatus' }
+    ProductPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 2
+      required: [expectedUpdatedAt]
+      description: >-
+        Any subset of ProductInput (same limits) plus the required `expectedUpdatedAt` and at least one field to
+        change. Rules are enforced on the merged result.
+      properties:
+        expectedUpdatedAt: { type: string, format: date-time, description: The `updatedAt` the admin loaded; mismatch -> 409 STALE_UPDATE }
+        title: { $ref: '#/components/schemas/ProductTitle' }
+        description: { $ref: '#/components/schemas/ProductDescription' }
+        slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', maxLength: 60 }
+        sku: { type: [string, 'null'], minLength: 1, maxLength: 40 }
+        type: { $ref: '#/components/schemas/ProductType' }
+        condition: { $ref: '#/components/schemas/Condition' }
+        conditionNotes: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        price: { type: integer, minimum: 0, maximum: 100000000 }
+        compareAtPrice: { type: [integer, 'null'], minimum: 0, maximum: 100000000 }
+        stock: { type: integer, minimum: 0, maximum: 100000 }
+        categoryId: { $ref: '#/components/schemas/ObjectId' }
+        images: { type: array, maxItems: 8, items: { $ref: '#/components/schemas/ImageAssetInput' } }
+        dimensions: { oneOf: [{ $ref: '#/components/schemas/Dimensions' }, { type: 'null' }] }
+        material: { type: [string, 'null'], minLength: 1, maxLength: 60 }
+        color: { type: [string, 'null'], minLength: 1, maxLength: 60 }
         isFeatured: { type: boolean }
         status: { $ref: '#/components/schemas/ProductStatus' }
     Product:
-      allOf:
-        - $ref: '#/components/schemas/ProductInput'
-        - type: object
-          properties:
-            id: { $ref: '#/components/schemas/ObjectId' }
-            category: { $ref: '#/components/schemas/Category' }
-            createdAt: { type: string, format: date-time }
+      type: object
+      required: [id, title, description, slug, type, condition, price, stock, categoryId, images, isFeatured, status, createdAt, updatedAt]
+      description: Stored images carry the server-computed `url`. `searchText` is internal and never returned.
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        title: { $ref: '#/components/schemas/ProductTitle' }
+        description: { $ref: '#/components/schemas/ProductDescription' }
+        slug: { type: string }
+        sku: { type: [string, 'null'] }
+        type: { $ref: '#/components/schemas/ProductType' }
+        condition: { $ref: '#/components/schemas/Condition' }
+        conditionNotes: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        price: { type: integer, description: halalas }
+        compareAtPrice: { type: [integer, 'null'] }
+        stock: { type: integer }
+        categoryId: { $ref: '#/components/schemas/ObjectId' }
+        category: { $ref: '#/components/schemas/Category' }
+        images: { type: array, items: { $ref: '#/components/schemas/ImageAsset' } }
+        dimensions: { oneOf: [{ $ref: '#/components/schemas/Dimensions' }, { type: 'null' }] }
+        material: { type: [string, 'null'] }
+        color: { type: [string, 'null'] }
+        isFeatured: { type: boolean }
+        status: { $ref: '#/components/schemas/ProductStatus' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time, description: Send back as `expectedUpdatedAt` on PATCH }
     ProductPage:
       type: object
       properties:

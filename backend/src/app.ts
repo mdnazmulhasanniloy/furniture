@@ -8,7 +8,9 @@ import { createLogger, type Logger } from './lib/logger.js';
 import { createErrorHandler, notFoundHandler } from './middleware/error.js';
 import { requestId } from './middleware/requestId.js';
 import { authRouter } from './modules/auth/routes.js';
+import { adminCategoriesRouter, categoriesRouter } from './modules/categories/routes.js';
 import { meRouter } from './modules/me/routes.js';
+import { adminProductsRouter, productsRouter } from './modules/products/routes.js';
 import { uploadsRouter } from './modules/uploads/routes.js';
 
 export interface CreateAppOptions {
@@ -57,6 +59,10 @@ export function createApp(arg: Env | CreateAppOptions = {}) {
   const v1 = Router();
   v1.use('/auth', authRouter);
   v1.use('/me', meRouter);
+  v1.use('/categories', categoriesRouter);
+  v1.use('/products', productsRouter);
+  v1.use('/admin/categories', adminCategoriesRouter);
+  v1.use('/admin/products', adminProductsRouter);
   v1.use('/admin/uploads', uploadsRouter);
   for (const { path, router } of extraRouters) v1.use(path, router);
   app.use('/api/v1', v1);

@@ -290,15 +290,44 @@ export async function attachUploads(keys: string[], opts: AttachOptions): Promis
 }
 
 /**
+ * Keys an order still shows (`Order.items.imageKey`, T-010/T-013): their R2 object must never be deleted.
+ * On a query failure nothing is released (logged); the rows stay for a later retry.
+ */
+async function orderReferencedKeys(keys: string[]): Promise<Set<string>> {
+  if (keys.length === 0) return new Set();
+  const orders = await prisma.order.findMany({
+    where: { items: { some: { imageKey: { in: keys } } } },
+    select: { items: true },
+  });
+  const wanted = new Set(keys);
+  const referenced = new Set<string>();
+  for (const order of orders)
+    for (const item of order.items)
+      if (item.imageKey && wanted.has(item.imageKey)) referenced.add(item.imageKey);
+  return referenced;
+}
+
+/**
  * Deletes the R2 objects, then their `Upload` rows. Never throws. When an object cannot be deleted the row is
  * kept with `attachedAt` unset so the cron cleanup retries it. Keys without a row are still deleted from R2.
+ * A key referenced by an order item's `imageKey` is only detached: its `Upload` row is removed but the R2
+ * object is kept (the order still shows it; T-010, owner 2026-11-22).
  */
 export async function releaseUploads(keys: string[], ctx: R2Context = {}): Promise<void> {
   const unique = [...new Set(keys)];
   if (unique.length === 0) return;
-  const { deleted, failed } = await deleteObjects(unique, ctx);
+  let referenced: Set<string>;
   try {
-    if (deleted.length) await prisma.upload.deleteMany({ where: { key: { in: deleted } } });
+    referenced = await orderReferencedKeys(unique);
+  } catch (err) {
+    logOf(ctx).error({ err, requestId: ctx.requestId }, 'Order image-reference check failed');
+    return; // release nothing: deleting could destroy an object an order still shows
+  }
+  const deletable = unique.filter((k) => !referenced.has(k));
+  const { deleted, failed } = await deleteObjects(deletable, ctx);
+  try {
+    const detach = [...deleted, ...referenced];
+    if (detach.length) await prisma.upload.deleteMany({ where: { key: { in: detach } } });
     if (failed.length) {
       await prisma.upload.updateMany({
         where: { key: { in: failed } },

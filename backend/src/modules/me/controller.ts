@@ -1,5 +1,5 @@
-import { waitUntil } from '@vercel/functions';
 import type { Request, RequestHandler } from 'express';
+import { finishAfterCommit } from '../../lib/afterResponse.js';
 import type {
   CreateAddressBody,
   PresignAvatarBody,
@@ -29,15 +29,7 @@ export const updateProfile: RequestHandler = async (req, res) => {
     req.body as UpdateProfileBody,
     ctx(req),
   );
-  if (process.env.VERCEL) {
-    // Respond first; waitUntil keeps the function alive for the cleanup (T-028).
-    res.status(200).json(user);
-    waitUntil(release());
-  } else {
-    // Release before responding: deterministic for callers and tests (releaseUploads never throws).
-    await release();
-    res.status(200).json(user);
-  }
+  await finishAfterCommit(release, () => res.status(200).json(user));
 };
 export const listAddresses: RequestHandler = async (req, res) => {
   res.status(200).json(await service.listAddresses(uid(req)));

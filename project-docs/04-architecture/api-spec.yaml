@@ -268,32 +268,48 @@ paths:
     patch:
       tags: [Me]
       summary: Update profile (PROF-01)
+      description: >-
+        Partial update; unknown fields (email, role, isVerified, isBlocked, avatar, ...) are rejected with 422
+        VALIDATION_ERROR and nothing changes. Strings are trimmed. `phone` is normalised to `+9665XXXXXXXX`;
+        `null` clears it. Avatar upload is not part of this endpoint yet (task T-028).
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               type: object
+              additionalProperties: false
+              minProperties: 1
               properties:
                 firstName: { type: string, minLength: 1, maxLength: 40 }
                 lastName: { type: string, minLength: 1, maxLength: 40 }
-                phone: { $ref: '#/components/schemas/SaudiPhoneInput' }
-                avatar: { type: string, format: uri }
+                phone: { oneOf: [{ $ref: '#/components/schemas/SaudiPhoneInput' }, { type: 'null' }] }
                 preferredLocale: { $ref: '#/components/schemas/Locale' }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '422':
+          description: VALIDATION_ERROR (unknown field, invalid value or invalid Saudi phone)
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /me/addresses:
     get:
       tags: [Me]
       summary: List addresses (PROF-02)
+      description: Own addresses only, the default first, then newest first.
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Address' } } } }
+        '401': { $ref: '#/components/responses/Error' }
     post:
       tags: [Me]
       summary: Add address (PROF-02)
+      description: >-
+        At most 10 addresses per user (409 `ADDRESS_LIMIT_REACHED`). The first address becomes the default
+        automatically. `isDefault: true` unsets every other default of the user in the same transaction.
+        Unknown fields are rejected (422).
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/AddressInput' } } }
@@ -301,28 +317,49 @@ paths:
         '201':
           description: Created
           content: { application/json: { schema: { $ref: '#/components/schemas/Address' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '409':
+          description: ADDRESS_LIMIT_REACHED — the user already has 10 addresses
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
         '422':
-          description: OUT_OF_DELIVERY_AREA — cityCode is unknown or inactive (ADR-008); VALIDATION_ERROR for an invalid Saudi phone
+          description: OUT_OF_DELIVERY_AREA — cityCode is unknown or inactive (ADR-008); VALIDATION_ERROR for an invalid Saudi phone, bad length or unknown field
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /me/addresses/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
       tags: [Me]
       summary: Update address
+      description: >-
+        Partial update (any subset of the AddressInput fields, at least one). The city is re-checked only when
+        `cityCode` is in the body. `isDefault: true` unsets every other default in the same transaction;
+        `isDefault: false` on the current default is 422 VALIDATION_ERROR (set another address as default instead).
+        Another user's address, a missing one and a malformed id all answer 404 NOT_FOUND.
       requestBody:
-        content: { application/json: { schema: { $ref: '#/components/schemas/AddressInput' } } }
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/AddressPatch' } } }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Address' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '404':
+          description: NOT_FOUND — missing, malformed id, or owned by another user
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
         '422':
-          description: OUT_OF_DELIVERY_AREA — cityCode is unknown or inactive (ADR-008); VALIDATION_ERROR for an invalid Saudi phone
+          description: OUT_OF_DELIVERY_AREA — cityCode is unknown or inactive (ADR-008); VALIDATION_ERROR for an invalid Saudi phone, unknown field or `isDefault: false` on the default
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
     delete:
       tags: [Me]
       summary: Delete address
+      description: >-
+        Hard delete (orders keep their own address snapshot). Deleting the default promotes the most recently
+        updated remaining address; deleting the last address is allowed.
       responses:
         '204': { description: Deleted }
+        '401': { $ref: '#/components/responses/Error' }
+        '404':
+          description: NOT_FOUND — missing, malformed id, or owned by another user
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
 
   # ---------------- CATALOG ----------------
   /categories:
@@ -1102,7 +1139,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }
@@ -1145,22 +1182,52 @@ components:
         createdAt: { type: string, format: date-time }
     AddressInput:
       type: object
+      additionalProperties: false
       required: [label, fullName, phone, cityCode, area, street]
       properties:
-        label: { type: string }
-        fullName: { type: string }
+        label: { type: string, minLength: 1, maxLength: 30 }
+        fullName: { type: string, minLength: 1, maxLength: 80 }
         phone: { $ref: '#/components/schemas/SaudiPhoneInput' }
-        cityCode: { type: string, description: Code of an active DeliveryCity from /cms/settings (ADR-008) }
-        area: { type: string }
-        street: { type: string }
-        notes: { type: string }
+        cityCode: { type: string, description: Code of an active DeliveryCity from /cms/settings (ADR-008); stored in its canonical form }
+        area: { type: string, minLength: 1, maxLength: 80 }
+        street: { type: string, minLength: 1, maxLength: 200 }
+        notes: { type: string, maxLength: 300 }
+        isDefault: { type: boolean }
+    AddressPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      description: Any subset of AddressInput (same limits).
+      properties:
+        label: { type: string, minLength: 1, maxLength: 30 }
+        fullName: { type: string, minLength: 1, maxLength: 80 }
+        phone: { $ref: '#/components/schemas/SaudiPhoneInput' }
+        cityCode: { type: string }
+        area: { type: string, minLength: 1, maxLength: 80 }
+        street: { type: string, minLength: 1, maxLength: 200 }
+        notes: { type: string, maxLength: 300 }
         isDefault: { type: boolean }
     Address:
-      allOf:
-        - $ref: '#/components/schemas/AddressInput'
-        - type: object
-          properties:
-            id: { $ref: '#/components/schemas/ObjectId' }
+      type: object
+      required: [id, label, fullName, phone, cityCode, area, street, isDefault, isDeliverable]
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        label: { type: string, minLength: 1, maxLength: 30 }
+        fullName: { type: string, minLength: 1, maxLength: 80 }
+        phone: { $ref: '#/components/schemas/SaudiPhone' }
+        cityCode: { type: string }
+        area: { type: string, minLength: 1, maxLength: 80 }
+        street: { type: string, minLength: 1, maxLength: 200 }
+        notes: { type: [string, 'null'], maxLength: 300 }
+        isDefault: { type: boolean }
+        isDeliverable:
+          type: boolean
+          readOnly: true
+          description: >-
+            True only when `cityCode` is an active city in `SiteSetting.deliveryCities` at the time of the request
+            (read per request, no cache; compared trimmed and lowercased like `assertActiveCity`). A saved address
+            whose city was deactivated later returns false and stays editable. Clients show "Not deliverable" from this
+            field; checkout still re-checks the city on the server (422 OUT_OF_DELIVERY_AREA).
     CategoryInput:
       type: object
       required: [name, slug]

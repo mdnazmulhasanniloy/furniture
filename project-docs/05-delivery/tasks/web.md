@@ -37,11 +37,11 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 ### T-038 Checkout + success · todo
 - Req: ORD-01, PROF-02 · Depends: T-036, T-037, backend T-013
-- Done: inline address add; COD only; per-item stock error display; success page.
+- Done: inline address add; COD only; per-item stock error display; success page. An address with `isDeliverable: false` (`api-spec.yaml#Address`) is shown as "Not deliverable" and cannot be chosen; the customer picks an active city first. The field is a hint only: placing the order still re-checks the city on the server (422 `OUT_OF_DELIVERY_AREA`) and the UI handles that error.
 
 ### T-039 Account area · todo
 - Req: PROF-01, PROF-02, ORD-02, ORD-03 · Depends: T-038
-- Done: profile, addresses, orders list/detail with timeline. Phone input (SRC/T-020, `api-spec.yaml#SaudiPhoneInput`): apply the same normalisation as the backend (trim, Arabic-Indic and Extended Arabic-Indic digits to ASCII, strip spaces/dashes/dots/parentheses, reject >25 characters), then the same `x-canonical-pattern`; the backend validator is the authority. Test named `NFR-06` that reads the pattern from the spec.
+- Done: profile, addresses, orders list/detail with timeline. Phone input (SRC/T-020, `api-spec.yaml#SaudiPhoneInput`): apply the same normalisation as the backend (trim, Arabic-Indic and Extended Arabic-Indic digits to ASCII, strip spaces/dashes/dots/parentheses, reject >25 characters), then the same `x-canonical-pattern`; the backend validator is the authority. Test named `NFR-06` that reads the pattern from the spec. Addresses list shows "Not deliverable" from `isDeliverable: false` (no client-side city calculation); such an address stays editable and the customer must pick an active city. Avatar field: do not build it here; avatar editing is delivered by backend T-028 and `PATCH /me` rejects `avatar` with 422 until then.
 
 ### T-040 Live notifications · todo
 - Req: NOTIF-01, NOTIF-03 · Depends: T-039, backend T-016

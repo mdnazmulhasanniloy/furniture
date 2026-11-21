@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-11-21 (T-007 closed)
+- **T-007 Profile + addresses: status `done`.** `/review-task` T-007: PASS (3 non-blocking notes, all applied, docs first). Typecheck, lint, format clean; 358/358 tests; no deleted/skipped/weakened tests.
+  - `api-spec.yaml`: `Address` is now a standalone response schema (the earlier `allOf` with a strict `AddressInput` would have rejected `id`), `notes` nullable, new read-only `isDeliverable`. Code: `getActiveCityCodes()` in `src/lib/deliveryCities.ts` (one read per request, no cache); list/create/update responses carry `isDeliverable`. Test `PROF-02 · an address in a deactivated city returns isDeliverable false and stays editable`.
+  - PRD PROF-01: avatar editing delivered by T-028, `PATCH /me` rejects `avatar` (422) until then. Web T-039 (avatar not built early; "Not deliverable" from `isDeliverable`) and T-038 (checkout uses the field as a hint, still handles the server 422 `OUT_OF_DELIVERY_AREA`) updated.
+  - Unblocks: backend T-013 (place order, also needs T-012); web T-038/T-039 contracts. Open: T-028 (needs T-008).
+
+## 2026-11-21 (T-007)
+- **T-007 Profile + addresses (code, status `review`).** `PATCH /me`, `GET/POST /me/addresses`, `PATCH/DELETE /me/addresses/{id}`, all behind `requireAuth`.
+  - **Docs first:** `api-spec.yaml` (401/404/409/422 responses, strict bodies, length limits, `AddressPatch`, default-address rules, `ADDRESS_LIMIT_REACHED` added to the `Error.code` examples, avatar removed from `PATCH /me`); `data-model.md` (Address: `updatedAt`, one-default invariant, max 10); `tasks/backend.md` (T-007 owner decisions; **new T-028 Customer avatar upload**, PROF-01, depends on T-007 and T-008); `implementation-plan.md` (T-028 in M3); traceability regenerated.
+  - **Schema:** additive `Address.updatedAt` (`@default(now()) @updatedAt`), needed to promote "the most recently updated" address when the default is deleted. No address rows existed; no migration script needed.
+  - **Code:** `src/modules/me/{routes,controller,service,schema}.ts`, mounted at `/me` in `src/app.ts`. City via `assertActiveCity` (stored canonical, re-checked on patch only when `cityCode` is sent), phone via `saudiPhone`. Ownership by `{ id, userId }`: foreign, missing and malformed ids are all 404. Address writes run in a transaction that first rewrites the user document, so concurrent changes of one user conflict (P2034) and are retried (up to 15 times); that is what keeps exactly one default and at most 10 addresses under concurrency (removing the lock makes two of the concurrency tests fail).
+  - **Behaviour (owner decisions):** first address is the default; `isDefault: true` unsets the others; `isDefault: false` on the default -> 422; deleting the default promotes the most recently updated remaining one; 10 addresses max -> 409 `ADDRESS_LIMIT_REACHED`; `PATCH /me` is strict (unknown fields incl. email, role, avatar -> 422); `createdAt` is not in the Address response.
+  - **Tests:** `tests/me/profile.test.ts` (`PROF-01`, 10) and `tests/me/addresses.test.ts` (`PROF-02`, 22, own databases).
+  - **Open items:** T-028 (avatar upload, needs T-008). Not done here: a response-schema conformance test against `api-spec.yaml` (T-019). B-014 (landlines) still open, mobile-only assumption in use.
+
 ## 2026-11-21 (T-020 closed)
 - **T-020 Saudi phone validator + city validation helper: status `done`.** `/review-task` T-020: PASS (typecheck, lint and format clean, 325/325 tests, `NFR-06` and `PROF-02` covered by named tests, no deleted/skipped/weakened tests, spec matches code, `OUT_OF_DELIVERY_AREA` already in `api-spec.yaml`, no secrets in logs or responses).
   - Unblocks: backend T-007 (profile + addresses). Still open for the owner: dev refresh-token migration from T-005 (`npm run migrate:refresh-family -- --all`, then `--confirm`); B-014 (landlines) affects the validator.

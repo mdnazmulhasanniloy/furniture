@@ -66,6 +66,7 @@ As a visitor, I want to sign up with first name, last name, email and password a
 ### 5.2 Profile (PROF)
 
 **PROF-01 Profile** · draft — View/edit first name, last name, phone, avatar, preferred language (default `ar`). Changing email is out of scope.
+- Avatar editing is delivered by T-028; until then `PATCH /me` rejects `avatar` with 422.
 - Phone must be a valid Saudi mobile number (NFR-06); Given an invalid number, When I save, Then the field shows a localized error and the API returns 422 `VALIDATION_ERROR`.
 **PROF-02 Address book** · draft — Add/edit/delete addresses (label, full name, phone, city, area, street, notes); one default. Given no address, When checking out, Then I must add one inline.
 - City is chosen from the **active delivery cities** (ADM-13, SRC-003.2), stored as `cityCode`. Given an unknown or inactive city, When the address is saved, Then the API returns 422 `OUT_OF_DELIVERY_AREA`. Area and street stay required.

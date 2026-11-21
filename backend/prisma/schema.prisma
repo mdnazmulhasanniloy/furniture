@@ -245,6 +245,7 @@ model Address {
   notes     String?
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt // T-007: next default on delete
 
   @@index([userId])
 }

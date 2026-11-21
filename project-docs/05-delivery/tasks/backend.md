@@ -52,9 +52,14 @@ Done = every listed acceptance criterion of the linked requirement has a passing
   6. "Your password was changed" email (`password-changed`, en/ar, no code or password) via `sendInBackground` after commit, in `preferredLocale`. PRD criterion added (owner decision 2026-11-21).
   7. Logs: `newPassword` and `code` stay redacted (T-005); test that a reset request leaves neither in the request log.
 
-### T-007 Profile + addresses · todo
+### T-007 Profile + addresses · done
 - Req: PROF-01, PROF-02 · Depends: T-005, T-020 · Docs: `PRD#5.2`, `api-spec.yaml` (`/me`, `/me/addresses`), `data-model.md` (Address), `adr/ADR-008`
 - Done: CRUD tests; only one default address; cannot access another user's address (404). Tests named `PROF-02`: unknown/inactive `cityCode` -> 422 `OUT_OF_DELIVERY_AREA`; phone normalization via the shared Saudi phone validator (T-020).
+- Owner decisions (2026-11-21): `PATCH /me` edits firstName, lastName (1-40, trimmed), phone (`null` clears), preferredLocale; unknown fields -> 422 (strict); avatar excluded (see T-028). Address limits: label 30, fullName 80, area 80, street 200, notes 300; max 10 per user -> 409 `ADDRESS_LIMIT_REACHED`. Default rules in one transaction: first address is default; `isDefault: true` unsets the others; `isDefault: false` on the default -> 422; deleting the default promotes the most recently updated remaining address. Foreign or malformed id -> 404. Hard delete. `createdAt` not in the Address response. Review follow-ups (owner, 2026-11-21): Address responses carry server-derived `isDeliverable` (active city in `SiteSetting.deliveryCities`, read per request); `notes` is nullable in the response; avatar note in PRD PROF-01 and web T-039. Tests named `PROF-01`/`PROF-02` incl. the exactly-one-default invariant under concurrent changes, promotion on delete, the limit, cross-user 404, unknown fields 422, city and phone validation via routes.
+
+### T-028 Customer avatar upload · todo
+- Req: PROF-01 · Depends: T-007, T-008 · Docs: `integrations.md#cloudflare-r2`, `adr/ADR-010`
+- Done: `POST /me/avatar/presign` (customer, jpeg/png/webp, max 2 MB = 2 097 152 bytes, key under `furnixa/{env}/avatars/{userId}/`); `PATCH /me` accepts only an `avatar` key that belongs to that user (other prefix -> 422); the old object is deleted on replace (failure logged, request still succeeds); `null` removes it. Spec first. Tests named `PROF-01` with the S3 client mocked.
 
 ### T-008 Image uploads (R2 presign + delete) · todo
 - Req: ADM-02, ADM-06 · Depends: T-005

@@ -9,7 +9,9 @@ export const REFRESH_COOKIE = 'fx_rt';
 const REFRESH_COOKIE_PATH = '/api/v1/auth';
 
 export function hmac(namespace: string, value: string): string {
-  return createHmac('sha256', getEnv().REFRESH_TOKEN_PEPPER).update(`${namespace}:${value}`).digest('hex');
+  return createHmac('sha256', getEnv().REFRESH_TOKEN_PEPPER)
+    .update(`${namespace}:${value}`)
+    .digest('hex');
 }
 
 export const hashRefreshToken = (token: string) => hmac('refresh', token);
@@ -35,7 +37,10 @@ function cookieOptions(): CookieOptions {
 }
 
 export function setRefreshCookie(res: Response, token: string): void {
-  res.cookie(REFRESH_COOKIE, token, { ...cookieOptions(), maxAge: getEnv().REFRESH_TOKEN_TTL_SECONDS * 1000 });
+  res.cookie(REFRESH_COOKIE, token, {
+    ...cookieOptions(),
+    maxAge: getEnv().REFRESH_TOKEN_TTL_SECONDS * 1000,
+  });
 }
 
 export function clearRefreshCookie(res: Response): void {

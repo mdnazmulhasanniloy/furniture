@@ -14,9 +14,10 @@ export function escapeHtml(value: string | number): string {
 
 /** Halalas -> "1,234.50 SAR" / "1,234.50 ر.س" (Western digits, B-015). */
 export function formatMoney(halalas: number, locale: Locale): string {
-  const n = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
-    halalas / 100,
-  );
+  const n = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(halalas / 100);
   return locale === 'ar' ? `${n} ر.س` : `${n} SAR`;
 }
 
@@ -47,7 +48,12 @@ export function otpBox(code: string): string {
 }
 
 /** Shared HTML shell. Arabic gets `lang="ar" dir="rtl"`. */
-export function layout(locale: Locale, subject: string, bodyHtml: string, text: string): RenderedEmail {
+export function layout(
+  locale: Locale,
+  subject: string,
+  bodyHtml: string,
+  text: string,
+): RenderedEmail {
   const rtl = locale === 'ar';
   const html = `<!doctype html>
 <html lang="${locale}" dir="${rtl ? 'rtl' : 'ltr'}">

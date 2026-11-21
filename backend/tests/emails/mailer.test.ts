@@ -97,7 +97,15 @@ describe('sendInBackground', () => {
       to: 'a@b.test',
       template: 'order-placed',
       locale: 'ar',
-      data: { firstName: 'Sara', orderNo: 'FX-1', items: [], subtotal: 0, deliveryFee: 0, vatAmount: 0, total: 0 },
+      data: {
+        firstName: 'Sara',
+        orderNo: 'FX-1',
+        items: [],
+        subtotal: 0,
+        deliveryFee: 0,
+        vatAmount: 0,
+        total: 0,
+      },
     });
     expect(waitUntil).not.toHaveBeenCalled();
     expect(spy).toHaveBeenCalledOnce();

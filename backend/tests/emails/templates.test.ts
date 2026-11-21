@@ -28,7 +28,12 @@ const STATUSES: OrderStatusName[] = [
   'DELIVERED',
   'CANCELLED',
 ];
-const adminInvite = { firstName: 'Omar', code: '987987', ttlSeconds: 600, adminUrl: 'https://admin.example.com' };
+const adminInvite = {
+  firstName: 'Omar',
+  code: '987987',
+  ttlSeconds: 600,
+  adminUrl: 'https://admin.example.com',
+};
 
 const samples: TemplateDataMap = {
   'otp-verify': otp,
@@ -72,14 +77,20 @@ describe('email templates', () => {
 
   // T-004 review: the reset mail must tell a recipient who did not ask to ignore it.
   const IGNORE: Record<Locale, [string, string]> = {
-    en: ['If you did not request a reset, you can ignore this email', 'If you did not request a reset, ignore this email.'],
+    en: [
+      'If you did not request a reset, you can ignore this email',
+      'If you did not request a reset, ignore this email.',
+    ],
     ar: ['إذا لم تطلب إعادة التعيين، تجاهل هذه الرسالة', 'إذا لم تطلب ذلك، تجاهل هذه الرسالة.'],
   };
-  it.each(locales)('AUTH-03 · otp-reset (%s) tells a recipient who did not request it to ignore the email', (locale) => {
-    const out = renderEmail('otp-reset', locale, otp);
-    expect(out.html).toContain(IGNORE[locale][0]);
-    expect(out.text).toContain(IGNORE[locale][1]);
-  });
+  it.each(locales)(
+    'AUTH-03 · otp-reset (%s) tells a recipient who did not request it to ignore the email',
+    (locale) => {
+      const out = renderEmail('otp-reset', locale, otp);
+      expect(out.html).toContain(IGNORE[locale][0]);
+      expect(out.text).toContain(IGNORE[locale][1]);
+    },
+  );
 
   // 987987 contains none of the tested TTL digits (1, 0, 2, 5), so a bare digit cannot match by accident.
   const MINUTES: Record<Locale, [number, string][]> = {
@@ -99,24 +110,31 @@ describe('email templates', () => {
     ],
   };
 
-  describe.each(['otp-verify', 'otp-reset', 'admin-invite'] as const)('%s TTL wording', (template) => {
-    it.each(locales.flatMap((l) => MINUTES[l].map(([s, phrase]) => [l, s, phrase] as const)))(
-      'AUTH-01 / AUTH-03 · (%s) %i s -> "%s"',
-      (locale, ttlSeconds, phrase) => {
-        const data = { ...otp, ttlSeconds, adminUrl: 'https://admin.example.com' };
-        const out = renderEmail(template, locale, data as never);
-        expect(out.html).toContain(phrase);
-        expect(out.text).toContain(phrase);
-      },
-    );
+  describe.each(['otp-verify', 'otp-reset', 'admin-invite'] as const)(
+    '%s TTL wording',
+    (template) => {
+      it.each(locales.flatMap((l) => MINUTES[l].map(([s, phrase]) => [l, s, phrase] as const)))(
+        'AUTH-01 / AUTH-03 · (%s) %i s -> "%s"',
+        (locale, ttlSeconds, phrase) => {
+          const data = { ...otp, ttlSeconds, adminUrl: 'https://admin.example.com' };
+          const out = renderEmail(template, locale, data as never);
+          expect(out.html).toContain(phrase);
+          expect(out.text).toContain(phrase);
+        },
+      );
 
-    it('AUTH-01 · never renders "1 minutes" and rounds partial minutes up', () => {
-      const one = renderEmail(template, 'en', { ...otp, ttlSeconds: 60, adminUrl: 'x' } as never);
-      expect(one.html).not.toContain('1 minutes');
-      const partial = renderEmail(template, 'en', { ...otp, ttlSeconds: 61, adminUrl: 'x' } as never);
-      expect(partial.html).toContain('valid for 2 minutes');
-    });
-  });
+      it('AUTH-01 · never renders "1 minutes" and rounds partial minutes up', () => {
+        const one = renderEmail(template, 'en', { ...otp, ttlSeconds: 60, adminUrl: 'x' } as never);
+        expect(one.html).not.toContain('1 minutes');
+        const partial = renderEmail(template, 'en', {
+          ...otp,
+          ttlSeconds: 61,
+          adminUrl: 'x',
+        } as never);
+        expect(partial.html).toContain('valid for 2 minutes');
+      });
+    },
+  );
 
   it.each(locales)('ORD-04 · order-placed (%s) shows order number, items and totals', (locale) => {
     const out = renderEmail('order-placed', locale, placed);
@@ -137,7 +155,11 @@ describe('email templates', () => {
   it.each(locales.flatMap((l) => STATUSES.map((s) => [l, s] as const)))(
     'ORD-04 · order-status (%s) renders status %s',
     (locale, status) => {
-      const out = renderEmail('order-status', locale, { firstName: 'Sara', orderNo: 'FX-1001', status });
+      const out = renderEmail('order-status', locale, {
+        firstName: 'Sara',
+        orderNo: 'FX-1001',
+        status,
+      });
       expect(out.html).toContain('FX-1001');
       expect(out.subject).toContain('FX-1001');
       expectDir(out.html, locale);
@@ -145,20 +167,31 @@ describe('email templates', () => {
   );
 
   it('ORD-04 · order-status labels differ per locale and per status', () => {
-    const en = new Set(STATUSES.map((s) => renderEmail('order-status', 'en', { ...samples['order-status'], status: s }).subject));
-    const ar = new Set(STATUSES.map((s) => renderEmail('order-status', 'ar', { ...samples['order-status'], status: s }).subject));
+    const en = new Set(
+      STATUSES.map(
+        (s) => renderEmail('order-status', 'en', { ...samples['order-status'], status: s }).subject,
+      ),
+    );
+    const ar = new Set(
+      STATUSES.map(
+        (s) => renderEmail('order-status', 'ar', { ...samples['order-status'], status: s }).subject,
+      ),
+    );
     expect(en.size).toBe(STATUSES.length);
     expect(ar.size).toBe(STATUSES.length);
   });
 
-  it.each(locales)('AUTH-01 · admin-invite (%s) contains the OTP and ADMIN_URL, not a magic link', (locale) => {
-    const out = renderEmail('admin-invite', locale, adminInvite);
-    expect(out.html).toContain('987987');
-    expect(out.text).toContain('987987');
-    expect(out.html).toContain('https://admin.example.com');
-    expect(out.text).toContain('https://admin.example.com');
-    expect(out.html).not.toMatch(/token=|magic/i);
-  });
+  it.each(locales)(
+    'AUTH-01 · admin-invite (%s) contains the OTP and ADMIN_URL, not a magic link',
+    (locale) => {
+      const out = renderEmail('admin-invite', locale, adminInvite);
+      expect(out.html).toContain('987987');
+      expect(out.text).toContain('987987');
+      expect(out.html).toContain('https://admin.example.com');
+      expect(out.text).toContain('https://admin.example.com');
+      expect(out.html).not.toMatch(/token=|magic/i);
+    },
+  );
 
   it('NFR-05 · user-supplied values are HTML-escaped in every template', () => {
     const evil = '<script>alert(1)</script>';

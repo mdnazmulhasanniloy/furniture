@@ -40,7 +40,12 @@ describe('mailer transport (getTransport)', () => {
   });
 
   it('AUTH-01 · port 465 uses secure: true, user and password are passed through', async () => {
-    useEnv({ SMTP_HOST: 'smtp.gmail.com', SMTP_PORT: 465, SMTP_USER: 'me@gmail.com', SMTP_PASS: 'app-pass' });
+    useEnv({
+      SMTP_HOST: 'smtp.gmail.com',
+      SMTP_PORT: 465,
+      SMTP_USER: 'me@gmail.com',
+      SMTP_PASS: 'app-pass',
+    });
     await run();
     expect(nodemailer.createTransport).toHaveBeenCalledWith({
       host: 'smtp.gmail.com',
@@ -52,7 +57,12 @@ describe('mailer transport (getTransport)', () => {
   });
 
   it('AUTH-01 · port 587 (STARTTLS) uses secure: false', async () => {
-    useEnv({ SMTP_HOST: 'smtp.gmail.com', SMTP_PORT: 587, SMTP_USER: 'me@gmail.com', SMTP_PASS: 'app-pass' });
+    useEnv({
+      SMTP_HOST: 'smtp.gmail.com',
+      SMTP_PORT: 587,
+      SMTP_USER: 'me@gmail.com',
+      SMTP_PASS: 'app-pass',
+    });
     await run();
     expect(vi.mocked(nodemailer.createTransport).mock.calls[0]![0]).toMatchObject({
       port: 587,
@@ -62,7 +72,12 @@ describe('mailer transport (getTransport)', () => {
   });
 
   it('AUTH-01 · Mailpit style config (localhost:1025, no credentials) sends without auth', async () => {
-    useEnv({ NODE_ENV: 'development', isProduction: false, SMTP_HOST: 'localhost', SMTP_PORT: 1025 });
+    useEnv({
+      NODE_ENV: 'development',
+      isProduction: false,
+      SMTP_HOST: 'localhost',
+      SMTP_PORT: 1025,
+    });
     await run();
     expect(nodemailer.createTransport).toHaveBeenCalledWith({
       host: 'localhost',

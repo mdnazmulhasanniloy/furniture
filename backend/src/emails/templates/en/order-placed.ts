@@ -10,7 +10,10 @@ export const orderPlaced: TemplateFn<OrderPlacedEmailData> = (d) => {
         `<tr><td>${escapeHtml(i.title.en)} × ${i.qty}</td><td style="text-align:right">${m(i.unitPrice * i.qty)}</td></tr>`,
     )
     .join('\n');
-  const vat = d.vatAmount > 0 ? `<tr><td>VAT</td><td style="text-align:right">${m(d.vatAmount)}</td></tr>` : '';
+  const vat =
+    d.vatAmount > 0
+      ? `<tr><td>VAT</td><td style="text-align:right">${m(d.vatAmount)}</td></tr>`
+      : '';
   const html = `<p>Hi ${escapeHtml(d.firstName)},</p>
 <p>Thank you! We received your order <strong>${escapeHtml(d.orderNo)}</strong>. Payment is cash on delivery.</p>
 <table width="100%" cellpadding="4" style="border-collapse:collapse">

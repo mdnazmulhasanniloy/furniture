@@ -38,7 +38,10 @@ const schema = z.object({
   REFRESH_TOKEN_TTL_SECONDS: intWithDefault(2_592_000),
   AUTH_COOKIE_DOMAIN: optStr,
   AUTH_COOKIE_SECURE: optStr,
-  AUTH_COOKIE_SAME_SITE: z.preprocess(emptyToUndefined, z.enum(['lax', 'strict', 'none']).default('lax')),
+  AUTH_COOKIE_SAME_SITE: z.preprocess(
+    emptyToUndefined,
+    z.enum(['lax', 'strict', 'none']).default('lax'),
+  ),
   ARGON2_MEMORY_COST: intWithDefault(19_456),
   ARGON2_TIME_COST: intWithDefault(2),
   ARGON2_PARALLELISM: intWithDefault(1),
@@ -67,7 +70,13 @@ export type TrustProxy = boolean | number | string;
 
 export interface Env extends Omit<
   z.infer<typeof schema>,
-  'TRUST_PROXY' | 'AUTH_COOKIE_SECURE' | 'SEED_DEMO_DATA' | 'CORS_ALLOWED_ORIGINS' | 'ACCESS_TOKEN_SECRET' | 'REFRESH_TOKEN_PEPPER' | 'CSRF_SECRET'
+  | 'TRUST_PROXY'
+  | 'AUTH_COOKIE_SECURE'
+  | 'SEED_DEMO_DATA'
+  | 'CORS_ALLOWED_ORIGINS'
+  | 'ACCESS_TOKEN_SECRET'
+  | 'REFRESH_TOKEN_PEPPER'
+  | 'CSRF_SECRET'
 > {
   TRUST_PROXY: TrustProxy;
   AUTH_COOKIE_SECURE: boolean;
@@ -111,7 +120,8 @@ export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefi
   const origins = e.CORS_ALLOWED_ORIGINS.split(',')
     .map((s) => s.trim())
     .filter(Boolean);
-  if (production && origins.length === 0) problems.push('CORS_ALLOWED_ORIGINS is required in production');
+  if (production && origins.length === 0)
+    problems.push('CORS_ALLOWED_ORIGINS is required in production');
 
   const secret = (key: 'ACCESS_TOKEN_SECRET' | 'REFRESH_TOKEN_PEPPER' | 'CSRF_SECRET'): string => {
     const value = e[key];
@@ -123,14 +133,14 @@ export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefi
       return value;
     }
     if (!value) return randomBytes(32).toString('hex');
-    if (value.length < MIN_SECRET) problems.push(`${key} must be at least ${MIN_SECRET} characters`);
+    if (value.length < MIN_SECRET)
+      problems.push(`${key} must be at least ${MIN_SECRET} characters`);
     return value;
   };
 
   const ACCESS_TOKEN_SECRET = secret('ACCESS_TOKEN_SECRET');
   const REFRESH_TOKEN_PEPPER = secret('REFRESH_TOKEN_PEPPER');
   const CSRF_SECRET = secret('CSRF_SECRET');
-
 
   if (e.CRON_SECRET && e.CRON_SECRET.length < MIN_SECRET)
     problems.push(`CRON_SECRET must be at least ${MIN_SECRET} characters when set`);

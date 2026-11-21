@@ -8,7 +8,11 @@ export function parseAcceptLanguage(header: string | undefined): Locale | undefi
     .map((part, index) => {
       const [tag = '', ...params] = part.trim().split(';');
       const q = params.map((p) => /^\s*q=([\d.]+)\s*$/.exec(p)?.[1]).find(Boolean);
-      return { lang: tag.trim().toLowerCase().split('-')[0], q: q === undefined ? 1 : Number(q), index };
+      return {
+        lang: tag.trim().toLowerCase().split('-')[0],
+        q: q === undefined ? 1 : Number(q),
+        index,
+      };
     })
     .filter((x) => (x.lang === 'ar' || x.lang === 'en') && x.q > 0)
     .sort((a, b) => b.q - a.q || a.index - b.index);

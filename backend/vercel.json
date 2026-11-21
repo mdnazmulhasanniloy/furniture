@@ -8,7 +8,5 @@
     { "source": "/api/socket-io/(.*)", "destination": "/api/socket-io" },
     { "source": "/(.*)", "destination": "/api/index" }
   ],
-  "crons": [
-    { "path": "/internal/cron/cleanup", "schedule": "0 3 * * *" }
-  ]
+  "crons": [{ "path": "/internal/cron/cleanup", "schedule": "0 3 * * *" }]
 }

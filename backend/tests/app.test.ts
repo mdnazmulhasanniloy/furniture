@@ -95,7 +95,11 @@ describe('error handling', () => {
     );
     const res = await request(app).get('/conflict');
     expect(res.status).toBe(409);
-    expect(res.body).toMatchObject({ code: 'CONFLICT', message: 'Already exists', details: { field: 'email' } });
+    expect(res.body).toMatchObject({
+      code: 'CONFLICT',
+      message: 'Already exists',
+      details: { field: 'email' },
+    });
   });
 
   it('NFR-04 · a zod failure returns 422 VALIDATION_ERROR with details', async () => {

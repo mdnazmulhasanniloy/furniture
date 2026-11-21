@@ -3,13 +3,22 @@ import { saudiPhone } from '../../lib/phone.js';
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 
-/** PROF-01. Strict: unknown fields (email, role, isBlocked, avatar ...) are a 422, never ignored. */
+/** PROF-01 avatar presign request. */
+export const presignAvatarBody = z
+  .object({
+    contentType: z.string(),
+    size: z.number().int().positive(),
+  })
+  .strict();
+
+/** PROF-01. Strict: unknown fields (email, role, isBlocked, id ...) are a 422, never ignored. */
 export const updateProfileBody = z
   .object({
     firstName: text(40),
     lastName: text(40),
     phone: saudiPhone.nullable(),
     preferredLocale: z.enum(['ar', 'en']),
+    avatar: z.string().nullable(),
   })
   .partial()
   .strict()
@@ -34,6 +43,7 @@ export const updateAddressBody = z
   .strict()
   .refine((b) => Object.keys(b).length > 0, { message: 'At least one field is required' });
 
+export type PresignAvatarBody = z.infer<typeof presignAvatarBody>;
 export type UpdateProfileBody = z.infer<typeof updateProfileBody>;
 export type CreateAddressBody = z.infer<typeof createAddressBody>;
 export type UpdateAddressBody = z.infer<typeof updateAddressBody>;

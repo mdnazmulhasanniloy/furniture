@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { getEnv } from '../config/env.js';
 import { AppError } from './errors.js';
 import { prisma } from './prisma.js';
+import { notSet } from './prismaFilters.js';
 
 export const REFRESH_COOKIE = 'fx_rt';
 /** The refresh cookie is only sent to the auth routes. */
@@ -79,13 +80,8 @@ export function clearRefreshCookie(res: Response): void {
   res.clearCookie(REFRESH_COOKIE, cookieOptions());
 }
 
-/**
- * Prisma on MongoDB: `revokedAt: null` does not match a document where the field is absent, so match both
- * (rows are created with an explicit null, but be safe).
- */
-export const UNREVOKED: Prisma.RefreshTokenWhereInput = {
-  OR: [{ revokedAt: null }, { revokedAt: { isSet: false } }],
-};
+/** Null-or-missing (see prismaFilters.ts); rows are created with an explicit null, but be safe. */
+export const UNREVOKED = notSet<Prisma.RefreshTokenWhereInput>('revokedAt');
 
 const newToken = () => randomBytes(32).toString('base64url');
 

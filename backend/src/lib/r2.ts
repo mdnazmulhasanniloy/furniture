@@ -11,6 +11,7 @@ import { getEnv } from '../config/env.js';
 import { AppError } from './errors.js';
 import { createLogger, type Logger } from './logger.js';
 import { prisma } from './prisma.js';
+import { notSet } from './prismaFilters.js';
 
 /**
  * Cloudflare R2 (ADR-010, T-008). Uploads go browser -> R2 with a presigned PUT; the server tracks them in the
@@ -25,6 +26,7 @@ export const ALLOWED_CONTENT_TYPES = {
 } as const;
 export type AllowedContentType = keyof typeof ALLOWED_CONTENT_TYPES;
 export const MAX_UPLOAD_BYTES = 5_242_880;
+export const MAX_AVATAR_BYTES = 2_097_152;
 export const PRESIGN_EXPIRES_IN = 300;
 
 export type UploadScope = 'admin' | 'avatar';
@@ -87,6 +89,11 @@ export function newObjectKey(contentType: AllowedContentType, now = new Date()):
   return `${keyPrefix()}${yyyy}/${mm}/${randomUUID()}.${ALLOWED_CONTENT_TYPES[contentType]}`;
 }
 
+/** `furnixa/{env}/avatars/{userId}/{uuid}.{ext}` — customer avatar key (T-028). */
+export function avatarObjectKey(userId: string, contentType: AllowedContentType): string {
+  return `${keyPrefix()}avatars/${userId}/${randomUUID()}.${ALLOWED_CONTENT_TYPES[contentType]}`;
+}
+
 const KEY_CHARS = /^[A-Za-z0-9._/-]+$/;
 const KEY_EXT = /\.(jpg|png|webp)$/;
 
@@ -131,13 +138,16 @@ export interface PresignInput {
   size: number;
 }
 
-/** 422 `UPLOAD_NOT_ALLOWED` unless jpeg/png/webp and 1..5 MB. SVG and everything else is refused. */
-export function assertUploadAllowed(input: PresignInput): AllowedContentType {
+/** 422 `UPLOAD_NOT_ALLOWED` unless jpeg/png/webp and within `maxBytes`. SVG and everything else is refused. */
+export function assertUploadAllowed(
+  input: PresignInput,
+  maxBytes = MAX_UPLOAD_BYTES,
+): AllowedContentType {
   if (!Object.hasOwn(ALLOWED_CONTENT_TYPES, input.contentType)) {
     throw uploadNotAllowed('Only JPEG, PNG and WebP images are allowed');
   }
-  if (input.size > MAX_UPLOAD_BYTES) {
-    throw uploadNotAllowed(`Image is larger than ${MAX_UPLOAD_BYTES} bytes`);
+  if (input.size > maxBytes) {
+    throw uploadNotAllowed(`Image is larger than ${maxBytes} bytes`);
   }
   return input.contentType as AllowedContentType;
 }
@@ -148,9 +158,11 @@ export async function createUploadPresign(opts: {
   size: number;
   uploadedById: string;
   scope: UploadScope;
+  /** Override the default key generator (`newObjectKey`). Used by avatar presign. */
+  keyFn?: (ct: AllowedContentType) => string;
 }) {
   const c = r2Config();
-  const key = newObjectKey(opts.contentType);
+  const key = opts.keyFn ? opts.keyFn(opts.contentType) : newObjectKey(opts.contentType);
   const uploadUrl = await getSignedUrl(
     getS3(),
     new PutObjectCommand({
@@ -168,6 +180,7 @@ export async function createUploadPresign(opts: {
       contentType: opts.contentType,
       size: opts.size,
       scope: opts.scope,
+      attachedAt: null, // explicit null, so filters on `attachedAt: null` match (see UNATTACHED)
     },
   });
   return { uploadUrl, key, publicUrl: publicUrlFor(key), expiresIn: PRESIGN_EXPIRES_IN };
@@ -201,6 +214,9 @@ export async function deleteObjects(
 }
 
 // ---------------------------------------------------------------- attach / release / sync
+
+/** Null-or-missing (see prismaFilters.ts); rows are created with an explicit null, but be safe (T-028). */
+export const UNATTACHED = notSet<Prisma.UploadWhereInput>('attachedAt');
 
 const isNotFound = (err: unknown): boolean => {
   const e = err as { name?: string; Code?: string; $metadata?: { httpStatusCode?: number } };
@@ -260,9 +276,11 @@ export async function attachUploads(keys: string[], opts: AttachOptions): Promis
     }),
   );
 
+  // Atomic claim: the conditional updateMany is the compare-and-swap that makes the loser of a
+  // concurrent double-claim fail (its filter no longer matches, or the write conflicts).
   const claim = async (c: Prisma.TransactionClient) => {
     const res = await c.upload.updateMany({
-      where: { key: { in: unique }, attachedAt: null },
+      where: { AND: [{ key: { in: unique } }, UNATTACHED] },
       data: { attachedAt: new Date() },
     });
     if (res.count !== unique.length) throw uploadNotAllowed('Upload already attached');

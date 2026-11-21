@@ -19,6 +19,7 @@ import {
 import type { RegisterBody } from './schema.js';
 
 export function toPublicUser(u: User) {
+  const baseUrl = (getEnv().R2_PUBLIC_BASE_URL ?? '').replace(/\/+$/, '');
   return {
     id: u.id,
     firstName: u.firstName,
@@ -26,7 +27,7 @@ export function toPublicUser(u: User) {
     email: u.email,
     role: u.role,
     phone: u.phone,
-    avatar: u.avatar,
+    avatarUrl: u.avatar && baseUrl ? `${baseUrl}/${u.avatar}` : null,
     isVerified: u.isVerified,
     isBlocked: u.isBlocked,
     preferredLocale: u.preferredLocale,

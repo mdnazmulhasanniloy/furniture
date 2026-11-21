@@ -137,6 +137,22 @@ describe('ADM-02 · buildImageAsset', () => {
 });
 
 describe('ADM-02 · attachUploads', () => {
+  it('ADM-02 · a row whose attachedAt field is MISSING (not null) can still be claimed', async () => {
+    // A writer that omits attachedAt leaves the field missing in MongoDB, and a `{ attachedAt: null }`
+    // filter does not match it (found in T-028: presign-created avatars could never be attached).
+    const key = newKey();
+    await prisma.upload.create({
+      data: { key, uploadedById: OWNER, contentType: 'image/png', size: 1234, scope: 'admin' },
+    });
+    const raw = await prisma.upload.findRaw({
+      filter: { key, attachedAt: { $exists: false } },
+    });
+    expect(raw).toHaveLength(1); // precondition: the field really is missing
+    s3State.objects.set(key, { ContentType: 'image/png', ContentLength: 1234 });
+    await attachUploads([key], { scope: 'admin', uploadedById: OWNER });
+    expect(await attachedAt(key)).toBeInstanceOf(Date);
+  });
+
   it('ADM-02 · attaches tracked uploads after a HeadObject check', async () => {
     const a = await seed();
     const b = await seed();

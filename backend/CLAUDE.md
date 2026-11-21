@@ -22,6 +22,7 @@ Local infra: MongoDB Atlas + Gmail SMTP (see `.env.example`); no Docker needed. 
 5. After each task: update task status, `implementation-plan.md` if affected, and `changelog.md`; run `node ../scripts/traceability.mjs`.
 6. Errors always use the `Error` schema (`code`, `message`, `details`, `requestId`). Money is integer minor units.
 7. All user-facing text (emails, notification bodies) exists in `en` and `ar`.
+8. MongoDB null-vs-missing: a Prisma `{ field: null }` **where**-filter matches only an explicit null, never a missing field. Filter "field is empty" with `notSet(...)` from `src/lib/prismaFilters.ts` (see `UNCONSUMED`, `UNREVOKED`, `UNATTACHED`) and add a regression test with a document created without the field; writers set optional fields to an explicit `null`.
 
 ## Never
 

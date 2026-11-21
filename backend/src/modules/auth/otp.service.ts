@@ -3,6 +3,7 @@ import type { Locale, OtpPurpose, Prisma } from '@prisma/client';
 import { getEnv } from '../../config/env.js';
 import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
+import { notSet } from '../../lib/prismaFilters.js';
 import { hashPassword, verifyPassword } from '../../lib/password.js';
 import { hmac } from '../../lib/tokens.js';
 
@@ -17,13 +18,8 @@ export interface PendingRegistration {
   preferredLocale: Locale;
 }
 
-/**
- * Prisma on MongoDB: `consumedAt: null` does not match a document where the field is absent, so
- * match both (rows are created with an explicit null, but other writers, e.g. admin invites, may not).
- */
-export const UNCONSUMED: Prisma.OtpWhereInput = {
-  OR: [{ consumedAt: null }, { consumedAt: { isSet: false } }],
-};
+/** Null-or-missing (see prismaFilters.ts); rows are created with an explicit null, but other writers, e.g. admin invites, may not. */
+export const UNCONSUMED = notSet<Prisma.OtpWhereInput>('consumedAt');
 
 export const hashOtp = (email: string, code: string) => hmac('otp', `${email}:${code}`);
 

@@ -2,8 +2,51 @@ import type { Address, Prisma } from '@prisma/client';
 import { assertActiveCity, getActiveCityCodes } from '../../lib/deliveryCities.js';
 import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
+import {
+  assertUploadAllowed,
+  avatarObjectKey,
+  createUploadPresign,
+  MAX_AVATAR_BYTES,
+  syncImages,
+  type R2Context,
+} from '../../lib/r2.js';
+import { hit, limitKey } from '../../lib/rateLimit.js';
 import { toPublicUser } from '../auth/auth.service.js';
-import type { CreateAddressBody, UpdateAddressBody, UpdateProfileBody } from './schema.js';
+import type {
+  CreateAddressBody,
+  PresignAvatarBody,
+  UpdateAddressBody,
+  UpdateProfileBody,
+} from './schema.js';
+
+export const AVATAR_PRESIGN_LIMIT = 5;
+export const AVATAR_PRESIGN_WINDOW_SECONDS = 900;
+
+/** 5 avatar presigns per 15 minutes per user. */
+export async function limitAvatarPresign(userId: string, ctx: R2Context): Promise<void> {
+  const r = await hit(
+    limitKey('avatar', 'user', userId),
+    AVATAR_PRESIGN_LIMIT,
+    AVATAR_PRESIGN_WINDOW_SECONDS,
+    ctx,
+  );
+  if (!r.allowed) {
+    throw new AppError(429, 'RATE_LIMITED', 'Too many avatar upload requests', {
+      retryAfterSeconds: r.retryAfterSeconds,
+    });
+  }
+}
+
+export async function presignAvatar(userId: string, body: PresignAvatarBody, _ctx: R2Context = {}) {
+  const contentType = assertUploadAllowed(body, MAX_AVATAR_BYTES);
+  return createUploadPresign({
+    contentType,
+    size: body.size,
+    uploadedById: userId,
+    scope: 'avatar',
+    keyFn: (ct) => avatarObjectKey(userId, ct),
+  });
+}
 
 export const MAX_ADDRESSES = 10;
 const OBJECT_ID = /^[a-f0-9]{24}$/;
@@ -26,9 +69,39 @@ export function toPublicAddress(a: Address, activeCities: ReadonlySet<string>) {
   };
 }
 
-export async function updateProfile(userId: string, body: UpdateProfileBody) {
-  const user = await prisma.user.update({ where: { id: userId }, data: body });
-  return toPublicUser(user);
+const noRelease = async () => {};
+
+export async function updateProfile(
+  userId: string,
+  body: UpdateProfileBody,
+  ctx: R2Context = {},
+): Promise<{ user: ReturnType<typeof toPublicUser>; release: () => Promise<void> }> {
+  if (!('avatar' in body)) {
+    const user = await prisma.user.update({ where: { id: userId }, data: body });
+    return { user: toPublicUser(user), release: noRelease };
+  }
+
+  const { avatar: newAvatarKey, ...profileData } = body;
+  let release = noRelease;
+
+  const user = await prisma.$transaction(async (tx) => {
+    const current = await tx.user.findUnique({ where: { id: userId }, select: { avatar: true } });
+    const oldKey = current?.avatar ?? null;
+    const result = await syncImages(
+      tx,
+      oldKey ? [oldKey] : [],
+      newAvatarKey ? [newAvatarKey] : [],
+      'avatar',
+      { ...ctx, uploadedById: userId },
+    );
+    release = result.release;
+    return tx.user.update({
+      where: { id: userId },
+      data: { ...profileData, avatar: newAvatarKey },
+    });
+  });
+
+  return { user: toPublicUser(user), release };
 }
 
 export async function listAddresses(userId: string) {

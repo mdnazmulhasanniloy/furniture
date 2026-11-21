@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { Writable } from 'node:stream';
 import express from 'express';
@@ -70,6 +71,12 @@ const getFrom = (app: express.Express, xff?: string) => {
 };
 
 beforeAll(async () => {
+  // The schema (notably the UNIQUE index on rate_limits.key) must exist in this file's own database:
+  // without it, concurrent upserts can insert duplicate counter documents (lost updates, flaky NFR-01).
+  execSync('npx prisma db push --skip-generate --accept-data-loss', {
+    env: { ...process.env },
+    stdio: 'pipe',
+  });
   await prisma.$connect();
 });
 
@@ -84,6 +91,26 @@ afterEach(() => {
 });
 
 describe('NFR-01 · rate limit store', () => {
+  it('NFR-01 · ensureIndexes creates the TTL and the UNIQUE key index on an empty database', async () => {
+    // Correctness must not depend on `db push` having run on the deployed database (Atlas):
+    // the unique index is what makes concurrent upserts collide instead of inserting duplicates.
+    await db.run({ drop: 'rate_limits' }).catch(() => undefined); // NamespaceNotFound is fine
+    resetIndexMemo();
+    await ensureIndexes();
+    const res = (await db.run({ listIndexes: 'rate_limits' })) as {
+      cursor?: { firstBatch?: { name?: string }[] };
+    };
+    const byName = new Map((res.cursor?.firstBatch ?? []).map((i) => [i.name, i]));
+    expect(byName.get('resetAt_ttl')).toMatchObject({
+      key: { resetAt: 1 },
+      expireAfterSeconds: 0,
+    });
+    expect(byName.get('rate_limits_key_key')).toMatchObject({ key: { key: 1 }, unique: true });
+    // Idempotent where `db push` already created the same index (same name, same spec).
+    resetIndexMemo();
+    await expect(ensureIndexes()).resolves.toBeUndefined();
+  });
+
   it('NFR-01 · the limit is enforced with the Error schema, Retry-After and RateLimit headers', async () => {
     const app = buildApp({ trustProxy: false, limit: 3, windowSeconds: 900 });
     for (let i = 1; i <= 3; i++) {

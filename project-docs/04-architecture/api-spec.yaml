@@ -269,9 +269,10 @@ paths:
       tags: [Me]
       summary: Update profile (PROF-01)
       description: >-
-        Partial update; unknown fields (email, role, isVerified, isBlocked, avatar, ...) are rejected with 422
+        Partial update; unknown fields (email, role, isVerified, isBlocked, id, ...) are rejected with 422
         VALIDATION_ERROR and nothing changes. Strings are trimmed. `phone` is normalised to `+9665XXXXXXXX`;
-        `null` clears it. Avatar upload is not part of this endpoint yet (task T-028).
+        `null` clears it. `avatar` accepts an R2 key from `POST /me/avatar/presign` or `null` to remove it;
+        a full URL is rejected with 422 `UPLOAD_NOT_ALLOWED`.
       requestBody:
         required: true
         content:
@@ -285,14 +286,55 @@ paths:
                 lastName: { type: string, minLength: 1, maxLength: 40 }
                 phone: { oneOf: [{ $ref: '#/components/schemas/SaudiPhoneInput' }, { type: 'null' }] }
                 preferredLocale: { $ref: '#/components/schemas/Locale' }
+                avatar: { oneOf: [{ type: string, description: "R2 key from POST /me/avatar/presign" }, { type: 'null' }] }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
         '401': { $ref: '#/components/responses/Error' }
         '422':
-          description: VALIDATION_ERROR (unknown field, invalid value or invalid Saudi phone)
+          description: VALIDATION_ERROR (unknown field, invalid value or invalid Saudi phone) or UPLOAD_NOT_ALLOWED (invalid key, URL, wrong scope or key not belonging to this user)
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  /me/avatar/presign:
+    post:
+      tags: [Me]
+      summary: Get a presigned PUT URL to upload an avatar to Cloudflare R2 (PROF-01)
+      description: |
+        Customer or admin. The browser then PUTs the file to `uploadUrl` with the same `Content-Type` and the signed
+        `Content-Length`. Save the returned `key` and pass it to `PATCH /me` as `avatar`.
+        Allowed: image/jpeg, image/png, image/webp; max 2 MB (2 097 152 bytes). SVG is never allowed.
+        Key format: `furnixa/{env}/avatars/{userId}/{uuid}.{ext}`.
+        Each call records an `Upload` row (scope `avatar`); the key may only be attached by the same user.
+        Limit: 5 presigns per 15 minutes per user (429 `RATE_LIMITED`, `Retry-After`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contentType, size]
+              additionalProperties: false
+              properties:
+                contentType: { type: string, enum: [image/jpeg, image/png, image/webp] }
+                size: { type: integer, minimum: 1, maximum: 2097152, description: Bytes }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [uploadUrl, key, publicUrl, expiresIn]
+                properties:
+                  uploadUrl: { type: string, format: uri }
+                  key: { type: string, examples: ['furnixa/production/avatars/6627a1b2c3d4e5f6a7b8c9d0/3f2b8c1e-0c4d-4a52-9d7e-1b2a3c4d5e6f.webp'] }
+                  publicUrl: { type: string, format: uri, description: R2_PUBLIC_BASE_URL + "/" + key }
+                  expiresIn: { type: integer, const: 300, description: Seconds }
+        '401': { $ref: '#/components/responses/Error' }
+        '422':
+          description: UPLOAD_NOT_ALLOWED (type not jpeg/png/webp, or size over 2 MB) or VALIDATION_ERROR
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (5 presigns per user per 15 minutes)" }
   /me/addresses:
     get:
       tags: [Me]
@@ -1179,7 +1221,7 @@ components:
         email: { type: string, format: email }
         role: { $ref: '#/components/schemas/Role' }
         phone: { oneOf: [{ $ref: '#/components/schemas/SaudiPhone' }, { type: 'null' }] }
-        avatar: { type: [string, 'null'] }
+        avatarUrl: { type: [string, 'null'], description: "R2_PUBLIC_BASE_URL/key, or null; computed from the stored key" }
         isVerified: { type: boolean }
         isBlocked: { type: boolean }
         preferredLocale: { $ref: '#/components/schemas/Locale' }

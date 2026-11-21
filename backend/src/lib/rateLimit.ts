@@ -12,6 +12,9 @@ import { prisma } from './prisma.js';
  * MongoDB-backed rate limiting (ADR-012, NFR-01). Every hit is ONE atomic findAndModify upsert with an
  * update pipeline, so counts are correct across serverless instances. A plain `$inc` cannot reset an
  * expired window atomically (the TTL monitor lags up to ~60 s), hence the pipeline.
+ * MongoDB's upsert duplicate-key protection depends on the UNIQUE index on `key`; without it concurrent
+ * upserts insert duplicate counters. `ensureIndexes` therefore creates it itself (not only the TTL index),
+ * so correctness never depends on `db push` having run against the database.
  */
 
 const COLLECTION = 'rate_limits'; // @@map of the RateLimit model
@@ -100,12 +103,20 @@ export function limitKey(
 
 let indexesReady: Promise<void> | undefined;
 
-/** Idempotent TTL index on `resetAt` (Prisma cannot declare TTL indexes). Memoized; a failure is retried on next call. */
+/**
+ * Idempotent store indexes: the TTL on `resetAt` (Prisma cannot declare TTL indexes) and the UNIQUE index
+ * on `key` that the upsert's duplicate-key protection needs. The unique index uses the exact name and spec
+ * `prisma db push` creates (`rate_limits_key_key`), so this is a no-op where push already ran and never
+ * conflicts with it. Memoized; a failure is retried on next call.
+ */
 export function ensureIndexes(): Promise<void> {
   indexesReady ??= db
     .run({
       createIndexes: COLLECTION,
-      indexes: [{ key: { resetAt: 1 }, name: 'resetAt_ttl', expireAfterSeconds: 0 }],
+      indexes: [
+        { key: { resetAt: 1 }, name: 'resetAt_ttl', expireAfterSeconds: 0 },
+        { key: { key: 1 }, name: 'rate_limits_key_key', unique: true },
+      ],
     })
     .then(() => undefined)
     .catch((err: unknown) => {

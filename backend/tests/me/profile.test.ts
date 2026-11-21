@@ -102,7 +102,7 @@ describe('PROF-01 · profile', () => {
     expect(res.body.phone).toBeNull();
   });
 
-  it('PROF-01 · unknown fields (email, role, isVerified, isBlocked, avatar, id) give 422 and change nothing', async () => {
+  it('PROF-01 · unknown fields (email, role, isVerified, isBlocked, id) give 422 VALIDATION_ERROR', async () => {
     const u = await mkUser('s@example.com');
     const token = signAccessToken(u);
     for (const extra of [
@@ -110,7 +110,6 @@ describe('PROF-01 · profile', () => {
       { role: 'ADMIN' },
       { isVerified: false },
       { isBlocked: true },
-      { avatar: 'https://example.com/a.png' },
       { id: '0'.repeat(24) },
     ]) {
       const res = await patch(token, { firstName: 'Changed', ...extra });

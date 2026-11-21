@@ -32,7 +32,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 ### T-037 Auth pages · todo
 - Req: AUTH-01..04 · Depends: T-031, backend T-004..T-006
-- Done: register → OTP (InputOTP, paste, 60 s resend countdown) → logged in; login unverified redirect; forgot/reset.
+- Done: register → OTP (InputOTP, paste, 60 s resend countdown) → logged in; login unverified redirect; forgot/reset. When verify-otp returns OTP_EXPIRED and resend cannot help (no pending row), the verify screen re-submits the register request with the form data kept in memory (never in localStorage), shows 'A new code was sent', and resets the countdown. Test in en and ar.
 
 ### T-038 Checkout + success · todo
 - Req: ORD-01, PROF-02 · Depends: T-036, T-037, backend T-013

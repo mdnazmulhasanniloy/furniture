@@ -14,6 +14,7 @@
 5. Only show actions the API allows (e.g. allowed next order statuses); the backend is still the authority.
 6. Missing API capability → blocker, not a workaround.
 7. Done = tests for each acceptance criterion, both locales; update task status + changelog.
+8. API errors: the API is English-only. Never show the API message; map error.code to src/locales/en.json and ar.json, with a generic fallback.
 
 ## Never
 Commit `.env*`, store tokens in localStorage (access token in memory, refresh via httpOnly cookie), invent requirements, weaken tests.

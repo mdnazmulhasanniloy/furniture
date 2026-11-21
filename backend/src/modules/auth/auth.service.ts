@@ -9,6 +9,7 @@ import {
   assertCanIssue,
   createDecoyOtp,
   createOtp,
+  findPendingByPassword,
   matchVerifyOtp,
   UNCONSUMED,
   type PendingRegistration,
@@ -52,7 +53,10 @@ async function sendOtpEmail(args: {
  * AUTH-01. An existing unverified account is never modified: the submitted data travels on the new
  * OTP row and is applied only when that OTP is verified (no pre-account takeover).
  */
-export async function register(body: RegisterBody, headerLocale: Locale | undefined): Promise<void> {
+export async function register(
+  body: RegisterBody,
+  headerLocale: Locale | undefined,
+): Promise<void> {
   const { email } = body;
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing && (existing.isVerified || existing.role !== 'CUSTOMER')) {
@@ -113,10 +117,15 @@ export async function verifyOtp(email: string, code: string, userAgent?: string)
   return { user: verified, accessToken: signAccessToken(verified), refreshToken };
 }
 
-/** AUTH-04. Same outcome for known and unknown emails; only applicable accounts get a mail. */
+/**
+ * AUTH-04 / T-027. Same outcome for known and unknown emails; only applicable accounts get a mail.
+ * VERIFY_EMAIL needs the registration password: the new OTP is bound to the pending registration whose
+ * password matches, so a later attacker registration can never receive the victim's resent code.
+ */
 export async function resendOtp(
   email: string,
   purpose: 'VERIFY_EMAIL' | 'RESET_PASSWORD',
+  password: string | undefined,
   headerLocale: Locale | undefined,
 ): Promise<void> {
   await assertCanIssue(email, purpose);
@@ -130,18 +139,19 @@ export async function resendOtp(
   }
 
   if (purpose === 'VERIFY_EMAIL') {
-    const latest = await prisma.otp.findFirst({
-      where: { email, purpose, pendingRegistration: { isSet: true } },
-      orderBy: { createdAt: 'desc' },
-    });
-    const pending = latest?.pendingRegistration ?? undefined;
+    const pending =
+      password === undefined ? undefined : await findPendingByPassword(email, password);
+    if (!pending) {
+      await createDecoyOtp(email, purpose);
+      return;
+    }
     const code = await createOtp({ email, purpose, pendingRegistration: pending });
     await sendOtpEmail({
       email,
       template: 'otp-verify',
       code,
-      firstName: pending?.firstName ?? user.firstName,
-      locale: headerLocale ?? pending?.preferredLocale ?? user.preferredLocale,
+      firstName: pending.firstName,
+      locale: headerLocale ?? pending.preferredLocale,
     });
     return;
   }

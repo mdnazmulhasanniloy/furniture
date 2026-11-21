@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: |
     REST API for the Furnixa furniture marketplace (website + admin).
-    Base path /api/v1. Auth: Bearer access token (JWT). Refresh token in httpOnly cookie `fx_rt` (30 days). Cookie-authenticated calls (`/auth/refresh`, `/auth/logout`) also need header `X-CSRF-Token` from `GET /auth/csrf` (ADR-011).
+    Base path /api/v1. Auth: Bearer access token (JWT). Refresh token in cookie `fx_rt` (30 days): `HttpOnly`, `Secure` from env `AUTH_COOKIE_SECURE`, `SameSite` from env `AUTH_COOKIE_SAME_SITE`, `Path=/api/v1/auth` (so it is only sent to the auth routes), optional `Domain` from `AUTH_COOKIE_DOMAIN`. Cookie-authenticated calls (`/auth/refresh`, `/auth/logout`) also need header `X-CSRF-Token` from `GET /auth/csrf` (ADR-011).
     All error responses use the Error schema. Locale for emails/messages via `Accept-Language: ar|en` (default `ar`).
     Prices are integer halalas (1 SAR = 100 halalas). Phone numbers are Saudi mobile numbers, returned as E.164 `+9665XXXXXXXX`.
 servers:
@@ -107,7 +107,14 @@ paths:
         Always answers the same 200 message for known and unknown emails (no email is sent for unknown ones or for
         a purpose that does not apply to the account). The 60 s cooldown and the 5-per-hour cap apply per email and
         purpose, also for unknown emails, so 429 does not reveal whether an account exists.
-        A resent VERIFY_EMAIL OTP carries the pending registration data of the latest VERIFY_EMAIL OTP.
+
+        **VERIFY_EMAIL requires `password`** (AUTH-01, closes the resend race). The server looks for the unexpired
+        VERIFY_EMAIL OTP row of the email (also one burnt by the 5-wrong-codes lockout) whose `pendingRegistration.passwordHash` matches the password
+        (argon2 verify) and binds the new OTP to that row's pending data only. If nothing matches (unknown email,
+        wrong password, already verified, no live row) the response is the identical 200 and a decoy row is written,
+        exactly as for an unknown email; the cooldown and hourly cap behave the same either way. A caller who does not
+        know the password of a pending registration can therefore never obtain a code bound to it.
+        **RESET_PASSWORD** stays `{email, purpose}`; `password` is ignored. `password` missing for VERIFY_EMAIL -> 422.
       requestBody:
         required: true
         content:
@@ -118,6 +125,7 @@ paths:
               properties:
                 email: { type: string, format: email }
                 purpose: { $ref: '#/components/schemas/OtpPurpose' }
+                password: { type: string, minLength: 1, maxLength: 128, description: "Required when purpose is VERIFY_EMAIL; the password given at registration" }
       responses:
         '200': { $ref: '#/components/responses/Message' }
         '422': { $ref: '#/components/responses/Error' }
@@ -126,7 +134,7 @@ paths:
     post:
       tags: [Auth]
       security: []
-      summary: Email + password login (AUTH-02). After LOGIN_MAX_FAILURES failures the account is locked for LOGIN_LOCKOUT_SECONDS (429 ACCOUNT_LOCKED); the oldest session is revoked when MAX_ACTIVE_SESSIONS would be exceeded.
+      summary: Email + password login (AUTH-02). For an unverified account the password is matched against its pending registrations (same rule as resend-otp) and the new OTP is bound to the matching one. After LOGIN_MAX_FAILURES failures the account is locked for LOGIN_LOCKOUT_SECONDS (429 ACCOUNT_LOCKED); the oldest session is revoked when MAX_ACTIVE_SESSIONS would be exceeded.
       requestBody:
         required: true
         content:
@@ -1043,7 +1051,7 @@ components:
       required: [code, message]
       properties:
         code: { type: string, examples: [VALIDATION_ERROR, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA] }
-        message: { type: string }
+        message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }
     PageMeta:

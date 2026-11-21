@@ -70,6 +70,17 @@ describe('email templates', () => {
     expectDir(out.html, locale);
   });
 
+  // T-004 review: the reset mail must tell a recipient who did not ask to ignore it.
+  const IGNORE: Record<Locale, [string, string]> = {
+    en: ['If you did not request a reset, you can ignore this email', 'If you did not request a reset, ignore this email.'],
+    ar: ['إذا لم تطلب إعادة التعيين، تجاهل هذه الرسالة', 'إذا لم تطلب ذلك، تجاهل هذه الرسالة.'],
+  };
+  it.each(locales)('AUTH-03 · otp-reset (%s) tells a recipient who did not request it to ignore the email', (locale) => {
+    const out = renderEmail('otp-reset', locale, otp);
+    expect(out.html).toContain(IGNORE[locale][0]);
+    expect(out.text).toContain(IGNORE[locale][1]);
+  });
+
   // 987987 contains none of the tested TTL digits (1, 0, 2, 5), so a bare digit cannot match by accident.
   const MINUTES: Record<Locale, [number, string][]> = {
     en: [

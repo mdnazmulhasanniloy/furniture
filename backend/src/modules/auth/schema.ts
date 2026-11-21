@@ -8,7 +8,10 @@ export const password = z
   .string()
   .min(8)
   .max(128)
-  .refine((v) => /\p{L}/u.test(v) && /\d/.test(v), 'Password must contain at least one letter and one number');
+  .refine(
+    (v) => /\p{L}/u.test(v) && /\d/.test(v),
+    'Password must contain at least one letter and one number',
+  );
 
 const locale = z.enum(['ar', 'en']);
 const otpPurpose = z.enum(['VERIFY_EMAIL', 'RESET_PASSWORD']);
@@ -23,6 +26,13 @@ export const registerBody = z.object({
 
 export const verifyOtpBody = z.object({ email, code: z.string().regex(/^\d{6}$/) });
 
-export const resendOtpBody = z.object({ email, purpose: otpPurpose });
+/** VERIFY_EMAIL resend must prove knowledge of the registration password (T-027); RESET_PASSWORD takes none. */
+export const resendOtpBody = z
+  .object({ email, purpose: otpPurpose, password: z.string().min(1).max(128).optional() })
+  .refine((v) => v.purpose !== 'VERIFY_EMAIL' || v.password !== undefined, {
+    path: ['password'],
+    message: 'password is required for VERIFY_EMAIL',
+  });
 
+export type ResendOtpBody = z.infer<typeof resendOtpBody>;
 export type RegisterBody = z.infer<typeof registerBody>;

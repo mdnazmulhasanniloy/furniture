@@ -3,6 +3,7 @@ import type { Locale, OtpPurpose, Prisma } from '@prisma/client';
 import { getEnv } from '../../config/env.js';
 import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
+import { hashPassword, verifyPassword } from '../../lib/password.js';
 import { hmac } from '../../lib/tokens.js';
 
 export const OTP_COOLDOWN_SECONDS = 60;
@@ -33,8 +34,15 @@ const safeEqual = (a: string, b: string) => {
 };
 
 /** AUTH-04: 60 s cooldown and at most 5 OTPs per hour per email + purpose (computed from DB rows, so it holds across instances). */
-export async function assertCanIssue(email: string, purpose: OtpPurpose, now = new Date()): Promise<void> {
-  const latest = await prisma.otp.findFirst({ where: { email, purpose }, orderBy: { createdAt: 'desc' } });
+export async function assertCanIssue(
+  email: string,
+  purpose: OtpPurpose,
+  now = new Date(),
+): Promise<void> {
+  const latest = await prisma.otp.findFirst({
+    where: { email, purpose },
+    orderBy: { createdAt: 'desc' },
+  });
   if (latest) {
     const waitMs = latest.createdAt.getTime() + OTP_COOLDOWN_SECONDS * 1000 - now.getTime();
     if (waitMs > 0) {
@@ -79,6 +87,38 @@ export async function createOtp(args: {
     },
   });
   return code;
+}
+
+let dummyHash: Promise<string> | undefined;
+
+/**
+ * T-027 (also used by the T-005 unverified login): the pending registration of `email` whose password
+ * hash matches `password`, among unexpired VERIFY_EMAIL rows. Rows burnt by the 5-wrong-codes lockout still count (the password is the proof), so a locked-out user can ask for a fresh code. Newest first, so the first
+ * match wins. A miss still costs one argon2 verify so response time does not reveal whether rows exist.
+ */
+export async function findPendingByPassword(
+  email: string,
+  password: string,
+): Promise<PendingRegistration | undefined> {
+  const rows = await prisma.otp.findMany({
+    where: {
+      email,
+      purpose: 'VERIFY_EMAIL',
+      expiresAt: { gt: new Date() },
+      pendingRegistration: { isSet: true },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+  for (const row of rows) {
+    const pending = row.pendingRegistration;
+    if (pending && (await verifyPassword(pending.passwordHash, password))) return pending;
+  }
+  if (rows.length === 0)
+    await verifyPassword(
+      await (dummyHash ??= hashPassword(randomBytes(16).toString('hex'))),
+      password,
+    );
+  return undefined;
 }
 
 /**

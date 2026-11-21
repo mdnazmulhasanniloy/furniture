@@ -5,7 +5,10 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 // Own database so this file cannot race with other test files that wipe shared collections.
 vi.hoisted(() => {
-  process.env.DATABASE_URL = (process.env.TEST_DATABASE_URL ?? '').replace('furnixa_test', 'furnixa_auth_t004');
+  process.env.DATABASE_URL = (process.env.TEST_DATABASE_URL ?? '').replace(
+    'furnixa_test',
+    'furnixa_auth_t004',
+  );
 });
 
 import { getEnv } from '../../src/config/env.js';
@@ -36,9 +39,15 @@ const advance = (seconds: number) => {
 
 const register = (over: Record<string, unknown> = {}, headers: Record<string, string> = {}) =>
   request(app).post('/api/v1/auth/register').set(headers).send(body(over));
-const verify = (code: string, email = EMAIL) => request(app).post('/api/v1/auth/verify-otp').send({ email, code });
-const resend = (email = EMAIL, purpose = 'VERIFY_EMAIL', headers: Record<string, string> = {}) =>
-  request(app).post('/api/v1/auth/resend-otp').set(headers).send({ email, purpose });
+const verify = (code: string, email = EMAIL) =>
+  request(app).post('/api/v1/auth/verify-otp').send({ email, code });
+/** VERIFY_EMAIL resend carries the registration password (T-027); RESET_PASSWORD never does. */
+const resend = (
+  email = EMAIL,
+  purpose = 'VERIFY_EMAIL',
+  headers: Record<string, string> = {},
+  password: string | undefined = purpose === 'VERIFY_EMAIL' ? PASSWORD_1 : undefined,
+) => request(app).post('/api/v1/auth/resend-otp').set(headers).send({ email, purpose, password });
 
 /** Code from the n-th (default: last) sent email. */
 const sentCode = (n = -1): string => {
@@ -47,7 +56,10 @@ const sentCode = (n = -1): string => {
   if (!m) throw new Error('no code in email');
   return m[1]!;
 };
-const lastMail = () => sendMail.mock.calls.at(-1)?.[0] as { to: string; subject: string; text: string; html: string };
+const lastMail = () =>
+  sendMail.mock.calls.at(-1)?.[0] as { to: string; subject: string; text: string; html: string };
+/** Error body without the per-request id. */
+const sameError = ({ requestId: _id, ...rest }: Record<string, unknown>) => rest;
 const wrongCode = (real: string) => (real === '000000' ? '111111' : '000000');
 
 async function wipe() {
@@ -85,7 +97,12 @@ describe('POST /auth/register (AUTH-01)', () => {
     expect(res.body.message).toEqual(expect.any(String));
 
     const user = await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } });
-    expect(user).toMatchObject({ isVerified: false, firstName: 'Sara', lastName: 'Alharbi', role: 'CUSTOMER' });
+    expect(user).toMatchObject({
+      isVerified: false,
+      firstName: 'Sara',
+      lastName: 'Alharbi',
+      role: 'CUSTOMER',
+    });
     expect(user.passwordHash).toMatch(/^\$argon2id\$/);
 
     const code = sentCode();
@@ -146,7 +163,12 @@ describe('POST /auth/register (AUTH-01)', () => {
     const first = sentCode();
     const before = await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } });
     advance(61);
-    await register({ password: PASSWORD_2, firstName: 'Mallory', lastName: 'Evil', preferredLocale: 'en' });
+    await register({
+      password: PASSWORD_2,
+      firstName: 'Mallory',
+      lastName: 'Evil',
+      preferredLocale: 'en',
+    });
     const afterSecond = await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } });
     expect(afterSecond.passwordHash).toBe(before.passwordHash);
     expect(afterSecond.firstName).toBe('Sara');
@@ -156,13 +178,22 @@ describe('POST /auth/register (AUTH-01)', () => {
     const user = await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } });
     expect(await verifyPassword(user.passwordHash, PASSWORD_1)).toBe(true);
     expect(await verifyPassword(user.passwordHash, PASSWORD_2)).toBe(false);
-    expect(res.body.user).toMatchObject({ firstName: 'Sara', lastName: 'Alharbi', preferredLocale: 'ar' });
+    expect(res.body.user).toMatchObject({
+      firstName: 'Sara',
+      lastName: 'Alharbi',
+      preferredLocale: 'ar',
+    });
   });
 
   it("AUTH-01 · verifying the second OTP applies the second registration's data", async () => {
     await register();
     advance(61);
-    await register({ password: PASSWORD_2, firstName: 'Noor', lastName: 'Aldosari', preferredLocale: 'en' });
+    await register({
+      password: PASSWORD_2,
+      firstName: 'Noor',
+      lastName: 'Aldosari',
+      preferredLocale: 'en',
+    });
     const second = sentCode();
 
     const res = await verify(second);
@@ -170,7 +201,11 @@ describe('POST /auth/register (AUTH-01)', () => {
     const user = await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } });
     expect(await verifyPassword(user.passwordHash, PASSWORD_2)).toBe(true);
     expect(await verifyPassword(user.passwordHash, PASSWORD_1)).toBe(false);
-    expect(res.body.user).toMatchObject({ firstName: 'Noor', lastName: 'Aldosari', preferredLocale: 'en' });
+    expect(res.body.user).toMatchObject({
+      firstName: 'Noor',
+      lastName: 'Aldosari',
+      preferredLocale: 'en',
+    });
   });
 
   it('AUTH-01 · after verify, all pending VERIFY_EMAIL OTPs are consumed', async () => {
@@ -222,7 +257,9 @@ describe('POST /auth/verify-otp (AUTH-01)', () => {
     expect(claims.role).toBe('CUSTOMER');
     expect(claims.exp! - claims.iat!).toBe(getEnv().ACCESS_TOKEN_TTL_SECONDS);
 
-    const cookie = (res.headers['set-cookie'] as unknown as string[]).find((c) => c.startsWith('fx_rt='))!;
+    const cookie = (res.headers['set-cookie'] as unknown as string[]).find((c) =>
+      c.startsWith('fx_rt='),
+    )!;
     expect(cookie).toMatch(/HttpOnly/i);
     expect(cookie).toMatch(/SameSite=Lax/i);
     expect(cookie).not.toMatch(/;\s*Secure/i); // AUTH_COOKIE_SECURE is false outside production
@@ -241,7 +278,9 @@ describe('POST /auth/verify-otp (AUTH-01)', () => {
     const res = await verify(wrongCode(sentCode()));
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ code: 'OTP_INVALID', requestId: expect.any(String) });
-    expect((await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).isVerified).toBe(false);
+    expect((await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).isVerified).toBe(
+      false,
+    );
   });
 
   it('AUTH-01 · a malformed code → 422', async () => {
@@ -295,7 +334,9 @@ describe('POST /auth/verify-otp (AUTH-01)', () => {
     const res = await verify(code);
     expect(res.status).toBe(400);
     expect(res.body.code).toBe('OTP_EXPIRED');
-    expect((await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).isVerified).toBe(false);
+    expect((await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).isVerified).toBe(
+      false,
+    );
   });
 
   it('AUTH-01 · the OTP is still valid just before expiry', async () => {
@@ -387,7 +428,9 @@ describe('POST /auth/resend-otp (AUTH-04)', () => {
     expect(unknown.body).toEqual(known.body);
 
     const knownReset = await resend(EMAIL, 'RESET_PASSWORD', { 'Accept-Language': 'en' }); // unverified: no reset mail
-    const unknownReset = await resend('ghost@example.com', 'RESET_PASSWORD', { 'Accept-Language': 'en' });
+    const unknownReset = await resend('ghost@example.com', 'RESET_PASSWORD', {
+      'Accept-Language': 'en',
+    });
     expect(sendMail).not.toHaveBeenCalled();
     expect(unknownReset.status).toBe(knownReset.status);
     expect(unknownReset.body).toEqual(knownReset.body);
@@ -413,6 +456,81 @@ describe('POST /auth/resend-otp (AUTH-04)', () => {
     expect((await resend(EMAIL, 'RESET_PASSWORD')).status).toBe(200);
     expect(sendMail).toHaveBeenCalledTimes(1);
     expect(lastMail().subject).toBe('Reset your Furnixa password');
+  });
+
+  it("AUTH-01 · resend with the victim's password binds to the victim's registration even after an attacker registered later", async () => {
+    await register({ firstName: 'Victim' }); // victim, PASSWORD_1
+    advance(61);
+    await register({ firstName: 'Attacker', lastName: 'Evil', password: PASSWORD_2 }); // attacker, same email
+    advance(61);
+    sendMail.mockClear();
+
+    expect((await resend(EMAIL, 'VERIFY_EMAIL', {}, PASSWORD_1)).status).toBe(200);
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    const res = await verify(sentCode());
+    expect(res.status).toBe(200);
+    expect(res.body.user.firstName).toBe('Victim');
+    expect(res.body.user.lastName).toBe('Alharbi');
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } });
+    expect(await verifyPassword(user.passwordHash, PASSWORD_1)).toBe(true);
+    expect(await verifyPassword(user.passwordHash, PASSWORD_2)).toBe(false);
+  });
+
+  it('AUTH-04 · resend with a wrong password returns the identical 200 response and sends no email', async () => {
+    await register();
+    advance(61);
+    sendMail.mockClear();
+    const good = await resend(EMAIL, 'VERIFY_EMAIL', { 'Accept-Language': 'en' });
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    const goodCode = sentCode();
+
+    advance(61);
+    sendMail.mockClear();
+    const wrong = await resend(EMAIL, 'VERIFY_EMAIL', { 'Accept-Language': 'en' }, 'Wr0ngPassword');
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(wrong.status).toBe(good.status);
+    expect(wrong.body).toEqual(good.body);
+
+    // already verified: same silent outcome
+    await verify(goodCode);
+    advance(61);
+    const verified = await resend(EMAIL, 'VERIFY_EMAIL', { 'Accept-Language': 'en' });
+    expect(sendMail).not.toHaveBeenCalled();
+    expect(verified.body).toEqual(good.body);
+  });
+
+  it('AUTH-04 · VERIFY_EMAIL resend without a password → 422', async () => {
+    await register();
+    const res = await request(app)
+      .post('/api/v1/auth/resend-otp')
+      .send({ email: EMAIL, purpose: 'VERIFY_EMAIL' });
+    expect(res.status).toBe(422);
+  });
+
+  it('AUTH-04 · cooldown and hourly cap still apply to password-matched resend', async () => {
+    await register(); // 1
+    advance(30);
+    const early = await resend(); // right password, inside the cooldown
+    expect(early.status).toBe(429);
+    expect(early.body.code).toBe('RATE_LIMITED');
+    expect(early.body.details.retryAfterSeconds).toBe(30);
+    // a wrong password hits the same 429 at the same moment, so the cap does not leak the match
+    expect(sameError((await resend(EMAIL, 'VERIFY_EMAIL', {}, 'Wr0ngPassword')).body)).toEqual(
+      sameError(early.body),
+    );
+
+    advance(31);
+    for (let i = 0; i < 4; i++) {
+      expect((await resend()).status).toBe(200); // 2..5
+      advance(61);
+    }
+    const capped = await resend();
+    expect(capped.status).toBe(429);
+    expect(capped.body.details.retryAfterSeconds).toBe(3600);
+    expect(sendMail).toHaveBeenCalledTimes(5);
+    expect(sameError((await resend(EMAIL, 'VERIFY_EMAIL', {}, 'Wr0ngPassword')).body)).toEqual(
+      sameError(capped.body),
+    );
   });
 
   it('AUTH-04 · an invalid purpose → 422', async () => {

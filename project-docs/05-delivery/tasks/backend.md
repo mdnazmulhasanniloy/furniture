@@ -25,7 +25,8 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 - Done: all AUTH-01/04 Given/When/Then covered by tests incl. 5 wrong attempts, expiry after `OTP_TTL_SECONDS` (fake timers; default 600), 60 s cooldown, 5/hour cap; register requires `firstName` and `lastName` (422 otherwise).
 
 ### T-005 Login, refresh, logout, me, auth/role middleware · todo
-- Req: AUTH-02, AUTH-05, AUTH-06 · Depends: T-004
+- Req: AUTH-02, AUTH-05, AUTH-06 · Depends: T-004, T-024
+- Note: depends on T-024 (MongoDB rate-limit store) because the AUTH-02 IP rate-limit test (10 failures / 15 min / IP -> 429) needs it. Do T-024 first. No stub admin route in production code for AUTH-06 (approach to be decided later).
 - Docs: `PRD#5.1`, `roles-permissions.md`, `adr/ADR-003`
 - Done: tests for unverified login, blocked login, rate limit, refresh rotation + reuse detection, customer → admin route = 403. Tests named `AUTH-02`/`AUTH-05` (ADR-011): argon2id hash verifies; `LOGIN_MAX_FAILURES` failures → 429 `ACCOUNT_LOCKED` until `LOGIN_LOCKOUT_SECONDS` pass (use fake timers), success resets the counter; login number `MAX_ACTIVE_SESSIONS`+1 revokes the oldest session; refresh TTL is `REFRESH_TOKEN_TTL_SECONDS`; `/auth/refresh` and `/auth/logout` without/with bad `X-CSRF-Token` → 403 `CSRF_INVALID`, with a valid one → success; cookie flags follow env.
 - Unverified login (added by T-027): uses the same rule as `POST /auth/resend-otp` for VERIFY_EMAIL. The submitted password is matched (argon2 verify) against the unexpired `pendingRegistration.passwordHash` rows of the email, and the new OTP is bound to the matching row only. No match -> identical response and decoy row, cooldown and hourly cap unchanged. Test named `AUTH-01`/`AUTH-02`: an attacker who registered later does not get a code bound to their data when the victim logs in.
@@ -105,7 +106,7 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 - Req: NOTIF-01, NOTIF-02, NOTIF-03 · Depends: T-001, T-002 · Docs: `adr/ADR-012`, `integrations.md#socketio-on-vercel`
 - Done: `src/lib/mongo.ts` driver singleton (`maxPoolSize` 2, `DATABASE_URL`); `api/socket-io.ts` serves path `/api/socket-io/socket.io`, websocket transport, CORS from `CORS_ALLOWED_ORIGINS`; `@socket.io/mongo-adapter` on collection `SOCKET_ADAPTER_COLLECTION` with `createdAt` and TTL index `SOCKET_ADAPTER_TTL_SECONDS`; `src/lib/emitter.ts` wraps `@socket.io/mongo-emitter` (`toUser(id)`, `toAdmins()`). **Spike first:** tests start **two separate Socket.IO server instances** and an emitter on a third client against `mongodb-memory-server` (replica set); a client on instance B receives an event emitted from the emitter (`NOTIF-01 · cross-instance delivery`). If the Atlas tier cannot run change streams, record it in blockers and fall back to a capped collection. Dev entry `server.ts` mounts the same server on port 4100.
 
-### T-024 MongoDB rate-limit store · todo
+### T-024 MongoDB rate-limit store · in-progress
 - Req: NFR-01, AUTH-02 · Depends: T-002 · Docs: `adr/ADR-012`, `data-model.md` (RateLimit)
 - Done: `rateLimit.ts` uses `express-rate-limit` with a custom store (`increment`, `decrement`, `resetKey`, `resetAll`) over `RateLimit` with one atomic `findAndModify` upsert (`$inc`); `ensureIndexes()` creates the TTL index idempotently and is called at start-up; keys `rl:{limiter}:{ip}`; fails open with a logged error when MongoDB errors. Tests named `NFR-01`: two app instances share one counter (the 11th login attempt from one IP in 15 min gets 429 across instances); window expiry resets; the TTL index exists with `expireAfterSeconds: 0`; fail-open path; `TRUST_PROXY=1` uses the forwarded IP.
 

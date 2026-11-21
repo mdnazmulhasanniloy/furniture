@@ -206,7 +206,7 @@ model Otp {
 
 model RateLimit {
   id      String   @id @default(auto()) @map("_id") @db.ObjectId
-  key     String   @unique // rl:{limiter}:{ip}
+  key     String   @unique // rl:{scope}:{kind}:{id}
   hits    Int      @default(0)
   resetAt DateTime
   // TTL index { resetAt: 1 }, expireAfterSeconds 0 is created at start-up by ensureIndexes() (ADR-012).

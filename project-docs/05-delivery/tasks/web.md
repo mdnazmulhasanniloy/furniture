@@ -8,7 +8,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 ### T-031 API client + auth state + token refresh · todo
 - Req: AUTH-05 · Depends: T-030, backend T-005
-- Done: fetch wrapper with `Accept-Language`, 401 → single refresh retry; TanStack Query provider; auth store.
+- Done: fetch wrapper with `Accept-Language`, 401 → single refresh retry; TanStack Query provider; auth store; RATE_LIMITED and ACCOUNT_LOCKED errors show a localized en/ar message using the Retry-After value (for example 'Try again in 12 minutes').
 
 ### T-032 Layout shell · todo
 - Req: I18N-01, UI-02 · Depends: T-031 · Docs: `screen-specs.md#W-01`

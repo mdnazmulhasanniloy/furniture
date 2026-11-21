@@ -22,6 +22,7 @@ import {
   ensureIndexes,
   hit,
   limitKey,
+  MongoRateLimitStore,
   normalizeIp,
   resetIndexMemo,
   resetKey,
@@ -177,6 +178,46 @@ describe('NFR-01 · rate limit store', () => {
     const ttl = res.cursor.firstBatch.filter((i) => i.key.resetAt === 1);
     expect(ttl).toHaveLength(1);
     expect(ttl[0]!.expireAfterSeconds).toBe(0);
+  });
+});
+
+describe('NFR-01 · express-rate-limit store methods', () => {
+  const hitsOf = async (key: string) =>
+    (await prisma.rateLimit.findUnique({ where: { key: `rl:${key}` } }))?.hits;
+
+  it('NFR-01 · decrement lowers the count and never goes below 0', async () => {
+    const store = new MongoRateLimitStore('login');
+    await store.increment('login:ip:dec');
+    await store.increment('login:ip:dec');
+    await store.decrement('login:ip:dec');
+    expect(await hitsOf('login:ip:dec')).toBe(1);
+    await store.decrement('login:ip:dec');
+    expect(await hitsOf('login:ip:dec')).toBe(0);
+    await store.decrement('login:ip:dec');
+    await store.decrement('login:ip:dec');
+    expect(await hitsOf('login:ip:dec')).toBe(0);
+    await expect(store.decrement('login:ip:missing')).resolves.toBeUndefined();
+  });
+
+  it('NFR-01 · store.resetKey clears exactly one key', async () => {
+    const store = new MongoRateLimitStore('login');
+    await store.increment('login:ip:a');
+    await store.increment('login:ip:b');
+    await store.resetKey('login:ip:a');
+    expect(await hitsOf('login:ip:a')).toBeUndefined();
+    expect(await hitsOf('login:ip:b')).toBe(1);
+  });
+
+  it('NFR-01 · store.resetAll clears only keys of its own scope and leaves other scopes untouched', async () => {
+    const login = new MongoRateLimitStore('login');
+    const otp = new MongoRateLimitStore('otp');
+    await login.increment('login:ip:a');
+    await login.increment('login:email:b');
+    await otp.increment('otp:ip:a');
+    await login.resetAll();
+    expect(await hitsOf('login:ip:a')).toBeUndefined();
+    expect(await hitsOf('login:email:b')).toBeUndefined();
+    expect(await hitsOf('otp:ip:a')).toBe(1);
   });
 });
 

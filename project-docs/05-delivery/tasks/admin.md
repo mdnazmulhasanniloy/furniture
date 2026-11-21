@@ -7,7 +7,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 ### T-061 Admin auth + protected routes + shell · todo
 - Req: AUTH-02, AUTH-06 · Depends: T-060, backend T-005 · Docs: `screen-specs.md#A-06`
-- Done: CUSTOMER login rejected with message; refresh flow; collapsible sidebar mirrors in RTL.
+- Done: CUSTOMER login rejected with message; refresh flow; collapsible sidebar mirrors in RTL; RATE_LIMITED and ACCOUNT_LOCKED errors show a localized en/ar message using the Retry-After value (for example 'Try again in 12 minutes').
 
 ### T-062 Overview · todo — Req: ADM-01 · Depends: T-061, backend T-018
 ### T-063 Categories · todo — Req: ADM-03 · Depends: T-061, backend T-009

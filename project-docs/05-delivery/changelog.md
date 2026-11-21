@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-21 (T-024 review follow-up)
+- **T-024 stays `review`.** `/review-task` re-run: CHANGES NEEDED (docs only; typecheck clean, 185/185 tests, no deleted/skipped/weakened tests, traceability `missing=0`).
+  - Done: `schema.prisma` RateLimit.key comment now `rl:{scope}:{kind}:{id}`; 3 new `NFR-01` tests for `MongoRateLimitStore` (`decrement` lowers the count and never goes below 0, `resetKey` clears one key, `resetAll` clears only its own scope). The earlier count of 19 tests / 182 is now 22 tests / 185. `decrement`, `resetKey` and `resetAll` are kept (express-rate-limit uses `decrement` with `skipFailedRequests` / `skipSuccessfulRequests`; T-005 may need it). The `server.ts` start-up `ensureIndexes()` call is accepted; production on Vercel relies on the lazy call inside `increment()`.
+  - Done: web T-031 and admin T-061 Done criteria gain "RATE_LIMITED and ACCOUNT_LOCKED errors show a localized en/ar message using the Retry-After value (for example 'Try again in 12 minutes')."
+  - Open before `done`: (1) `integrations.md` still says `$inc` and "at start-up"; (2) no test is named `AUTH-02` for the 10-failures-per-15-min-per-IP criterion (covered only by an `NFR-01` test; rename/tag it or sign it off in T-005).
+
 ## 2026-11-21 (T-024)
 - **T-024 MongoDB rate-limit store (code, status `review`).** `src/lib/rateLimit.ts`: `express-rate-limit` custom store (`MongoRateLimitStore`), `createRateLimiter({name, limit, windowSeconds})`, reusable `hit(key, limit, windowSeconds)` / `resetKey` / `limitKey(scope, kind, value)` for T-005, `normalizeIp`, memoized `ensureIndexes()` (TTL index `resetAt_ttl`, called in `server.ts` and lazily on first use). No production route is limited yet (T-005 wires the login limiter).
   - **Docs first:** `api-spec.yaml` (new `RateLimited` response with `Retry-After`, `RateLimit`, `RateLimit-Policy`; used by the 429s of register, resend-otp, login), `data-model.md` (RateLimit row), ADR-012 section 4, `tasks/backend.md` (T-024 criteria; T-005 gains the six approved security requirements).

@@ -4,6 +4,7 @@ import { AppError } from '../../lib/errors.js';
 import type { Logger } from '../../lib/logger.js';
 import { emitOrderEvent } from '../../lib/orderEvents.js';
 import { normalizeSaudiPhone } from '../../lib/phone.js';
+import { riyadhDayStart } from '../../lib/riyadhTime.js';
 import { computePricing, type PricingResult } from '../../lib/pricing.js';
 import { prisma } from '../../lib/prisma.js';
 import { db, hit, isDuplicateKey, limitKey } from '../../lib/rateLimit.js';
@@ -541,9 +542,6 @@ const invalidTransition = (from: OrderStatus, to: OrderStatus, allowed: readonly
     to,
     allowed,
   });
-
-/** Riyadh is fixed UTC+3 (no DST): the day `YYYY-MM-DD` starts at `T00:00:00+03:00`. */
-const riyadhDayStart = (ymd: string): Date => new Date(`${ymd}T00:00:00+03:00`);
 
 export async function listAdminOrders(query: AdminListOrdersQuery) {
   const where: Prisma.OrderWhereInput = {};

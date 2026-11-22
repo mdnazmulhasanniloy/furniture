@@ -9,6 +9,7 @@ import { createErrorHandler, notFoundHandler } from './middleware/error.js';
 import { requestId } from './middleware/requestId.js';
 import { adminAdminsRouter, adminCustomersRouter } from './modules/adminUsers/routes.js';
 import { authRouter } from './modules/auth/routes.js';
+import { dashboardRouter } from './modules/dashboard/routes.js';
 import { cartRouter } from './modules/cart/routes.js';
 import { adminCategoriesRouter, categoriesRouter } from './modules/categories/routes.js';
 import {
@@ -80,6 +81,7 @@ export function createApp(arg: Env | CreateAppOptions = {}) {
   v1.use('/products', productsRouter);
   v1.use('/cms', cmsRouter);
   v1.use('/notifications', notificationsRouter);
+  v1.use('/admin/dashboard', dashboardRouter);
   v1.use('/admin/customers', adminCustomersRouter);
   v1.use('/admin/admins', adminAdminsRouter);
   v1.use('/admin/orders', adminOrdersRouter);

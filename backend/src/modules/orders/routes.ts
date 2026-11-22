@@ -5,6 +5,7 @@ import * as controller from './controller.js';
 import {
   adminListOrdersQuery,
   adminNoteBody,
+  cancelOrderBody,
   listOrdersQuery,
   orderStatusBody,
   placeOrderBody,
@@ -17,6 +18,8 @@ ordersRouter.use(requireAuth, requireRole('CUSTOMER'));
 ordersRouter.post('/', validate({ body: placeOrderBody }), controller.placeOrder);
 ordersRouter.get('/', validate({ query: listOrdersQuery }), controller.listMyOrders);
 ordersRouter.get('/:id', controller.getMyOrder);
+// ORD-03 (T-015): cancel own PENDING order; optional { reason } body (admin-only StatusEvent note).
+ordersRouter.post('/:id/cancel', validate({ body: cancelOrderBody }), controller.cancelMyOrder);
 
 // ADM-04 (T-014): list/detail/status/note, admins only.
 export const adminOrdersRouter = Router();

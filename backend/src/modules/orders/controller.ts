@@ -3,6 +3,7 @@ import {
   idempotencyKey,
   type AdminListOrdersQuery,
   type AdminNoteBody,
+  type CancelOrderBody,
   type ListOrdersQuery,
   type OrderStatusBody,
   type PlaceOrderBody,
@@ -30,6 +31,19 @@ export const listMyOrders: RequestHandler = async (req, res) => {
 
 export const getMyOrder: RequestHandler = async (req, res) => {
   res.status(200).json(await service.getMyOrder(req.user!.id, req.params.id as string));
+};
+
+// ---------------------------------------------------------------- ORD-03 customer cancel (T-015)
+
+export const cancelMyOrder: RequestHandler = async (req, res) => {
+  const body = req.body as CancelOrderBody;
+  res.status(200).json(
+    // An empty (trimmed) reason counts as no reason.
+    await service.cancelOwnOrder(req.user!.id, req.params.id as string, body.reason || undefined, {
+      log: req.log,
+      requestId: req.id,
+    }),
+  );
 };
 
 // ---------------------------------------------------------------- ADM-04 admin orders (T-014)

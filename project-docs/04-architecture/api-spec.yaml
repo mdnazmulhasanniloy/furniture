@@ -704,13 +704,37 @@ paths:
     post:
       tags: [Orders]
       summary: Cancel own PENDING order (ORD-03)
+      description: >
+        Owner only — an order belonging to another user (or an unknown/malformed id) returns 404,
+        never 403, so ownership is not revealed. Only a PENDING order can be cancelled by the
+        customer (checked on the fresh status inside the transaction's retry loop, so a concurrent
+        admin CONFIRM wins with 409). The body is optional and may carry a plain-text `reason`
+        (trimmed, max 300; absent or empty means no reason). The cancel restores stock in the same
+        transaction, appends a StatusEvent (byUserId = the customer, note = the trimmed reason or
+        null — visible in the admin order detail only, never in customer responses or emails),
+        leaves paymentStatus UNPAID and emits `order.statusChanged` after commit (ORD-04 email,
+        NOTIF).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                reason:
+                  type: string
+                  maxLength: 300
+                  description: Optional plain-text cancel reason; stored as the admin-only StatusEvent note.
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+        '404': { $ref: '#/components/responses/Error' }
         '409':
           description: INVALID_TRANSITION — order is not PENDING
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '422': { $ref: '#/components/responses/Error', description: 'VALIDATION_ERROR — reason over 300 characters or an unknown field' }
 
   # ---------------- INTERNAL (Vercel Cron, ADR-012) ----------------
   /internal/cron/cleanup:

@@ -19,6 +19,17 @@ export const idempotencyKey = z
     'Idempotency-Key must be a UUID',
   );
 
+/**
+ * ORD-03 cancel body (T-015 addendum, owner 2026-11-22): the body is optional and may carry a
+ * plain-text `reason` (trimmed, max 300; absent or empty means no reason). Stored as the
+ * StatusEvent `note` — visible in the admin order detail only, never in customer responses or
+ * emails. `.default({})` accepts a request without a body (`req.body` is undefined then).
+ */
+export const cancelOrderBody = z
+  .object({ reason: z.string().trim().max(300).optional() })
+  .strict()
+  .default({});
+
 /** ORD-02 list. */
 export const listOrdersQuery = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -75,6 +86,7 @@ export const adminNoteBody = z
   .strict();
 
 export type PlaceOrderBody = z.infer<typeof placeOrderBody>;
+export type CancelOrderBody = z.infer<typeof cancelOrderBody>;
 export type ListOrdersQuery = z.infer<typeof listOrdersQuery>;
 export type AdminListOrdersQuery = z.infer<typeof adminListOrdersQuery>;
 export type OrderStatusBody = z.infer<typeof orderStatusBody>;

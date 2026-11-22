@@ -518,13 +518,28 @@ export const TRANSITIONS: Readonly<Record<OrderStatus, readonly OrderStatus[]>> 
   CANCELLED: [],
 };
 
+/**
+ * Customer matrix (ORD-03, T-015): a customer may only cancel an own PENDING order. Kept as a full
+ * matrix so the transition core applies it exactly like the admin one — on every fresh read inside
+ * the retry loop, so a concurrent admin CONFIRM turns a customer cancel into a 409, never a cancel
+ * of a CONFIRMED order.
+ */
+const CUSTOMER_TRANSITIONS: Readonly<Record<OrderStatus, readonly OrderStatus[]>> = {
+  PENDING: ['CANCELLED'],
+  CONFIRMED: [],
+  PROCESSING: [],
+  OUT_FOR_DELIVERY: [],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
 const TRANSITION_ATTEMPTS = 3;
 
-const invalidTransition = (from: OrderStatus, to: OrderStatus) =>
+const invalidTransition = (from: OrderStatus, to: OrderStatus, allowed: readonly OrderStatus[]) =>
   new AppError(409, 'INVALID_TRANSITION', `Cannot change order status from ${from} to ${to}`, {
     from,
     to,
-    allowed: TRANSITIONS[from],
+    allowed,
   });
 
 /** Riyadh is fixed UTC+3 (no DST): the day `YYYY-MM-DD` starts at `T00:00:00+03:00`. */
@@ -584,32 +599,43 @@ class TransitionRetry extends Error {
   }
 }
 
+interface TransitionOpts {
+  /** Restrict every read and the conditional write to this owner's orders; a miss (including a foreign order) is a 404, so ownership is never revealed (ORD-03). */
+  ownerId?: string;
+  /** Allowed transitions for this caller (default: the admin `TRANSITIONS` matrix); re-checked on every fresh read inside the retry loop. */
+  transitions?: Readonly<Record<OrderStatus, readonly OrderStatus[]>>;
+}
+
 /**
- * ADM-04 status transition (owner 2026-11-22): ONE conditional write — `where {id, status: <just
- * read>}` — inside a transaction, so a concurrent transition can never apply twice (a double-cancel
- * restores stock exactly once). DELIVERED also sets `paymentStatus: PAID`; CANCELLED restores stock
- * per item in the same transaction and leaves `paymentStatus` UNPAID. Every transition appends a
- * `StatusEvent {status, at, byUserId: the admin, note}`. `order.statusChanged` is emitted after
- * commit only, with `{orderId, from, to, byUserId}` (reused by T-016).
+ * Shared status-transition core (ADM-04 admin, ORD-03 customer cancel; owner 2026-11-22): ONE
+ * conditional write — `where {id, status: <just read>}` — inside a transaction, so a concurrent
+ * transition can never apply twice (a double-cancel, admin + customer included, restores stock
+ * exactly once). DELIVERED also sets `paymentStatus: PAID`; CANCELLED restores stock per item in
+ * the same transaction and leaves `paymentStatus` UNPAID. Every transition appends a
+ * `StatusEvent {status, at, byUserId, note}`. `order.statusChanged` is emitted after commit only,
+ * with `{orderId, from, to, byUserId}` (reused by T-016).
  */
-export async function transitionStatus(
+async function applyTransition(
   id: string,
   target: OrderStatus,
   note: string | undefined,
   byUserId: string,
-  ctx: Ctx = {},
-): Promise<OrderResponse> {
+  ctx: Ctx,
+  opts: TransitionOpts = {},
+): Promise<OrderWithUser> {
+  const matrix = opts.transitions ?? TRANSITIONS;
+  const owner = opts.ownerId ? { userId: opts.ownerId } : {};
   if (!OBJECT_ID.test(id)) throw orderNotFound();
   for (let attempt = 0; attempt < TRANSITION_ATTEMPTS; attempt++) {
-    const order = await prisma.order.findUnique({ where: { id } });
+    const order = await prisma.order.findFirst({ where: { id, ...owner } });
     if (!order) throw orderNotFound();
     const from = order.status;
-    if (!TRANSITIONS[from].includes(target)) throw invalidTransition(from, target);
+    if (!matrix[from].includes(target)) throw invalidTransition(from, target, matrix[from]);
     await testHooks.beforeTransition?.(attempt);
     try {
       const updated = await prisma.$transaction(async (tx) => {
         const res = await tx.order.updateMany({
-          where: { id, status: from },
+          where: { id, ...owner, status: from },
           data: {
             status: target,
             ...(target === 'DELIVERED' ? { paymentStatus: 'PAID' as const } : {}),
@@ -643,7 +669,7 @@ export async function transitionStatus(
         to: target,
         byUserId,
       });
-      return toOrder(updated);
+      return updated;
     } catch (err) {
       // A concurrent transition won (conditional write matched nothing, or a Mongo write
       // conflict): re-read and re-decide — usually a 409 against the fresh status.
@@ -651,9 +677,39 @@ export async function transitionStatus(
       throw err;
     }
   }
-  const fresh = await prisma.order.findUnique({ where: { id } });
+  const fresh = await prisma.order.findFirst({ where: { id, ...owner } });
   if (!fresh) throw orderNotFound();
-  throw invalidTransition(fresh.status, target);
+  throw invalidTransition(fresh.status, target, matrix[fresh.status]);
+}
+
+/** ADM-04 (T-014): admin status transition over the full matrix. */
+export async function transitionStatus(
+  id: string,
+  target: OrderStatus,
+  note: string | undefined,
+  byUserId: string,
+  ctx: Ctx = {},
+): Promise<OrderResponse> {
+  return toOrder(await applyTransition(id, target, note, byUserId, ctx));
+}
+
+/**
+ * ORD-03 (T-015): customer cancels an own PENDING order. Foreign/unknown order -> 404; any other
+ * status -> 409 INVALID_TRANSITION (CUSTOMER_TRANSITIONS, enforced per fresh read). The StatusEvent
+ * records `byUserId` = the customer and `note` = the optional trimmed cancel reason (or null) —
+ * admin-visible only: `toCustomerOrder` strips it and the ORD-04 email templates never render it.
+ */
+export async function cancelOwnOrder(
+  userId: string,
+  id: string,
+  reason: string | undefined,
+  ctx: Ctx = {},
+): Promise<CustomerOrderResponse> {
+  const updated = await applyTransition(id, 'CANCELLED', reason, userId, ctx, {
+    ownerId: userId,
+    transitions: CUSTOMER_TRANSITIONS,
+  });
+  return toCustomerOrder(updated);
 }
 
 export async function setAdminNote(id: string, adminNote: string | null): Promise<OrderResponse> {

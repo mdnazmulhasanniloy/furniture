@@ -1,6 +1,7 @@
 import type { Locale, Prisma, User } from '@prisma/client';
 import { getEnv } from '../../config/env.js';
 import { mailer } from '../../emails/mailer.js';
+import { socketEmitter } from '../../lib/emitter.js';
 import { AppError } from '../../lib/errors.js';
 import { dummyVerify, hashPassword } from '../../lib/password.js';
 import { prisma } from '../../lib/prisma.js';
@@ -224,6 +225,9 @@ export async function resetPassword(
     if (isWriteConflict(err)) throw otpInvalid(); // a concurrent reset with the same code won
     throw err;
   }
+
+  // The revoked sessions' live sockets go too (T-023). Best effort: a failed emit is logged, never thrown.
+  socketEmitter.disconnectUser(user.id);
 
   void mailer.sendInBackground({
     to: email,

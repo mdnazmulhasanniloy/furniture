@@ -2,6 +2,7 @@ import type { Locale, RefreshToken, User } from '@prisma/client';
 import type { Request } from 'express';
 import { getEnv } from '../../config/env.js';
 import { assertAllowedOrigin, csrfTokenFor, isValidCsrf } from '../../lib/csrf.js';
+import { socketEmitter } from '../../lib/emitter.js';
 import { AppError } from '../../lib/errors.js';
 import { dummyVerify, verifyPassword } from '../../lib/password.js';
 import { prisma } from '../../lib/prisma.js';
@@ -175,6 +176,7 @@ export async function refresh(req: Request) {
         );
       }
       await revokeFamily(row.familyId); // reuse of a rotated token after the window: assume theft
+      socketEmitter.disconnectUser(row.userId); // and close the (possibly stolen) live sockets (T-023)
     }
     throw new AppError(401, 'UNAUTHORIZED', 'Authentication required');
   }

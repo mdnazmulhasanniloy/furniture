@@ -41,6 +41,7 @@ export function verifyAccessToken(token: string): {
   role: string;
   jti: string;
   iat: number;
+  exp: number;
 } {
   try {
     const p = jwt.verify(token, getEnv().ACCESS_TOKEN_SECRET, {
@@ -51,8 +52,8 @@ export function verifyAccessToken(token: string): {
     if (typeof p === 'string' || typeof p.sub !== 'string' || typeof p.jti !== 'string') {
       throw new Error('malformed claims');
     }
-    if (typeof p.iat !== 'number') throw new Error('missing iat');
-    return { sub: p.sub, role: String(p.role), jti: p.jti, iat: p.iat };
+    if (typeof p.iat !== 'number' || typeof p.exp !== 'number') throw new Error('missing iat/exp');
+    return { sub: p.sub, role: String(p.role), jti: p.jti, iat: p.iat, exp: p.exp };
   } catch {
     throw new AppError(401, 'UNAUTHORIZED', 'Invalid or expired access token');
   }

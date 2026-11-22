@@ -365,15 +365,21 @@ export interface RateLimiterOptions {
  * Per-IP limiter. The IP is `req.ip` only, so the forwarded header counts only when Express trusts the
  * proxy (`TRUST_PROXY`). Over the limit -> 429 `RATE_LIMITED` (Error schema) with `Retry-After` and
  * `RateLimit` headers. If MongoDB fails the request is allowed and the error is logged with the request id.
+ *
+ * `skipSuccessful` must NOT use the library's `skipSuccessfulRequests`: that refunds the hit in an
+ * unawaited `response.on('finish')` decrement, which races the same client's next request (hits briefly
+ * over-count, 429 for an in-budget request; flaky AUTH-02/AUTH-03 IP-limit tests under load). The refund
+ * here is awaited before `res.end` runs, so once a client has a < 400 response the refund is in the store.
  */
 export function createRateLimiter(opts: RateLimiterOptions): RequestHandler {
+  const store = new MongoRateLimitStore(opts.name);
   const inner = rateLimit({
     windowMs: opts.windowSeconds * 1000,
     limit: opts.limit,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    store: new MongoRateLimitStore(opts.name),
-    skipSuccessfulRequests: opts.skipSuccessful ?? false,
+    store,
+    skipSuccessfulRequests: false, // refund handled below, before the response is sent
     keyGenerator: (req) => limitKey(opts.name, 'ip', req.ip),
     // We own `trust proxy`; the library's own IP/proxy sanity checks would only log noise.
     validate: false,
@@ -382,9 +388,14 @@ export function createRateLimiter(opts: RateLimiterOptions): RequestHandler {
     },
   });
   return (req, res, next) => {
+    let failedOpen = false;
+    if (opts.skipSuccessful) {
+      refundSuccessBeforeEnd(req, res, store, opts.name, () => failedOpen);
+    }
     inner(req, res, (err?: unknown) => {
       const cause = err instanceof Error ? err : undefined;
       if (cause instanceof RateLimitStoreError) {
+        failedOpen = true; // the hit was never counted, so there is nothing to refund
         (req.log ?? defaultLog()).error(
           { err: cause, requestId: req.id, limiter: opts.name },
           'rate limit store failed, allowing request',
@@ -395,4 +406,34 @@ export function createRateLimiter(opts: RateLimiterOptions): RequestHandler {
       next(err);
     });
   };
+}
+
+type Req = Parameters<RequestHandler>[0];
+type Res = Parameters<RequestHandler>[1];
+
+/** Wrap `res.end` so a successful (< 400) response refunds its hit and the refund completes before the
+ *  response actually ends. A refund failure is logged and the response is sent anyway (fail open). */
+function refundSuccessBeforeEnd(
+  req: Req,
+  res: Res,
+  store: MongoRateLimitStore,
+  scope: string,
+  skip: () => boolean,
+): void {
+  const realEnd = res.end.bind(res) as (...args: unknown[]) => Res;
+  let refunding = false;
+  res.end = ((...args: unknown[]) => {
+    if (refunding || skip() || res.statusCode >= 400) return realEnd(...args);
+    refunding = true;
+    store
+      .decrement(limitKey(scope, 'ip', req.ip))
+      .catch((err: unknown) => {
+        (req.log ?? defaultLog()).error(
+          { err, requestId: req.id, limiter: scope },
+          'rate limit refund failed, response sent anyway',
+        );
+      })
+      .then(() => realEnd(...args));
+    return res;
+  }) as Res['end'];
 }

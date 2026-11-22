@@ -35,6 +35,7 @@ function buildApp(opts: {
   trustProxy: boolean | number;
   limit?: number;
   windowSeconds?: number;
+  skipSuccessful?: boolean;
   logLines?: string[];
 }) {
   const lines = opts.logLines;
@@ -55,8 +56,13 @@ function buildApp(opts: {
       name: 'login',
       limit: opts.limit ?? 10,
       windowSeconds: opts.windowSeconds ?? 900,
+      skipSuccessful: opts.skipSuccessful ?? false,
     }),
     (req, res) => {
+      if ('fail' in req.query) {
+        res.status(400).json({ ip: req.ip });
+        return;
+      }
       res.json({ ip: req.ip });
     },
   );
@@ -396,5 +402,30 @@ describe('NFR-01 · fail open', () => {
     spy.mockRestore();
     expect((await getFrom(app)).status).toBe(200); // 1st counted hit
     expect((await getFrom(app)).status).toBe(429);
+  });
+});
+
+describe('NFR-01 · skipSuccessful refund timing (AUTH-03 flake regression)', () => {
+  it('NFR-01 · the success refund is stored before the response is sent, so the next request never sees the un-refunded hit, even when the refund write is slow', async () => {
+    await ensureIndexes();
+    // Delay every decrement by 30 ms. Before the fix the refund ran as an unawaited response-'finish'
+    // decrement, so the same client's NEXT request raced it and could see the un-refunded count
+    // (AUTH-03 "successful resets do not count": 429 instead of 400 under full-suite load).
+    const real = db.run.bind(db);
+    vi.spyOn(db, 'run').mockImplementation((async (cmd: Record<string, unknown>) => {
+      const inc = (cmd as { update?: { $inc?: { hits?: number } } }).update?.$inc?.hits;
+      if (inc === -1) await new Promise((r) => setTimeout(r, 30));
+      return real(cmd as never);
+    }) as never);
+
+    const app = buildApp({ trustProxy: false, limit: 2, skipSuccessful: true });
+    const go = (fail: boolean) => request(app).get(fail ? '/login?fail=1' : '/login');
+
+    expect((await go(true)).status).toBe(400); // 1st counted failure
+    expect((await go(false)).status).toBe(200); // counted, then refunded BEFORE this response resolves
+    const doc = await prisma.rateLimit.findUnique({ where: { key: 'rl:login:ip:127.0.0.1' } });
+    expect(doc?.hits).toBe(1); // the refund already landed
+    expect((await go(true)).status).toBe(400); // 2nd failure — raced the refund and got 429 before the fix
+    expect((await go(true)).status).toBe(429); // 3rd failure is over the limit of 2
   });
 });

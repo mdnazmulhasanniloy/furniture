@@ -979,9 +979,16 @@ paths:
     get:
       tags: [Admin]
       summary: All orders (ADM-04)
+      description: >-
+        Sorted newest first. `q` (trimmed, max 100 chars, 422 above; regex metacharacters are
+        literal — rule 9) matches the `orderNo` or the customer email (case-insensitive contains);
+        when `q` normalises to a Saudi mobile number (`SaudiPhoneInput` rules, e.g. "055 123 4567"
+        or Arabic-Indic digits) it also matches the order's snapshot `address.phone` exactly
+        (owner 2026-11-22, T-014). `from`/`to` are inclusive calendar days in **Asia/Riyadh** (the
+        `orderNo` convention); `from` > `to` simply yields an empty page.
       parameters:
         - { name: status, in: query, schema: { $ref: '#/components/schemas/OrderStatus' } }
-        - { name: q, in: query, description: orderNo / customer email, schema: { type: string } }
+        - { name: q, in: query, description: orderNo / customer email / Saudi phone, schema: { type: string, maxLength: 100 } }
         - { name: from, in: query, schema: { type: string, format: date } }
         - { name: to, in: query, schema: { type: string, format: date } }
         - { $ref: '#/components/parameters/Page' }
@@ -990,6 +997,11 @@ paths:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/OrderPage' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422':
+          description: VALIDATION_ERROR — `q` over 100 chars or a malformed query value
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /admin/orders/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     get:
@@ -999,11 +1011,25 @@ paths:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404':
+          description: NOT_FOUND — missing or malformed id
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /admin/orders/{id}/status:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
       tags: [Admin]
-      summary: Transition status; 409 on invalid transition (ADM-04, NOTIF-01)
+      summary: Transition status; 409 on invalid transition (ADM-04, ORD-04, NOTIF-01)
+      description: >-
+        Transition matrix (owner 2026-11-22, T-014): PENDING → CONFIRMED | CANCELLED;
+        CONFIRMED → PROCESSING | CANCELLED; PROCESSING → OUT_FOR_DELIVERY | CANCELLED;
+        OUT_FOR_DELIVERY → DELIVERED | CANCELLED (COD — customer refused or unreachable);
+        DELIVERED and CANCELLED are terminal. The transition is one conditional write inside a
+        transaction: DELIVERED also sets `paymentStatus` PAID; CANCELLED restores stock and leaves
+        `paymentStatus` UNPAID; every transition appends a `StatusEvent` {status, at, byUserId: the
+        admin, note}. After commit the customer gets the `order-status` email in their
+        `preferredLocale` (ORD-04); the internal note is never included in the email.
       requestBody:
         required: true
         content:
@@ -1013,26 +1039,48 @@ paths:
               required: [status]
               properties:
                 status: { $ref: '#/components/schemas/OrderStatus' }
-                note: { type: string }
+                note: { type: string, minLength: 3, maxLength: 500, description: 'Internal (trimmed, never shown to the customer). REQUIRED — the cancel reason, 3–500 chars — when status is CANCELLED (422 VALIDATION_ERROR when missing or too short); optional otherwise.' }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
-        '409': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404':
+          description: NOT_FOUND — missing or malformed id
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '409':
+          description: 'INVALID_TRANSITION — `details: {from, to, allowed}`, computed against the current status (also when a concurrent transition won)'
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '422':
+          description: VALIDATION_ERROR — missing/short cancel reason or malformed body
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /admin/orders/{id}/note:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
       tags: [Admin]
-      summary: Set internal admin note
+      summary: Set internal admin note (ADM-04)
       requestBody:
         required: true
         content:
           application/json:
-            schema: { type: object, properties: { adminNote: { type: string } } }
+            schema:
+              type: object
+              required: [adminNote]
+              properties:
+                adminNote: { type: ['string', 'null'], maxLength: 2000, description: 'Trimmed; `null` clears it. Internal — never in customer responses or emails (owner 2026-11-22, T-014).' }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404':
+          description: NOT_FOUND — missing or malformed id
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '422':
+          description: VALIDATION_ERROR — adminNote missing, not string/null or over 2000 chars
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /admin/customers:
     get:
       tags: [Admin]
@@ -1390,7 +1438,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CART_CONFLICT, CART_LIMIT_REACHED] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }
@@ -1677,6 +1725,9 @@ components:
             isDeliverable: { type: boolean }
     StatusEvent:
       type: object
+      description: >-
+        `byUserId` and `note` are internal (owner 2026-11-22, T-014): admin responses only.
+        Customer responses (/orders, /orders/{id}) return each event as {status, at} only.
       properties:
         status: { $ref: '#/components/schemas/OrderStatus' }
         at: { type: string, format: date-time }
@@ -1731,7 +1782,7 @@ components:
         status: { $ref: '#/components/schemas/OrderStatus' }
         statusHistory: { type: array, description: 'Placement writes the initial event {status: PENDING, at, byUserId: <the customer>}', items: { $ref: '#/components/schemas/StatusEvent' } }
         customerNote: { type: [string, 'null'], description: Plain text; always rendered escaped by consumers }
-        adminNote: { type: [string, 'null'], description: admin responses only }
+        adminNote: { type: [string, 'null'], description: 'Internal, admin responses only (trimmed, max 2000; owner 2026-11-22, T-014) — omitted from customer responses and never in emails' }
         createdAt: { type: string, format: date-time }
     OrderPage:
       type: object

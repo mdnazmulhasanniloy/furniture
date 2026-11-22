@@ -239,7 +239,7 @@ describe('ORD-01 · happy path', () => {
       items: unknown;
       address: unknown;
       user: unknown;
-      statusHistory: { status: string; byUserId: string }[];
+      statusHistory: { status: string }[];
     } & Record<string, unknown>;
     expect(body.orderNo).toMatch(new RegExp(`^FX-${riyadhYmd()}-\\d{4}$`));
     expect(body).toMatchObject({
@@ -251,8 +251,8 @@ describe('ORD-01 · happy path', () => {
       deliveryFee: 1_000,
       total: 13_500,
       customerNote: 'ring the bell',
-      adminNote: null,
     });
+    expect(body).not.toHaveProperty('adminNote'); // internal, admin responses only (T-014)
     expect(body.vat).toEqual({
       vatRate: 15,
       vatAmount: 1_761, // round(13500 × 1500 / 11500), T-021 half-up
@@ -289,7 +289,11 @@ describe('ORD-01 · happy path', () => {
       email: 'me@example.com',
     });
     expect(body.statusHistory).toHaveLength(1);
-    expect(body.statusHistory[0]).toMatchObject({ status: 'PENDING', byUserId: userId });
+    // Customer shape: {status, at} only; byUserId stays server-side (T-014) but is persisted.
+    expect(body.statusHistory[0]).toMatchObject({ status: 'PENDING' });
+    expect(body.statusHistory[0]).not.toHaveProperty('byUserId');
+    const stored = await prisma.order.findFirstOrThrow({ where: { userId } });
+    expect(stored.statusHistory[0]).toMatchObject({ status: 'PENDING', byUserId: userId });
 
     expect((await prisma.product.findUniqueOrThrow({ where: { id: p.id } })).stock).toBe(9);
     expect((await prisma.cart.findUniqueOrThrow({ where: { userId } })).items).toHaveLength(0);
@@ -625,6 +629,32 @@ describe('ORD-01 · COD abuse limits', () => {
     expect(await prisma.order.count()).toBe(3);
     // A non-PENDING history does not count towards the cap.
     await prisma.order.updateMany({ where: { userId }, data: { status: 'DELIVERED' } });
+    await place({ addressId, expectedTotal: 10_000 }).expect(201);
+  });
+
+  it('ORD-01 · confirming or cancelling an order frees a TOO_MANY_PENDING_ORDERS slot (owner 2026-11-22, T-014)', async () => {
+    const [o1, o2] = await Promise.all([mkOrder(userId), mkOrder(userId), mkOrder(userId)]);
+    const p = await mkProduct();
+
+    await setCart(userId, [{ productId: p.id, qty: 1, priceSeen: p.price }]);
+    expect((await place({ addressId, expectedTotal: 10_000 })).status).toBe(409);
+
+    // The admin confirms one PENDING order -> one slot frees up.
+    await request(app)
+      .patch(`/api/v1/admin/orders/${o1!.id}/status`)
+      .set(auth(adminToken))
+      .send({ status: 'CONFIRMED' })
+      .expect(200);
+    await place({ addressId, expectedTotal: 10_000 }).expect(201);
+
+    // Back at the cap; a cancel frees a slot just the same.
+    await setCart(userId, [{ productId: p.id, qty: 1, priceSeen: p.price }]);
+    expect((await place({ addressId, expectedTotal: 10_000 })).status).toBe(409);
+    await request(app)
+      .patch(`/api/v1/admin/orders/${o2!.id}/status`)
+      .set(auth(adminToken))
+      .send({ status: 'CANCELLED', note: 'customer asked to cancel' })
+      .expect(200);
     await place({ addressId, expectedTotal: 10_000 }).expect(201);
   });
 });

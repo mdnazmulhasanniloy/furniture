@@ -1,14 +1,16 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, type OrderStatus } from '@prisma/client';
 import { assertActiveCity } from '../../lib/deliveryCities.js';
 import { AppError } from '../../lib/errors.js';
 import type { Logger } from '../../lib/logger.js';
 import { emitOrderEvent } from '../../lib/orderEvents.js';
+import { normalizeSaudiPhone } from '../../lib/phone.js';
 import { computePricing, type PricingResult } from '../../lib/pricing.js';
 import { prisma } from '../../lib/prisma.js';
 import { db, hit, isDuplicateKey, limitKey } from '../../lib/rateLimit.js';
+import { escapeRegex } from '../../lib/searchText.js';
 import { createTestHooks } from '../../lib/testHooks.js';
 import { consumeCartLines } from '../cart/service.js';
-import type { ListOrdersQuery, PlaceOrderBody } from './schema.js';
+import type { AdminListOrdersQuery, ListOrdersQuery, PlaceOrderBody } from './schema.js';
 
 /**
  * ORD-01 place order + ORD-02 my orders (T-013). All owner decisions 2026-11-22: idempotency via
@@ -52,6 +54,12 @@ const isUniqueViolation = (err: unknown): boolean =>
  */
 export const testHooks = createTestHooks<{
   beforeTransaction?: (attempt: number) => Promise<void> | void;
+  /**
+   * T-014 (ADM-04 double-cancel race test): awaited after the status read/validation, right before
+   * the transition transaction, so a test can hold one admin request on a stale read while the
+   * other commits. Same `createTestHooks` guard: inert outside NODE_ENV === 'test'.
+   */
+  beforeTransition?: (attempt: number) => Promise<void> | void;
 }>();
 
 // ---------------------------------------------------------------- response shaping
@@ -62,7 +70,11 @@ const USER_INCLUDE = {
 
 type OrderWithUser = Prisma.OrderGetPayload<{ include: typeof USER_INCLUDE }>;
 
-/** Spec `Order` schema. `imageKey`, `idempotencyKey` and `addressId` stay server-side. */
+/**
+ * Spec `Order` schema, ADMIN shape. `imageKey`, `idempotencyKey` and `addressId` stay server-side.
+ * Customer responses go through `toCustomerOrder` (owner 2026-11-22, T-014): no `adminNote`, and
+ * `statusHistory` events reduced to `{status, at}` — `note` and `byUserId` are internal.
+ */
 export function toOrder(o: OrderWithUser) {
   return {
     id: o.id,
@@ -101,6 +113,18 @@ export function toOrder(o: OrderWithUser) {
 }
 
 export type OrderResponse = ReturnType<typeof toOrder>;
+
+/** Customer shape (owner 2026-11-22, T-014): internal fields never reach the customer. */
+export function toCustomerOrder(o: OrderWithUser) {
+  const base: Omit<OrderResponse, 'adminNote'> & { adminNote?: string | null } = toOrder(o);
+  delete base.adminNote; // internal, admin responses only
+  return {
+    ...base,
+    statusHistory: o.statusHistory.map((e) => ({ status: e.status, at: e.at.toISOString() })),
+  };
+}
+
+export type CustomerOrderResponse = ReturnType<typeof toCustomerOrder>;
 
 // ---------------------------------------------------------------- orderNo (daily Counter)
 
@@ -472,12 +496,174 @@ export async function listMyOrders(userId: string, query: ListOrdersQuery) {
     }),
     prisma.order.count({ where }),
   ]);
-  return { items: rows.map(toOrder), meta: pageMeta(query.page, query.limit, total) };
+  return { items: rows.map(toCustomerOrder), meta: pageMeta(query.page, query.limit, total) };
 }
 
-export async function getMyOrder(userId: string, id: string): Promise<OrderResponse> {
+export async function getMyOrder(userId: string, id: string): Promise<CustomerOrderResponse> {
   if (!OBJECT_ID.test(id)) throw orderNotFound();
   const order = await prisma.order.findFirst({ where: { id, userId }, include: USER_INCLUDE });
   if (!order) throw orderNotFound();
+  return toCustomerOrder(order);
+}
+
+// ---------------------------------------------------------------- ADM-04 admin orders (T-014)
+
+/** Transition matrix (owner 2026-11-22): any non-terminal status can be cancelled (COD). */
+export const TRANSITIONS: Readonly<Record<OrderStatus, readonly OrderStatus[]>> = {
+  PENDING: ['CONFIRMED', 'CANCELLED'],
+  CONFIRMED: ['PROCESSING', 'CANCELLED'],
+  PROCESSING: ['OUT_FOR_DELIVERY', 'CANCELLED'],
+  OUT_FOR_DELIVERY: ['DELIVERED', 'CANCELLED'],
+  DELIVERED: [],
+  CANCELLED: [],
+};
+
+const TRANSITION_ATTEMPTS = 3;
+
+const invalidTransition = (from: OrderStatus, to: OrderStatus) =>
+  new AppError(409, 'INVALID_TRANSITION', `Cannot change order status from ${from} to ${to}`, {
+    from,
+    to,
+    allowed: TRANSITIONS[from],
+  });
+
+/** Riyadh is fixed UTC+3 (no DST): the day `YYYY-MM-DD` starts at `T00:00:00+03:00`. */
+const riyadhDayStart = (ymd: string): Date => new Date(`${ymd}T00:00:00+03:00`);
+
+export async function listAdminOrders(query: AdminListOrdersQuery) {
+  const where: Prisma.OrderWhereInput = {};
+  if (query.status) where.status = query.status;
+  if (query.from || query.to) {
+    where.createdAt = {
+      ...(query.from ? { gte: riyadhDayStart(query.from) } : {}),
+      // Inclusive end: strictly before the start of the following Riyadh day.
+      ...(query.to ? { lt: new Date(riyadhDayStart(query.to).getTime() + 86_400_000) } : {}),
+    };
+  }
+  if (query.q) {
+    // Rule 9: Prisma MongoDB contains/insensitive is $regex-backed -> always escaped, max 100 chars.
+    const literal = escapeRegex(query.q);
+    const or: Prisma.OrderWhereInput[] = [{ orderNo: { contains: literal, mode: 'insensitive' } }];
+    const users = await prisma.user.findMany({
+      where: { email: { contains: literal, mode: 'insensitive' } },
+      select: { id: true },
+      take: 200,
+    });
+    if (users.length > 0) or.push({ userId: { in: users.map((u) => u.id) } });
+    // Owner 2026-11-22: a query that normalises to a Saudi mobile (T-020, incl. Arabic-Indic
+    // digits) also matches the order's snapshot phone exactly (canonical form, no regex).
+    const phone = normalizeSaudiPhone(query.q);
+    if (phone) or.push({ address: { is: { phone } } });
+    where.OR = or;
+  }
+  const [rows, total] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
+      include: USER_INCLUDE,
+    }),
+    prisma.order.count({ where }),
+  ]);
+  return { items: rows.map(toOrder), meta: pageMeta(query.page, query.limit, total) };
+}
+
+export async function getAdminOrder(id: string): Promise<OrderResponse> {
+  if (!OBJECT_ID.test(id)) throw orderNotFound();
+  const order = await prisma.order.findUnique({ where: { id }, include: USER_INCLUDE });
+  if (!order) throw orderNotFound();
+  return toOrder(order);
+}
+
+/** Thrown inside the transaction when the conditional status write matched nothing (status moved). */
+class TransitionRetry extends Error {
+  constructor() {
+    super('transition retry');
+    this.name = 'TransitionRetry';
+  }
+}
+
+/**
+ * ADM-04 status transition (owner 2026-11-22): ONE conditional write — `where {id, status: <just
+ * read>}` — inside a transaction, so a concurrent transition can never apply twice (a double-cancel
+ * restores stock exactly once). DELIVERED also sets `paymentStatus: PAID`; CANCELLED restores stock
+ * per item in the same transaction and leaves `paymentStatus` UNPAID. Every transition appends a
+ * `StatusEvent {status, at, byUserId: the admin, note}`. `order.statusChanged` is emitted after
+ * commit only, with `{orderId, from, to, byUserId}` (reused by T-016).
+ */
+export async function transitionStatus(
+  id: string,
+  target: OrderStatus,
+  note: string | undefined,
+  byUserId: string,
+  ctx: Ctx = {},
+): Promise<OrderResponse> {
+  if (!OBJECT_ID.test(id)) throw orderNotFound();
+  for (let attempt = 0; attempt < TRANSITION_ATTEMPTS; attempt++) {
+    const order = await prisma.order.findUnique({ where: { id } });
+    if (!order) throw orderNotFound();
+    const from = order.status;
+    if (!TRANSITIONS[from].includes(target)) throw invalidTransition(from, target);
+    await testHooks.beforeTransition?.(attempt);
+    try {
+      const updated = await prisma.$transaction(async (tx) => {
+        const res = await tx.order.updateMany({
+          where: { id, status: from },
+          data: {
+            status: target,
+            ...(target === 'DELIVERED' ? { paymentStatus: 'PAID' as const } : {}),
+            statusHistory: {
+              push: { status: target, at: new Date(), byUserId, note: note ?? null },
+            },
+          },
+        });
+        if (res.count === 0) throw new TransitionRetry();
+        if (target === 'CANCELLED') {
+          for (const item of order.items) {
+            const restored = await tx.product.updateMany({
+              where: { id: item.productId },
+              data: { stock: { increment: item.qty } },
+            });
+            if (restored.count === 0) {
+              // Products in orders are archived, never hard-deleted (T-010); tolerate the
+              // impossible case without failing the cancel.
+              ctx.log?.error(
+                { requestId: ctx.requestId, orderId: id, productId: item.productId },
+                'stock restore skipped: product row missing',
+              );
+            }
+          }
+        }
+        return tx.order.findUniqueOrThrow({ where: { id }, include: USER_INCLUDE });
+      });
+      emitOrderEvent('order.statusChanged', updated, ctx, {
+        orderId: id,
+        from,
+        to: target,
+        byUserId,
+      });
+      return toOrder(updated);
+    } catch (err) {
+      // A concurrent transition won (conditional write matched nothing, or a Mongo write
+      // conflict): re-read and re-decide — usually a 409 against the fresh status.
+      if (err instanceof TransitionRetry || isWriteConflict(err)) continue;
+      throw err;
+    }
+  }
+  const fresh = await prisma.order.findUnique({ where: { id } });
+  if (!fresh) throw orderNotFound();
+  throw invalidTransition(fresh.status, target);
+}
+
+export async function setAdminNote(id: string, adminNote: string | null): Promise<OrderResponse> {
+  if (!OBJECT_ID.test(id)) throw orderNotFound();
+  const existing = await prisma.order.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) throw orderNotFound();
+  const order = await prisma.order.update({
+    where: { id },
+    data: { adminNote },
+    include: USER_INCLUDE,
+  });
   return toOrder(order);
 }

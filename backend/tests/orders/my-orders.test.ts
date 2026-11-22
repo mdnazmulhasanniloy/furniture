@@ -148,8 +148,9 @@ describe('ORD-02 · my orders', () => {
       paymentStatus: 'UNPAID',
       status: 'CONFIRMED',
       customerNote: 'ring the bell',
-      adminNote: null,
     });
+    // Internal fields never reach the customer (owner 2026-11-22, T-014).
+    expect(res.body).not.toHaveProperty('adminNote');
     expect(res.body.user).toEqual({
       id: userId,
       firstName: 'T',
@@ -185,9 +186,10 @@ describe('ORD-02 · my orders', () => {
       pricesIncludeVat: true,
       registrationNumber: null,
     });
+    // The customer timeline carries {status, at} only — note/byUserId are internal (T-014).
     expect(res.body.statusHistory).toEqual([
-      { status: 'PENDING', at: '2026-11-22T08:00:00.000Z', byUserId: userId, note: null },
-      { status: 'CONFIRMED', at: '2026-11-22T09:00:00.000Z', byUserId: null, note: null },
+      { status: 'PENDING', at: '2026-11-22T08:00:00.000Z' },
+      { status: 'CONFIRMED', at: '2026-11-22T09:00:00.000Z' },
     ]);
   });
 

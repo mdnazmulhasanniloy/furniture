@@ -112,11 +112,12 @@ As a visitor, I want to sign up with first name, last name, email and password a
 **ORD-03 Cancel order** · draft (SRC-002.4)
 - Given my order is `PENDING`, When I cancel, Then status becomes `CANCELLED` and stock is restored.
 - Given my order is `CONFIRMED` or later, Then the Cancel button is hidden and the API returns 409 `INVALID_TRANSITION`.
-- Admins can still cancel `PENDING` or `CONFIRMED` orders (ADM-04).
+- Admins can cancel any order that is not yet `DELIVERED` or `CANCELLED` (ADM-04; owner 2026-11-22, T-014 — COD: the customer may refuse or be unreachable at delivery).
 
 **ORD-04 Order emails** · draft — Email on order placed and each status change, in the customer's preferred language.
+- The cancellation email tells the customer the order was cancelled but never includes the internal cancel reason or any admin note (owner 2026-11-22, T-014).
 
-Order status flow: `PENDING → CONFIRMED → PROCESSING → OUT_FOR_DELIVERY → DELIVERED`; `PENDING|CONFIRMED → CANCELLED`. Payment status: `UNPAID → PAID` (set when DELIVERED).
+Order status flow (owner 2026-11-22, T-014): `PENDING → CONFIRMED → PROCESSING → OUT_FOR_DELIVERY → DELIVERED`; every non-terminal status (`PENDING`, `CONFIRMED`, `PROCESSING`, `OUT_FOR_DELIVERY`) may also go to `CANCELLED` (COD: customer refused or unreachable at delivery). `DELIVERED` and `CANCELLED` are terminal. A transition to `CANCELLED` requires an internal reason note (3–500 chars) and restores stock in the same transaction, leaving payment status `UNPAID`. Payment status: `UNPAID → PAID` (set when DELIVERED).
 
 ### 5.5 Notifications (NOTIF) — SRC-001.10
 
@@ -149,6 +150,7 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 **ADM-02 Products** · draft — Table with search/filter/pagination; create/edit with localized fields, type NEW/RESALE, condition, price, compare-at price, stock, SKU, dimensions, material, colour, category, up to 8 images (drag to reorder; uploaded straight to Cloudflare R2 with presigned URLs, ADR-010; removing an image or deleting the product deletes the R2 object, and a failed delete is logged without failing the request), `isFeatured`, `status` (DRAFT/PUBLISHED/ARCHIVED). Soft delete (archive) if the product is in any order.
 **ADM-03 Categories** · draft — CRUD, image, parent, sort order, active toggle; cannot delete a category with products.
 **ADM-04 Orders** · draft — Filter by status/date/search; detail view; change status following the flow (invalid transitions rejected); internal note; printable invoice showing the VAT breakdown and the VAT registration number when set (ADM-14); ZATCA e-invoicing compliance (QR code, e-invoice format) pending B-013.
+- Owner 2026-11-22 (T-014): the full transition matrix is in §5.4 (every non-terminal status can be cancelled; cancel requires an internal reason of 3–500 chars and restores stock). Search matches the order number, the customer email, or — when the query normalises to a Saudi mobile number (NFR-06 rules, incl. Arabic-Indic digits) — the order's snapshot phone. Date filters are inclusive Asia/Riyadh calendar days. Internal notes (`adminNote` and status-event notes) are never shown to customers or included in emails.
 **ADM-05 Customers** · draft — List, view orders of a customer, block/unblock.
 **ADM-06 Hero banners** · draft — CRUD, localized title/subtitle/CTA, desktop + mobile image, link, schedule (start/end), sort, active.
 - Owner 2026-11-22 (T-011): banner images require localized alt text in both en and ar (UI-02); the CTA link must be a same-site path or an absolute https URL (protocol-relative, `javascript:`, `data:` and `http:` rejected).

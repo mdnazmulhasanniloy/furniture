@@ -1,4 +1,4 @@
-import type { Order } from '@prisma/client';
+import type { Order, OrderStatus } from '@prisma/client';
 import { getEnv } from '../config/env.js';
 import { createLogger, type Logger } from './logger.js';
 
@@ -11,9 +11,21 @@ import { createLogger, type Logger } from './logger.js';
 
 export type OrderEventName = 'order.created' | 'order.statusChanged';
 
+/** Carried by `order.statusChanged` (owner 2026-11-22, T-014) so T-016 notifications can reuse it. */
+export interface OrderStatusChange {
+  orderId: string;
+  from: OrderStatus;
+  to: OrderStatus;
+  /** The admin who made the transition. */
+  byUserId: string;
+}
+
 export interface OrderEvent {
   name: OrderEventName;
+  /** The committed order (post-transition for `order.statusChanged`). */
   order: Order;
+  /** Present on `order.statusChanged` only. */
+  change?: OrderStatusChange;
 }
 
 type Handler = (event: OrderEvent) => void | Promise<void>;
@@ -41,10 +53,11 @@ export function emitOrderEvent(
   name: OrderEventName,
   order: Order,
   ctx: { log?: Pick<Logger, 'error'>; requestId?: string } = {},
+  change?: OrderStatusChange,
 ): void {
   for (const handler of handlers.get(name) ?? []) {
     try {
-      void Promise.resolve(handler({ name, order })).catch((err: unknown) => {
+      void Promise.resolve(handler({ name, order, change })).catch((err: unknown) => {
         (ctx.log ?? log()).error(
           { err, requestId: ctx.requestId, event: name, orderId: order.id },
           'order event handler failed',

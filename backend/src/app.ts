@@ -18,7 +18,8 @@ import {
   cmsRouter,
 } from './modules/cms/routes.js';
 import { meRouter } from './modules/me/routes.js';
-import { ordersRouter } from './modules/orders/routes.js';
+import { registerOrderEmailConsumers } from './modules/orders/emails.js';
+import { adminOrdersRouter, ordersRouter } from './modules/orders/routes.js';
 import { adminProductsRouter, productsRouter } from './modules/products/routes.js';
 import { uploadsRouter } from './modules/uploads/routes.js';
 
@@ -41,6 +42,7 @@ export function createApp(arg: Env | CreateAppOptions = {}) {
     logger: given,
   }: CreateAppOptions = 'NODE_ENV' in arg ? { env: arg } : isOptions(arg) ? arg : {};
   const logger = given ?? createLogger(env);
+  registerOrderEmailConsumers(); // ORD-04 (T-014); idempotent across createApp calls
   const app = express();
 
   app.set('trust proxy', env.TRUST_PROXY);
@@ -73,6 +75,7 @@ export function createApp(arg: Env | CreateAppOptions = {}) {
   v1.use('/categories', categoriesRouter);
   v1.use('/products', productsRouter);
   v1.use('/cms', cmsRouter);
+  v1.use('/admin/orders', adminOrdersRouter);
   v1.use('/admin/categories', adminCategoriesRouter);
   v1.use('/admin/products', adminProductsRouter);
   v1.use('/admin/banners', adminBannersRouter);

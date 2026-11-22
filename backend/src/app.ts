@@ -18,6 +18,7 @@ import {
   cmsRouter,
 } from './modules/cms/routes.js';
 import { meRouter } from './modules/me/routes.js';
+import { ordersRouter } from './modules/orders/routes.js';
 import { adminProductsRouter, productsRouter } from './modules/products/routes.js';
 import { uploadsRouter } from './modules/uploads/routes.js';
 
@@ -68,6 +69,7 @@ export function createApp(arg: Env | CreateAppOptions = {}) {
   v1.use('/auth', authRouter);
   v1.use('/me', meRouter);
   v1.use('/cart', cartRouter);
+  v1.use('/orders', ordersRouter);
   v1.use('/categories', categoriesRouter);
   v1.use('/products', productsRouter);
   v1.use('/cms', cmsRouter);

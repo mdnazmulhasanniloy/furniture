@@ -41,6 +41,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 ### T-038 Checkout + success · todo
 - Req: ORD-01, PROF-02 · Depends: T-036, T-037, backend T-013
 - Done: inline address add; COD only; per-item stock error display; success page. An address with `isDeliverable: false` (`api-spec.yaml#Address`) is shown as "Not deliverable" and cannot be chosen; the customer picks an active city first. The field is a hint only: placing the order still re-checks the city on the server (422 `OUT_OF_DELIVERY_AREA`) and the UI handles that error. Backend T-012 note (2026-11-22): `GET /cart?addressId=` also returns `address.isDeliverable`; when false, show "We don't deliver to this city" and disable the place-order button.
+- Backend T-013 notes (owner, 2026-11-22): `POST /orders` requires an `Idempotency-Key` header — generate the UUID **once per checkout attempt and reuse it on retry** (double-click and network retries then return the same order as 200; a new attempt after an error that changes the request, e.g. a new address or refreshed totals, gets a fresh key — the old key with changed `addressId`/`expectedTotal` is rejected 422 `IDEMPOTENCY_MISMATCH`). `expectedTotal` is required (send the displayed total in halalas). Localized (en/ar) messages for 429 `RATE_LIMITED` ("max 3 orders per hour") and 409 `TOO_MANY_PENDING_ORDERS` ("you already have 3 pending orders").
 
 ### T-039 Account area · todo
 - Req: PROF-01, PROF-02, ORD-02, ORD-03 · Depends: T-038

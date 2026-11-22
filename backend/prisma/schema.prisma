@@ -86,11 +86,11 @@ type LocalizedText {
 
 // R2 object (ADR-010). url = R2_PUBLIC_BASE_URL + "/" + key, recomputed by the server.
 type ImageAsset {
-  key      String
-  url      String
-  alt      LocalizedText?
-  width    Int?
-  height   Int?
+  key    String
+  url    String
+  alt    LocalizedText?
+  width  Int?
+  height Int?
 }
 
 type Dimensions {
@@ -145,11 +145,14 @@ type CartItem {
 type OrderItem {
   productId     String        @db.ObjectId
   titleSnapshot LocalizedText
+  sku           String?
   imageSnapshot String?
   // T-010/T-013: R2 key of the snapshot image; releaseUploads never deletes a referenced object.
   imageKey      String?
   unitPrice     Int
   qty           Int
+  // From computePricing (per-line ZATCA VAT hook, B-013).
+  lineTotal     Int
   type          ProductType
   condition     Condition
 }
@@ -163,27 +166,27 @@ type StatusEvent {
 
 // ---------- Models ----------
 model User {
-  id              String         @id @default(auto()) @map("_id") @db.ObjectId
-  firstName       String
-  lastName        String
-  email           String         @unique
-  passwordHash    String
-  role            Role           @default(CUSTOMER)
-  isVerified      Boolean        @default(false)
-  isBlocked       Boolean        @default(false)
-  failedLoginCount Int           @default(0) // login lockout (ADR-011)
-  lockedUntil     DateTime?
+  id                String         @id @default(auto()) @map("_id") @db.ObjectId
+  firstName         String
+  lastName          String
+  email             String         @unique
+  passwordHash      String
+  role              Role           @default(CUSTOMER)
+  isVerified        Boolean        @default(false)
+  isBlocked         Boolean        @default(false)
+  failedLoginCount  Int            @default(0) // login lockout (ADR-011)
+  lockedUntil       DateTime?
   passwordChangedAt DateTime? // set on password reset; older access tokens are rejected (AUTH-03)
-  phone           String?
-  avatar          String?
-  preferredLocale Locale         @default(ar)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  addresses       Address[]
-  refreshTokens   RefreshToken[]
-  orders          Order[]
-  notifications   Notification[]
-  cart            Cart?
+  phone             String?
+  avatar            String?
+  preferredLocale   Locale         @default(ar)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  addresses         Address[]
+  refreshTokens     RefreshToken[]
+  orders            Order[]
+  notifications     Notification[]
+  cart              Cart?
 }
 
 // Registration data bound to a VERIFY_EMAIL OTP; applied to the User only when that OTP is verified.
@@ -237,7 +240,7 @@ model RefreshToken {
   id        String    @id @default(auto()) @map("_id") @db.ObjectId
   userId    String    @db.ObjectId
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  familyId  String    // session id: set at login, kept across rotations (T-005)
+  familyId  String // session id: set at login, kept across rotations (T-005)
   tokenHash String    @unique
   expiresAt DateTime
   revokedAt DateTime?
@@ -323,25 +326,31 @@ model Cart {
 }
 
 model Order {
-  id            String          @id @default(auto()) @map("_id") @db.ObjectId
-  orderNo       String          @unique
-  userId        String          @db.ObjectId
-  user          User            @relation(fields: [userId], references: [id])
-  items         OrderItem[]
-  address       AddressSnapshot
-  subtotal      Int
-  deliveryFee   Int // snapshot, halalas (0 = free delivery)
-  vat           OrderVat // snapshot
-  total         Int
-  paymentMethod PaymentMethod   @default(COD)
-  paymentStatus PaymentStatus   @default(UNPAID)
-  status        OrderStatus     @default(PENDING)
-  statusHistory StatusEvent[]
-  customerNote  String?
-  adminNote     String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  id             String          @id @default(auto()) @map("_id") @db.ObjectId
+  orderNo        String          @unique
+  userId         String          @db.ObjectId
+  user           User            @relation(fields: [userId], references: [id])
+  // T-013 (owner 2026-11-22): UUID from the required Idempotency-Key header; replay returns the existing order.
+  idempotencyKey String
+  // Id of the Address used, kept for the idempotency mismatch check only (the Address may be edited/deleted later).
+  addressId      String          @db.ObjectId
+  items          OrderItem[]
+  address        AddressSnapshot
+  subtotal       Int
+  deliveryFee    Int // snapshot, halalas (0 = free delivery)
+  vat            OrderVat // snapshot
+  total          Int
+  currency       String          @default("SAR")
+  paymentMethod  PaymentMethod   @default(COD)
+  paymentStatus  PaymentStatus   @default(UNPAID)
+  status         OrderStatus     @default(PENDING)
+  statusHistory  StatusEvent[]
+  customerNote   String?
+  adminNote      String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
+  @@unique([userId, idempotencyKey])
   @@index([userId, createdAt])
   @@index([status])
 }

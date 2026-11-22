@@ -145,7 +145,8 @@ export interface HitResult {
   failedOpen: boolean;
 }
 
-const isDuplicateKey = (err: unknown): boolean => {
+/** E11000 detector for `findAndModify` upserts (also used by the T-013 orderNo counter). */
+export const isDuplicateKey = (err: unknown): boolean => {
   const e = err as {
     code?: unknown;
     message?: unknown;

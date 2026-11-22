@@ -65,14 +65,18 @@ async function orderShowing(productId: string, imageKey: string) {
     data: {
       orderNo: `FX-20261122-${String(Math.floor(Math.random() * 9000) + 1000)}`,
       userId: customerId,
+      idempotencyKey: crypto.randomUUID(),
+      addressId: '0'.repeat(24),
       items: [
         {
           productId,
           titleSnapshot: { en: 'snap', ar: 'سناب' },
+          sku: null,
           imageSnapshot: `${getEnv().R2_PUBLIC_BASE_URL}/${imageKey}`,
           imageKey,
           unitPrice: 10_000,
           qty: 1,
+          lineTotal: 10_000,
           type: 'NEW',
           condition: 'NEW',
         },

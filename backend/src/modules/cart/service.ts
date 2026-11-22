@@ -1,7 +1,9 @@
 import { Prisma, type CartItem } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
+import type { Logger } from '../../lib/logger.js';
 import { computePricing, type PricingCity } from '../../lib/pricing.js';
 import { prisma } from '../../lib/prisma.js';
+import { createTestHooks } from '../../lib/testHooks.js';
 import { toProduct, type ProductResponse } from '../products/service.js';
 import type { GetCartQuery, MergeBody, PutItemBody } from './schema.js';
 
@@ -49,9 +51,11 @@ export interface CartResponse {
 
 /**
  * Test-only (CART-01 concurrency): when set, awaited between the cart read and the conditional
- * write, so tests can interleave two writers deterministically. Never set in production code.
+ * write, so tests can interleave two writers deterministically. Guarded by `createTestHooks`
+ * (owner 2026-11-22): inert unless NODE_ENV === 'test', setting outside test mode throws, and
+ * nothing maps HTTP input or env vars onto it.
  */
-export const testHooks: { beforeWrite?: (attempt: number) => Promise<void> } = {};
+export const testHooks = createTestHooks<{ beforeWrite?: (attempt: number) => Promise<void> }>();
 
 /**
  * Applies `mutate` to the user's cart items under optimistic concurrency on `Cart.version`
@@ -83,6 +87,32 @@ async function writeCart(
     }
   }
   throw cartConflict();
+}
+
+/**
+ * T-013: when an order's in-transaction cart clear missed (the cart version moved between the
+ * placement's read and its transaction), remove exactly the ordered quantities — a concurrent PUT
+ * during checkout is never silently lost. Runs after the order committed, so it never throws: a
+ * persistent conflict is logged and the cart is left as is (the order stands either way).
+ */
+export async function consumeCartLines(
+  userId: string,
+  ordered: readonly { productId: string; qty: number }[],
+  ctx: { log?: Pick<Logger, 'error'>; requestId?: string } = {},
+): Promise<void> {
+  const taken = new Map(ordered.map((l) => [l.productId, l.qty]));
+  try {
+    await writeCart(userId, (items) =>
+      items
+        .map((i) => ({ ...i, qty: i.qty - (taken.get(i.productId) ?? 0) }))
+        .filter((i) => i.qty > 0),
+    );
+  } catch (err) {
+    ctx.log?.error(
+      { err, requestId: ctx.requestId },
+      'cart cleanup after order placement failed; cart left unchanged',
+    );
+  }
 }
 
 // ---------------------------------------------------------------- CART-01 writes

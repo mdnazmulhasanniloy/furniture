@@ -382,14 +382,18 @@ describe('ADM-02 · admin products CRUD', () => {
       data: {
         orderNo: 'FX-20261122-0001',
         userId: customerId,
+        idempotencyKey: '00000000-0000-4000-8000-000000000001',
+        addressId: '0'.repeat(24),
         items: [
           {
             productId: p.id,
             titleSnapshot: { en: 'ordered-once en', ar: 'ordered-once ar' },
+            sku: null,
             imageSnapshot: null,
             imageKey: null,
             unitPrice: 10_000,
             qty: 1,
+            lineTotal: 10_000,
             type: 'NEW',
             condition: 'NEW',
           },

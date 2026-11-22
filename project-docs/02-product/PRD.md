@@ -104,6 +104,7 @@ As a visitor, I want to sign up with first name, last name, email and password a
 - Given an address whose city is unknown or no longer active, When I place the order, Then it is rejected with 422 `OUT_OF_DELIVERY_AREA` and nothing is decremented.
 - Every order stores a snapshot of `deliveryFee` and `vat` (`vatRate`, `vatAmount`, `applyToDelivery`, `pricesIncludeVat`, registration number) as they were at placement, including when they are 0; later settings changes never alter past orders or invoices.
 - Given the total the customer saw differs from the server-computed total (fee, VAT or toggle changed), When I place the order, Then it is rejected with 409 `PRICE_CHANGED` and nothing is decremented; the cart refreshes with the new totals.
+- COD abuse limits (owner decision 2026-11-22): a customer can place at most 3 orders per hour (429 `RATE_LIMITED`) and have at most 3 `PENDING` orders at once (409 `TOO_MANY_PENDING_ORDERS`); the web shows localized messages for both.
 - Out of scope: online payment, coupons.
 
 **ORD-02 Order history** · draft — List of my orders with status chip; detail page shows items, address, totals and a status timeline.

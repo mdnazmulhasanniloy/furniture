@@ -626,30 +626,64 @@ paths:
     post:
       tags: [Orders]
       summary: Place COD order from cart (ORD-01)
+      description: >-
+        Re-validates stock and price, decrements stock atomically (per item `updateMany` whose where-clause
+        includes `stock: {gte: qty}`, `status: PUBLISHED` AND `price: <the unitPrice used for pricing>`; a
+        count of 0 aborts the transaction and the whole placement is retried from a fresh read, so a price
+        change between read and transaction yields 409 `PRICE_CHANGED`, never an order at the old price),
+        creates the order (PENDING, COD, UNPAID, full snapshot including `deliveryFee` and `vat` even when 0),
+        clears the cart (version-conditional: a concurrent cart write is never silently lost) and emits
+        `order.created` after commit. Totals come from `computePricing` fed with the order lines (ADR-009).
+        Idempotent (owner 2026-11-22): the required `Idempotency-Key` header (a UUID, generated once per
+        checkout attempt and reused on retries — web T-038) is stored on the order with a unique
+        (userId, idempotencyKey) index; a retry after success returns the existing order as 200 with the
+        identical body, without re-validating or decrementing; a concurrent duplicate that loses the unique
+        index re-reads and returns the winner's order. COD abuse limits (owner 2026-11-22, PRD ORD-01): at
+        most 3 orders per user per hour and at most 3 PENDING orders per user at once.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+          description: UUID generated once per checkout attempt and reused on retry; missing or malformed -> 422 `VALIDATION_ERROR`.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [addressId]
+              additionalProperties: false
+              required: [addressId, expectedTotal]
               properties:
                 addressId: { $ref: '#/components/schemas/ObjectId' }
-                customerNote: { type: string, maxLength: 500 }
-                expectedTotal: { type: integer, description: Total (halalas) the customer saw; if it differs from the server total the order is rejected with PRICE_CHANGED (ADR-009) }
+                customerNote: { type: string, maxLength: 500, description: Plain text, trimmed; consumers always render it escaped (admin T-065, order emails T-014) }
+                expectedTotal: { type: integer, minimum: 0, description: Required. Total (halalas) the customer saw; if it differs from the server-computed total the order is rejected with 409 PRICE_CHANGED (ADR-009) }
       responses:
         '201':
-          description: Created
+          description: Created. `statusHistory` starts with `{status: PENDING, at, byUserId: <the customer>}`.
           content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+        '200':
+          description: Idempotent replay — this user already created an order with this `Idempotency-Key`; the body is identical to the original 201.
+          content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+        '404': { $ref: '#/components/responses/Error', description: Unknown, foreign or malformed `addressId` (T-007 rule) }
         '409':
-          description: OUT_OF_STOCK / PRICE_CHANGED (item price, delivery fee, VAT or total differs from what the customer saw) / CART_EMPTY with per-item details
+          description: >-
+            `OUT_OF_STOCK` — `details.items: [{productId, stock}]`, one entry per failing line with the live
+            stock (0 when the product is gone or unpublished), nothing decremented, the cart kept /
+            `PRICE_CHANGED` — `details: {expectedTotal, total, items: [{productId, oldPrice, newPrice}]}`
+            where `items` compares the live price against the cart's stored `priceSeen` (display only; the
+            gate is the total), nothing decremented, no order created / `CART_EMPTY` — no lines /
+            `TOO_MANY_PENDING_ORDERS` — the user already has 3 PENDING orders / `CONFLICT` — persistent
+            concurrent stock updates after retries (client may retry).
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
         '422':
-          description: OUT_OF_DELIVERY_AREA — address city is unknown or inactive (ADR-008)
+          description: "`OUT_OF_DELIVERY_AREA` — address city unknown or inactive (ADR-008) / `IDEMPOTENCY_MISMATCH` — same `Idempotency-Key` with a different `addressId` or `expectedTotal` / `VALIDATION_ERROR` — missing or malformed `Idempotency-Key`, `expectedTotal` or body"
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` — more than 3 orders per user per hour (T-024 store), with `Retry-After`" }
     get:
       tags: [Orders]
       summary: My orders (ORD-02)
+      description: The authenticated customer's own orders, newest first.
       parameters: [{ $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
       responses:
         '200':
@@ -1648,12 +1682,30 @@ components:
         at: { type: string, format: date-time }
         byUserId: { $ref: '#/components/schemas/ObjectId' }
         note: { type: string }
+    OrderAddress:
+      type: object
+      description: Immutable snapshot of the delivery address at placement — canonical E.164 phone, `city` name copied from the DeliveryCity. Editing or deleting the Address later never changes it.
+      properties:
+        fullName: { type: string }
+        phone: { $ref: '#/components/schemas/SaudiPhone' }
+        cityCode: { type: string }
+        city: { $ref: '#/components/schemas/LocalizedText' }
+        area: { type: string }
+        street: { type: string }
+        notes: { type: [string, 'null'] }
     Order:
       type: object
       properties:
         id: { $ref: '#/components/schemas/ObjectId' }
-        orderNo: { type: string, examples: [FX-20261120-0042] }
-        user: { $ref: '#/components/schemas/User' }
+        orderNo: { type: string, description: 'FX-YYYYMMDD-NNNN; the date is Asia/Riyadh (fixed UTC+3), NNNN a daily sequence padded to 4 digits', examples: [FX-20261120-0042] }
+        user:
+          type: object
+          description: Slim customer for display (self on /orders, the buyer on /admin/orders) — never the full account.
+          properties:
+            id: { $ref: '#/components/schemas/ObjectId' }
+            firstName: { type: string }
+            lastName: { type: string }
+            email: { type: string, format: email }
         items:
           type: array
           items:
@@ -1661,21 +1713,24 @@ components:
             properties:
               productId: { $ref: '#/components/schemas/ObjectId' }
               titleSnapshot: { $ref: '#/components/schemas/LocalizedText' }
-              imageSnapshot: { type: string }
+              sku: { type: [string, 'null'] }
+              imageSnapshot: { type: [string, 'null'], description: URL of the product's first image at placement; the R2 key is stored server-side (`imageKey`) and never deleted while referenced }
               unitPrice: { type: integer }
               qty: { type: integer }
+              lineTotal: { type: integer, description: From `computePricing` (per-line ZATCA VAT hook, B-013) }
               type: { $ref: '#/components/schemas/ProductType' }
               condition: { $ref: '#/components/schemas/Condition' }
-        address: { $ref: '#/components/schemas/AddressInput' }
+        address: { $ref: '#/components/schemas/OrderAddress' }
         subtotal: { type: integer }
         deliveryFee: { type: integer, description: Snapshot of the fee resolved at placement (free threshold, city override, base fee, else 0) }
         vat: { $ref: '#/components/schemas/OrderVat' }
         total: { type: integer, description: 'subtotal + deliveryFee, plus vat.vatAmount when prices exclude VAT' }
+        currency: { type: string, enum: [SAR] }
         paymentMethod: { type: string, enum: [COD] }
         paymentStatus: { type: string, enum: [UNPAID, PAID] }
         status: { $ref: '#/components/schemas/OrderStatus' }
-        statusHistory: { type: array, items: { $ref: '#/components/schemas/StatusEvent' } }
-        customerNote: { type: [string, 'null'] }
+        statusHistory: { type: array, description: 'Placement writes the initial event {status: PENDING, at, byUserId: <the customer>}', items: { $ref: '#/components/schemas/StatusEvent' } }
+        customerNote: { type: [string, 'null'], description: Plain text; always rendered escaped by consumers }
         adminNote: { type: [string, 'null'], description: admin responses only }
         createdAt: { type: string, format: date-time }
     OrderPage:

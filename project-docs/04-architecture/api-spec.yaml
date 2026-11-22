@@ -1320,7 +1320,11 @@ paths:
         Optimistic concurrency (owner 2026-11-22, T-011): `expectedUpdatedAt` is required, mismatch -> 409
         `STALE_UPDATE` with the current settings in `details.current`. The logo uses `syncImages` (scope
         `admin`). Revalidates the storefront tags `settings`, `home` and `products` (VAT and delivery display
-        can change on product pages). City immutability/last-active rules: T-022.
+        can change on product pages). Delivery cities (ADM-13, T-022): the submitted `deliveryCities` must
+        contain every existing city `code` — codes are immutable and cities can never be removed (deactivate
+        instead); a missing code (removal or code change) -> 409 `CITY_CODE_IMMUTABLE` with the offending
+        codes in `details.missingCodes`, nothing written. At least one submitted city must be active -> 422
+        otherwise. Max 100 cities.
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/SiteSettingInput' } } }
@@ -1329,10 +1333,10 @@ paths:
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/SiteSetting' } } }
         '409':
-          description: "`STALE_UPDATE` (current settings in `details.current`), or CONFLICT — an existing city code was removed (deactivate it instead) or a code was changed (T-022)"
+          description: "`STALE_UPDATE` (current settings in `details.current`), or `CITY_CODE_IMMUTABLE` — an existing city code was removed (deactivate it instead) or changed; the missing codes are in `details.missingCodes` (T-022)"
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
         '422':
-          description: VALIDATION_ERROR — no active delivery city (T-022), duplicate city code, missing ar/en city name, negative fee, VAT rate outside 0–50% or more than 2 decimals, or invalid VAT registration number
+          description: VALIDATION_ERROR — no active delivery city or more than 100 cities (T-022), duplicate city code, missing ar/en city name, negative fee (base or per-city override), VAT rate outside 0–50% or more than 2 decimals, or invalid VAT registration number
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /admin/admins:
     get:
@@ -1462,7 +1466,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }
@@ -1988,7 +1992,8 @@ components:
         accepted (unknown field -> 422). The logo is an ImageAssetInput (`url` recomputed from `key`). Limits:
         storeName <= 120, address <= 300 per locale, contactEmail <= 120, contactPhone free text <= 40, social
         URLs <= 300, SEO title <= 120 / description <= 300 per locale, city name <= 60 per locale, city code
-        <= 40. Duplicate city codes or a missing ar/en city name -> 422.
+        <= 40. Duplicate city codes, a missing ar/en city name, no active city or > 100 cities -> 422.
+        Delivery-city codes are immutable: every existing code must be present (T-022), see PUT /admin/settings.
       properties:
         expectedUpdatedAt: { type: string, format: date-time, description: The `updatedAt` the admin loaded; mismatch -> 409 STALE_UPDATE }
         storeName: { $ref: '#/components/schemas/LocalizedText' }
@@ -2007,7 +2012,7 @@ components:
         deliveryFee: { type: integer, minimum: 0, description: Base delivery fee in halalas (negative -> 422) }
         freeDeliveryThreshold: { type: [integer, 'null'], minimum: 0 }
         vat: { $ref: '#/components/schemas/VatSetting' }
-        deliveryCities: { type: array, minItems: 1, items: { $ref: '#/components/schemas/DeliveryCity' } }
+        deliveryCities: { type: array, minItems: 1, maxItems: 100, items: { $ref: '#/components/schemas/DeliveryCity' } }
         defaultLocale: { $ref: '#/components/schemas/Locale' }
         seo:
           type: object

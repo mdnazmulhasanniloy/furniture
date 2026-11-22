@@ -45,6 +45,28 @@ const toSettings = (s: SiteSetting, opts: { activeCitiesOnly: boolean }) => ({
 });
 export type SettingsResponse = ReturnType<typeof toSettings>;
 
+/** Same normalisation as `assertActiveCity` (src/lib/deliveryCities.ts). */
+const normalizeCode = (code: string) => code.trim().toLowerCase();
+
+/**
+ * ADM-13 (T-022): city codes are immutable and a city can never be removed, only deactivated.
+ * Every existing code must appear in the submitted list; a code change shows up as a missing old code.
+ */
+const assertNoCityRemoved = (current: SiteSetting, submitted: PutSettingsBody): void => {
+  const sent = new Set(submitted.deliveryCities.map((c) => normalizeCode(c.code)));
+  const missingCodes = current.deliveryCities
+    .map((c) => c.code)
+    .filter((code) => !sent.has(normalizeCode(code)));
+  if (missingCodes.length > 0) {
+    throw new AppError(
+      409,
+      'CITY_CODE_IMMUTABLE',
+      'City codes are immutable and cities cannot be removed; deactivate the city instead',
+      { missingCodes },
+    );
+  }
+};
+
 const staleUpdate = (current: SiteSetting) =>
   new AppError(409, 'STALE_UPDATE', 'Settings were changed by someone else; reload and retry', {
     current: toSettings(current, { activeCitiesOnly: false }),
@@ -70,8 +92,8 @@ const jsonOrNull = (v: unknown): Prisma.InputJsonValue | null =>
   v === undefined || v === null ? null : (v as Prisma.InputJsonValue);
 
 /**
- * Full replace (owner 2026-11-22): absent optional fields are cleared. Shape validation only — the
- * city immutability and last-active-city rules are T-022.
+ * Full replace (owner 2026-11-22): absent optional fields are cleared. ADM-13 (T-022): existing city
+ * codes must all be present (409 CITY_CODE_IMMUTABLE otherwise); >= 1 active city enforced in zod.
  */
 export async function update(
   body: PutSettingsBody,
@@ -86,6 +108,7 @@ export async function update(
       if (current.updatedAt.getTime() !== body.expectedUpdatedAt.getTime()) {
         throw staleUpdate(current);
       }
+      assertNoCityRemoved(current, body);
       const sync = await syncImages(
         tx,
         current.logo ? [current.logo.key] : [],

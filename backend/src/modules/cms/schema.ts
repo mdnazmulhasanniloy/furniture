@@ -230,6 +230,9 @@ export const putSettingsBody = z
       .max(100)
       .refine((list) => new Set(list.map((c) => c.code)).size === list.length, {
         message: 'City codes must be unique',
+      })
+      .refine((list) => list.some((c) => c.isActive), {
+        message: 'At least one delivery city must stay active (ADM-13)',
       }),
     defaultLocale: z.enum(['en', 'ar']),
     seo: seo.nullable().optional(),

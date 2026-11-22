@@ -9,6 +9,13 @@ import { createErrorHandler, notFoundHandler } from './middleware/error.js';
 import { requestId } from './middleware/requestId.js';
 import { authRouter } from './modules/auth/routes.js';
 import { adminCategoriesRouter, categoriesRouter } from './modules/categories/routes.js';
+import {
+  adminBannersRouter,
+  adminHomeSectionsRouter,
+  adminPagesRouter,
+  adminSettingsRouter,
+  cmsRouter,
+} from './modules/cms/routes.js';
 import { meRouter } from './modules/me/routes.js';
 import { adminProductsRouter, productsRouter } from './modules/products/routes.js';
 import { uploadsRouter } from './modules/uploads/routes.js';
@@ -61,8 +68,13 @@ export function createApp(arg: Env | CreateAppOptions = {}) {
   v1.use('/me', meRouter);
   v1.use('/categories', categoriesRouter);
   v1.use('/products', productsRouter);
+  v1.use('/cms', cmsRouter);
   v1.use('/admin/categories', adminCategoriesRouter);
   v1.use('/admin/products', adminProductsRouter);
+  v1.use('/admin/banners', adminBannersRouter);
+  v1.use('/admin/home-sections', adminHomeSectionsRouter);
+  v1.use('/admin/pages', adminPagesRouter);
+  v1.use('/admin/settings', adminSettingsRouter);
   v1.use('/admin/uploads', uploadsRouter);
   for (const { path, router } of extraRouters) v1.use(path, router);
   app.use('/api/v1', v1);

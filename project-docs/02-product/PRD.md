@@ -150,8 +150,10 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 **ADM-04 Orders** · draft — Filter by status/date/search; detail view; change status following the flow (invalid transitions rejected); internal note; printable invoice showing the VAT breakdown and the VAT registration number when set (ADM-14); ZATCA e-invoicing compliance (QR code, e-invoice format) pending B-013.
 **ADM-05 Customers** · draft — List, view orders of a customer, block/unblock.
 **ADM-06 Hero banners** · draft — CRUD, localized title/subtitle/CTA, desktop + mobile image, link, schedule (start/end), sort, active.
+- Owner 2026-11-22 (T-011): banner images require localized alt text in both en and ar (UI-02); the CTA link must be a same-site path or an absolute https URL (protocol-relative, `javascript:`, `data:` and `http:` rejected).
 **ADM-07 Home sections** · draft — Ordered list of sections the home page renders: `FEATURED_PRODUCTS`, `NEW_ARRIVALS`, `RESALE_PICKS`, `CATEGORY_GRID`, `PROMO_BANNER`, `TESTIMONIALS`; each with localized title, visibility, sort order, config (e.g. product ids, limit).
 **ADM-08 Static pages** · draft — About, Contact, FAQ, Terms, Privacy; rich text per locale; slug; published toggle.
+- Owner 2026-11-22 (T-011): page HTML is sanitised server-side on every write with an allowlist matching the Tiptap editor (ADR-013); a published page needs title and content in both locales, an unpublished one at least one (I18N-02).
 **ADM-09 Site settings** · draft — Store name, logo, contact email/phone/address, social links, delivery fee and VAT (ADM-14), currency (fixed SAR, not editable — ADR-008), delivery cities (ADM-13), default locale (`ar` by default), SEO meta (localized). Contact phone is free text (the store may list a landline).
 **ADM-10 Admin notifications** · draft — Same as NOTIF-02/03 in admin UI.
 **ADM-11 Admin users** · draft — Admin can create another admin (OTP-verified email).

@@ -17,7 +17,8 @@ const mapError = (err: unknown): unknown =>
 export type SaveContext = R2Context & { uploadedById: string };
 const noRelease = async () => {};
 
-const toCategory = (c: Category) => ({
+/** API shape; reused by the CMS home resolver (T-011). */
+export const toCategory = (c: Category) => ({
   id: c.id,
   name: c.name,
   slug: c.slug,

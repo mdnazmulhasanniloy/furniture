@@ -475,6 +475,15 @@ paths:
       tags: [CMS]
       security: []
       summary: Active banners + visible sections with resolved products (ADM-06, ADM-07)
+      description: >-
+        Banners: `isActive` and inside the schedule (`startsAt` unset or <= now, `endsAt` unset or > now),
+        ordered by `sortOrder`. Sections: `isVisible` only, ordered by `sortOrder`. Resolution (owner
+        2026-11-22): FEATURED_PRODUCTS = `config.productIds` (PUBLISHED only, given order) when set, else
+        featured PUBLISHED newest-first; NEW_ARRIVALS = PUBLISHED newest-first; RESALE_PICKS = PUBLISHED RESALE
+        newest-first (all with `config.limit`, default 8, max 24); CATEGORY_GRID = `config.categoryIds` (active
+        only, given order) when set, else all active root categories; PROMO_BANNER = `config.bannerId` resolved
+        into `banner` when that banner is active and inside its schedule, otherwise the property is omitted
+        (storefront skips the section); TESTIMONIALS = `config.testimonials` passed through.
       responses:
         '200':
           description: OK
@@ -493,6 +502,7 @@ paths:
                           properties:
                             products: { type: array, items: { $ref: '#/components/schemas/Product' } }
                             categories: { type: array, items: { $ref: '#/components/schemas/Category' } }
+                            banner: { $ref: '#/components/schemas/Banner' }
   /cms/settings:
     get:
       tags: [CMS]
@@ -1005,6 +1015,7 @@ paths:
     post:
       tags: [Admin]
       summary: Create banner
+      description: Revalidates the storefront tag `home` (T-011). Images use `syncImages` (scope `admin`).
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/BannerInput' } } }
@@ -1012,22 +1023,33 @@ paths:
         '201':
           description: Created
           content: { application/json: { schema: { $ref: '#/components/schemas/Banner' } } }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` (missing alt, bad ctaHref, startsAt >= endsAt) or `UPLOAD_NOT_ALLOWED`" }
   /admin/banners/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
       tags: [Admin]
-      summary: Update banner
+      summary: Update banner (optimistic concurrency)
+      description: >-
+        Partial update; `expectedUpdatedAt` is required, mismatch -> 409 `STALE_UPDATE` with the current banner
+        in `details.current` (owner 2026-11-22, T-011). Schedule and href rules apply to the merged result.
+        Revalidates `home`; replaced or removed images are released after commit.
       requestBody:
-        content: { application/json: { schema: { $ref: '#/components/schemas/BannerInput' } } }
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/BannerPatch' } } }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Banner' } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error', description: "`STALE_UPDATE` (current banner in `details.current`)" }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` or `UPLOAD_NOT_ALLOWED`" }
     delete:
       tags: [Admin]
       summary: Delete banner
+      description: Releases both images after commit (a failed DeleteObject is logged, the request succeeds). Revalidates `home`.
       responses:
         '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/Error' }
   /admin/home-sections:
     get:
       tags: [Admin]
@@ -1039,6 +1061,7 @@ paths:
     post:
       tags: [Admin]
       summary: Create section
+      description: Revalidates the storefront tag `home` (T-011).
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/HomeSectionInput' } } }
@@ -1046,33 +1069,47 @@ paths:
         '201':
           description: Created
           content: { application/json: { schema: { $ref: '#/components/schemas/HomeSection' } } }
+        '422': { $ref: '#/components/responses/Error' }
   /admin/home-sections/reorder:
     put:
       tags: [Admin]
       summary: Set order by id list
+      description: >-
+        `ids` must be exactly the set of existing section ids (each exactly once) -> 422 `VALIDATION_ERROR`
+        otherwise; sortOrder becomes the list position. Revalidates `home` (T-011).
       requestBody:
         required: true
         content:
           application/json:
-            schema: { type: object, required: [ids], properties: { ids: { type: array, items: { $ref: '#/components/schemas/ObjectId' } } } }
+            schema: { type: object, required: [ids], properties: { ids: { type: array, minItems: 1, items: { $ref: '#/components/schemas/ObjectId' } } } }
       responses:
         '204': { description: OK }
+        '422': { $ref: '#/components/responses/Error' }
   /admin/home-sections/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
       tags: [Admin]
-      summary: Update section
+      summary: Update section (optimistic concurrency)
+      description: >-
+        Partial update; `expectedUpdatedAt` is required, mismatch -> 409 `STALE_UPDATE` with the current section
+        in `details.current` (owner 2026-11-22, T-011). Revalidates `home`.
       requestBody:
-        content: { application/json: { schema: { $ref: '#/components/schemas/HomeSectionInput' } } }
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/HomeSectionPatch' } } }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/HomeSection' } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error', description: "`STALE_UPDATE` (current section in `details.current`)" }
+        '422': { $ref: '#/components/responses/Error' }
     delete:
       tags: [Admin]
       summary: Delete section
+      description: Revalidates `home` (T-011).
       responses:
         '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/Error' }
   /admin/pages:
     get:
       tags: [Admin]
@@ -1084,6 +1121,10 @@ paths:
     post:
       tags: [Admin]
       summary: Create page
+      description: >-
+        `content` is sanitised server-side on every write (allowlist, ADR-013). A published page needs title and
+        content in both locales; an unpublished one needs at least one non-empty locale (I18N-02). Revalidates
+        `page:{slug}` (T-011).
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/PageInput' } } }
@@ -1091,22 +1132,34 @@ paths:
         '201':
           description: Created
           content: { application/json: { schema: { $ref: '#/components/schemas/Page' } } }
+        '409': { $ref: '#/components/responses/Error', description: "`SLUG_TAKEN`" }
+        '422': { $ref: '#/components/responses/Error' }
   /admin/pages/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
       tags: [Admin]
-      summary: Update page
+      summary: Update page (optimistic concurrency)
+      description: >-
+        Partial update; `expectedUpdatedAt` is required, mismatch -> 409 `STALE_UPDATE` with the current page in
+        `details.current` (owner 2026-11-22, T-011). Content is sanitised (ADR-013); the publish gate applies to
+        the merged result. Revalidates `page:{slug}`, old and new slug on a rename.
       requestBody:
-        content: { application/json: { schema: { $ref: '#/components/schemas/PageInput' } } }
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/PagePatch' } } }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Page' } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error', description: "`SLUG_TAKEN` or `STALE_UPDATE` (current page in `details.current`)" }
+        '422': { $ref: '#/components/responses/Error' }
     delete:
       tags: [Admin]
       summary: Delete page
+      description: Revalidates `page:{slug}` (T-011).
       responses:
         '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/Error' }
   /admin/settings:
     get:
       tags: [Admin]
@@ -1118,18 +1171,23 @@ paths:
     put:
       tags: [Admin]
       summary: Replace site settings (incl. delivery cities, ADM-13)
+      description: >-
+        Optimistic concurrency (owner 2026-11-22, T-011): `expectedUpdatedAt` is required, mismatch -> 409
+        `STALE_UPDATE` with the current settings in `details.current`. The logo uses `syncImages` (scope
+        `admin`). Revalidates the storefront tags `settings`, `home` and `products` (VAT and delivery display
+        can change on product pages). City immutability/last-active rules: T-022.
       requestBody:
         required: true
-        content: { application/json: { schema: { $ref: '#/components/schemas/SiteSetting' } } }
+        content: { application/json: { schema: { $ref: '#/components/schemas/SiteSettingInput' } } }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/SiteSetting' } } }
         '409':
-          description: CONFLICT — an existing city code was removed (deactivate it instead) or a code was changed
+          description: "`STALE_UPDATE` (current settings in `details.current`), or CONFLICT — an existing city code was removed (deactivate it instead) or a code was changed (T-022)"
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
         '422':
-          description: VALIDATION_ERROR — no active delivery city, duplicate city code, missing ar/en city name, negative fee, VAT rate outside 0–50%, or invalid VAT registration number
+          description: VALIDATION_ERROR — no active delivery city (T-022), duplicate city code, missing ar/en city name, negative fee, VAT rate outside 0–50% or more than 2 decimals, or invalid VAT registration number
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /admin/admins:
     get:
@@ -1583,72 +1641,198 @@ components:
         link: { type: [string, 'null'] }
         readAt: { type: [string, 'null'], format: date-time }
         createdAt: { type: string, format: date-time }
+    SafeHref:
+      type: string
+      maxLength: 500
+      description: >-
+        A same-site path ("/" followed by a character other than "/" or "\") or an absolute https:// URL.
+        Protocol-relative ("//host", "/\host"), javascript:, data: and http: are rejected -> 422
+        VALIDATION_ERROR (owner 2026-11-22, T-011).
+    BannerImageInput:
+      allOf:
+        - $ref: '#/components/schemas/ImageAssetInput'
+        - type: object
+          required: [alt]
+          description: Banner images require localized alt text in both en and ar (UI-02, owner 2026-11-22) -> 422 if missing.
     BannerInput:
       type: object
+      additionalProperties: false
       required: [title, imageDesktop]
+      description: >-
+        `title` needs both locales non-empty (<= 120 chars); subtitle <= 200 and ctaLabel <= 40 per locale.
+        `startsAt` must be before `endsAt` when both are set (checked on the merged result on PATCH) -> 422.
       properties:
         title: { $ref: '#/components/schemas/LocalizedText' }
-        subtitle: { $ref: '#/components/schemas/LocalizedText' }
-        ctaLabel: { $ref: '#/components/schemas/LocalizedText' }
-        ctaHref: { type: string }
+        subtitle: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        ctaLabel: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        ctaHref: { oneOf: [{ $ref: '#/components/schemas/SafeHref' }, { type: 'null' }] }
+        imageDesktop: { $ref: '#/components/schemas/BannerImageInput' }
+        imageMobile: { oneOf: [{ $ref: '#/components/schemas/BannerImageInput' }, { type: 'null' }] }
+        startsAt: { type: [string, 'null'], format: date-time }
+        endsAt: { type: [string, 'null'], format: date-time }
+        sortOrder: { type: integer, minimum: 0, default: 0 }
+        isActive: { type: boolean, default: true }
+    BannerPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 2
+      required: [expectedUpdatedAt]
+      description: Any subset of BannerInput (same limits) plus the required `expectedUpdatedAt` and at least one field to change; mismatch -> 409 STALE_UPDATE.
+      properties:
+        expectedUpdatedAt: { type: string, format: date-time, description: The `updatedAt` the admin loaded }
+        title: { $ref: '#/components/schemas/LocalizedText' }
+        subtitle: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        ctaLabel: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        ctaHref: { oneOf: [{ $ref: '#/components/schemas/SafeHref' }, { type: 'null' }] }
+        imageDesktop: { $ref: '#/components/schemas/BannerImageInput' }
+        imageMobile: { oneOf: [{ $ref: '#/components/schemas/BannerImageInput' }, { type: 'null' }] }
+        startsAt: { type: [string, 'null'], format: date-time }
+        endsAt: { type: [string, 'null'], format: date-time }
+        sortOrder: { type: integer, minimum: 0 }
+        isActive: { type: boolean }
+    Banner:
+      type: object
+      required: [id, title, imageDesktop, sortOrder, isActive, updatedAt]
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        title: { $ref: '#/components/schemas/LocalizedText' }
+        subtitle: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        ctaLabel: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        ctaHref: { type: [string, 'null'] }
         imageDesktop: { $ref: '#/components/schemas/ImageAsset' }
-        imageMobile: { $ref: '#/components/schemas/ImageAsset' }
+        imageMobile: { oneOf: [{ $ref: '#/components/schemas/ImageAsset' }, { type: 'null' }] }
         startsAt: { type: [string, 'null'], format: date-time }
         endsAt: { type: [string, 'null'], format: date-time }
         sortOrder: { type: integer }
         isActive: { type: boolean }
-    Banner:
-      allOf:
-        - $ref: '#/components/schemas/BannerInput'
-        - type: object
-          properties:
-            id: { $ref: '#/components/schemas/ObjectId' }
+        updatedAt: { type: string, format: date-time, description: Send back as `expectedUpdatedAt` on PATCH }
+    HomeSectionConfig:
+      type: object
+      additionalProperties: false
+      properties:
+        productIds: { type: array, maxItems: 24, items: { $ref: '#/components/schemas/ObjectId' } }
+        categoryIds: { type: array, maxItems: 24, items: { $ref: '#/components/schemas/ObjectId' } }
+        limit: { type: integer, minimum: 1, maximum: 24, description: 'Resolved product count; default 8' }
+        bannerId: { $ref: '#/components/schemas/ObjectId' }
+        testimonials:
+          type: array
+          maxItems: 12
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, quote]
+            properties:
+              name: { type: string, minLength: 1, maxLength: 80 }
+              quote: { $ref: '#/components/schemas/LocalizedText', description: '<= 500 chars per locale' }
     HomeSectionInput:
       type: object
+      additionalProperties: false
       required: [type, title]
+      description: '`title` needs both locales non-empty (<= 120 chars); subtitle <= 200 per locale.'
       properties:
         type: { $ref: '#/components/schemas/SectionType' }
         title: { $ref: '#/components/schemas/LocalizedText' }
-        subtitle: { $ref: '#/components/schemas/LocalizedText' }
-        config:
-          type: object
-          properties:
-            productIds: { type: array, items: { $ref: '#/components/schemas/ObjectId' } }
-            categoryIds: { type: array, items: { $ref: '#/components/schemas/ObjectId' } }
-            limit: { type: integer, maximum: 24 }
-            bannerId: { $ref: '#/components/schemas/ObjectId' }
-            testimonials:
-              type: array
-              items:
-                type: object
-                properties:
-                  name: { type: string }
-                  quote: { $ref: '#/components/schemas/LocalizedText' }
-        sortOrder: { type: integer }
+        subtitle: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        config: { $ref: '#/components/schemas/HomeSectionConfig' }
+        sortOrder: { type: integer, minimum: 0, default: 0 }
+        isVisible: { type: boolean, default: true }
+    HomeSectionPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 2
+      required: [expectedUpdatedAt]
+      description: Any subset of HomeSectionInput (same limits) plus the required `expectedUpdatedAt` and at least one field to change; mismatch -> 409 STALE_UPDATE.
+      properties:
+        expectedUpdatedAt: { type: string, format: date-time, description: The `updatedAt` the admin loaded }
+        type: { $ref: '#/components/schemas/SectionType' }
+        title: { $ref: '#/components/schemas/LocalizedText' }
+        subtitle: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        config: { $ref: '#/components/schemas/HomeSectionConfig' }
+        sortOrder: { type: integer, minimum: 0 }
         isVisible: { type: boolean }
     HomeSection:
       allOf:
         - $ref: '#/components/schemas/HomeSectionInput'
         - type: object
+          required: [id, updatedAt]
           properties:
             id: { $ref: '#/components/schemas/ObjectId' }
+            config: { oneOf: [{ $ref: '#/components/schemas/HomeSectionConfig' }, { type: 'null' }], description: null when the section was created without a config }
+            updatedAt: { type: string, format: date-time, description: Send back as `expectedUpdatedAt` on PATCH }
     PageInput:
       type: object
+      additionalProperties: false
       required: [slug, title, content]
+      description: >-
+        `content` is HTML, sanitised server-side on every write (allowlist of Tiptap tags; img only from
+        R2_PUBLIC_BASE_URL; links https or same-site; ADR-013). Title <= 120, content <= 50000, metaTitle <= 120,
+        metaDescription <= 300 chars per locale. Publish gate (I18N-02): `isPublished` true requires title and
+        content non-empty in both locales; false requires at least one.
       properties:
-        slug: { type: string }
+        slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', maxLength: 60, description: Unique -> 409 SLUG_TAKEN }
         title: { $ref: '#/components/schemas/LocalizedText' }
         content: { $ref: '#/components/schemas/LocalizedText' }
-        metaTitle: { $ref: '#/components/schemas/LocalizedText' }
-        metaDescription: { $ref: '#/components/schemas/LocalizedText' }
+        metaTitle: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        metaDescription: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        isPublished: { type: boolean, default: false }
+    PagePatch:
+      type: object
+      additionalProperties: false
+      minProperties: 2
+      required: [expectedUpdatedAt]
+      description: Any subset of PageInput (same limits and sanitisation) plus the required `expectedUpdatedAt` and at least one field to change; mismatch -> 409 STALE_UPDATE.
+      properties:
+        expectedUpdatedAt: { type: string, format: date-time, description: The `updatedAt` the admin loaded }
+        slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', maxLength: 60 }
+        title: { $ref: '#/components/schemas/LocalizedText' }
+        content: { $ref: '#/components/schemas/LocalizedText' }
+        metaTitle: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        metaDescription: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
         isPublished: { type: boolean }
     Page:
       allOf:
         - $ref: '#/components/schemas/PageInput'
         - type: object
+          required: [id, updatedAt]
           properties:
             id: { $ref: '#/components/schemas/ObjectId' }
-            updatedAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time, description: Send back as `expectedUpdatedAt` on PATCH }
+    SiteSettingInput:
+      type: object
+      additionalProperties: false
+      required: [expectedUpdatedAt, storeName, contactEmail, contactPhone, deliveryFee, vat, deliveryCities, defaultLocale]
+      description: >-
+        Body of PUT /admin/settings (full replace, owner 2026-11-22, T-011). `currency` is fixed to SAR and not
+        accepted (unknown field -> 422). The logo is an ImageAssetInput (`url` recomputed from `key`). Limits:
+        storeName <= 120, address <= 300 per locale, contactEmail <= 120, contactPhone free text <= 40, social
+        URLs <= 300, SEO title <= 120 / description <= 300 per locale, city name <= 60 per locale, city code
+        <= 40. Duplicate city codes or a missing ar/en city name -> 422.
+      properties:
+        expectedUpdatedAt: { type: string, format: date-time, description: The `updatedAt` the admin loaded; mismatch -> 409 STALE_UPDATE }
+        storeName: { $ref: '#/components/schemas/LocalizedText' }
+        logo: { oneOf: [{ $ref: '#/components/schemas/ImageAssetInput' }, { type: 'null' }] }
+        contactEmail: { type: string, format: email }
+        contactPhone: { type: string, description: Free text; the store may list a landline }
+        address: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        socials:
+          type: object
+          additionalProperties: false
+          properties:
+            facebook: { type: [string, 'null'] }
+            instagram: { type: [string, 'null'] }
+            whatsapp: { type: [string, 'null'] }
+            tiktok: { type: [string, 'null'] }
+        deliveryFee: { type: integer, minimum: 0, description: Base delivery fee in halalas (negative -> 422) }
+        freeDeliveryThreshold: { type: [integer, 'null'], minimum: 0 }
+        vat: { $ref: '#/components/schemas/VatSetting' }
+        deliveryCities: { type: array, minItems: 1, items: { $ref: '#/components/schemas/DeliveryCity' } }
+        defaultLocale: { $ref: '#/components/schemas/Locale' }
+        seo:
+          type: object
+          additionalProperties: false
+          properties:
+            title: { $ref: '#/components/schemas/LocalizedText' }
+            description: { $ref: '#/components/schemas/LocalizedText' }
     SiteSetting:
       type: object
       properties:
@@ -1678,3 +1862,4 @@ components:
           properties:
             title: { $ref: '#/components/schemas/LocalizedText' }
             description: { $ref: '#/components/schemas/LocalizedText' }
+        updatedAt: { type: string, format: date-time, description: Send back as `expectedUpdatedAt` on PUT /admin/settings (admin response; also present on the public endpoint) }

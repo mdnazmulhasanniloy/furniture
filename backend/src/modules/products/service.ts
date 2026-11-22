@@ -36,8 +36,8 @@ const toCategory = (c: Category) => ({
   isActive: c.isActive,
 });
 
-/** API shape: optionals as explicit null, `searchText` never exposed. */
-const toProduct = (p: ProductWithCategory) => ({
+/** API shape: optionals as explicit null, `searchText` never exposed. Reused by the CMS home resolver (T-011). */
+export const toProduct = (p: ProductWithCategory) => ({
   id: p.id,
   title: p.title,
   description: p.description,

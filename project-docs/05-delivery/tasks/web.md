@@ -5,6 +5,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 ### T-030 Bootstrap Next.js + design tokens + i18n/RTL · todo
 - Req: I18N-01, UI-01 · Depends: — · Docs: `03-design/design-system.md`, `adr/ADR-002`, `adr/ADR-004`
 - Done: dev port 3100 (`next dev -p 3100`, `STOREFRONT_URL`); `images.remotePatterns` allows the `R2_PUBLIC_BASE_URL` host; Next.js 15 App Router, Tailwind v4 tokens from design system, shadcn init, fonts (Fraunces/Manrope/Noto Kufi Arabic/IBM Plex Sans Arabic), `next-intl` with `/en` `/ar`, `<html dir>` correct (Playwright check), `messages/en.json` + `ar.json` key parity script.
+- Note (backend T-011): the `/api/revalidate` route receives `{tags}` with `x-revalidate-secret` (must equal backend `REVALIDATE_SECRET`). Tag pages that show prices, VAT or delivery info with the `settings` tag as well as their own tag — a settings change revalidates `settings`, `home` and `products` (owner 2026-11-22).
 
 ### T-031 API client + auth state + token refresh · todo
 - Req: AUTH-05 · Depends: T-030, backend T-005
@@ -26,6 +27,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 ### T-035 Product detail · todo
 - Req: PROD-02 · Depends: T-034
 - Done: gallery, condition panel, specs, sold-out state, related; SSR + metadata.
+- Note (backend T-011): tag the page with `product:{slug}`, `products` AND `settings` — VAT and delivery display change when an admin edits settings, and a settings write revalidates the `settings` tag (owner 2026-11-22).
 
 ### T-036 Cart (guest + server, drawer, merge) · todo
 - Req: CART-01 · Depends: T-035, backend T-012

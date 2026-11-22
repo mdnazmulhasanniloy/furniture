@@ -32,6 +32,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 ### T-036 Cart (guest + server, drawer, merge) · todo
 - Req: CART-01 · Depends: T-035, backend T-012
 - Done: localStorage guest cart; merge on login; qty capped; free-delivery progress; fly-to-cart animation.
+- Backend T-012 notes (2026-11-22): clear the localStorage cart **only after a successful `POST /cart/merge` response** (merge is idempotent, so retrying after a failure is safe). When `GET /cart?addressId=` returns `address.isDeliverable: false`, show "We don't deliver to this city" and disable checkout. Render per-line `issue` (UNAVAILABLE / OUT_OF_STOCK / QTY_REDUCED / PRICE_CHANGED with old vs new price). On 409 `CART_CONFLICT`, retry the write once.
 
 ### T-037 Auth pages · todo
 - Req: AUTH-01..04 · Depends: T-031, backend T-004..T-006
@@ -39,7 +40,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 ### T-038 Checkout + success · todo
 - Req: ORD-01, PROF-02 · Depends: T-036, T-037, backend T-013
-- Done: inline address add; COD only; per-item stock error display; success page. An address with `isDeliverable: false` (`api-spec.yaml#Address`) is shown as "Not deliverable" and cannot be chosen; the customer picks an active city first. The field is a hint only: placing the order still re-checks the city on the server (422 `OUT_OF_DELIVERY_AREA`) and the UI handles that error.
+- Done: inline address add; COD only; per-item stock error display; success page. An address with `isDeliverable: false` (`api-spec.yaml#Address`) is shown as "Not deliverable" and cannot be chosen; the customer picks an active city first. The field is a hint only: placing the order still re-checks the city on the server (422 `OUT_OF_DELIVERY_AREA`) and the UI handles that error. Backend T-012 note (2026-11-22): `GET /cart?addressId=` also returns `address.isDeliverable`; when false, show "We don't deliver to this city" and disable the place-order button.
 
 ### T-039 Account area · todo
 - Req: PROF-01, PROF-02, ORD-02, ORD-03 · Depends: T-038

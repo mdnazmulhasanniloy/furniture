@@ -526,24 +526,44 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
 
   # ---------------- CART ----------------
+  # Customers only (requireRole CUSTOMER): an admin gets 403. Writes are optimistic-concurrent on
+  # Cart.version (conditional update, re-read and re-apply up to 3 attempts, then 409 CART_CONFLICT).
   /cart:
     get:
       tags: [Cart]
       summary: Current cart with live prices, delivery fee and VAT (CART-01, ADR-009)
+      description: |
+        Read-only: the stored cart is never rewritten by this request. Each line is checked against the live
+        product and flagged with `issue` (priority UNAVAILABLE > OUT_OF_STOCK > QTY_REDUCED > PRICE_CHANGED;
+        PRICE_CHANGED carries `details: {oldPrice, newPrice}` compared against the `priceSeen` stored on the
+        line). `qty` in the response is the effective (stock-capped) quantity. Only effective lines
+        (not UNAVAILABLE/OUT_OF_STOCK) are passed to the pricing function; an empty or fully ineffective cart
+        prices as 0 (deliveryFee 0, vatAmount 0, total 0) even when a base fee is set.
+        `addressId` must belong to the caller (404 otherwise); an address whose city is unknown or
+        deactivated still prices with the base fee but returns `address.isDeliverable: false`
+        (checkout, not the cart, rejects with OUT_OF_DELIVERY_AREA — ORD-01).
       parameters:
         - name: addressId
           in: query
           required: false
-          description: When given, the delivery fee uses that address's city (override or default); otherwise the default fee.
+          description: When given, the delivery fee uses that address's city (override or default) and the response includes `address`; otherwise the base fee.
           schema: { $ref: '#/components/schemas/ObjectId' }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Cart' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+        '404': { $ref: '#/components/responses/Error', description: addressId unknown or not owned by the caller }
   /cart/items:
     put:
       tags: [Cart]
       summary: Set quantity for a product (0 removes)
+      description: |
+        Upserts one line and refreshes its `priceSeen` to the live price. `qty` above live stock -> 409
+        `OUT_OF_STOCK` with `details: {productId, stock}`, nothing written. Unknown or non-PUBLISHED
+        product -> 404. Adding a 51st distinct line -> 409 `CART_LIMIT_REACHED`. Concurrent writes that
+        keep conflicting after 3 attempts -> 409 `CART_CONFLICT` (client retries).
       requestBody:
         required: true
         content:
@@ -551,36 +571,55 @@ paths:
             schema:
               type: object
               required: [productId, qty]
+              additionalProperties: false
               properties:
                 productId: { $ref: '#/components/schemas/ObjectId' }
-                qty: { type: integer, minimum: 0 }
+                qty: { type: integer, minimum: 0, maximum: 100000 }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Cart' } } }
-        '409': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+        '404': { $ref: '#/components/responses/Error', description: Product unknown or not PUBLISHED }
+        '409': { $ref: '#/components/responses/Error', description: "`OUT_OF_STOCK` (details: {productId, stock}), `CART_LIMIT_REACHED` (max 50 distinct lines) or `CART_CONFLICT` (concurrent writes, retry)" }
   /cart/merge:
     post:
       tags: [Cart]
       summary: Merge guest cart after login (CART-01)
+      description: |
+        Idempotent (owner 2026-11-22): for each product the new qty = max(existing qty, guest qty), capped at
+        live stock — repeating the same merge never doubles quantities. Duplicate productIds in the payload are
+        combined with max. Unknown and non-PUBLISHED products are skipped silently (best effort, no 409).
+        Each merged line's `priceSeen` is refreshed to the live price. Lines beyond the 50-line cart limit are
+        dropped (existing lines first). The web client clears the localStorage cart only after a successful
+        response (web T-036).
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required: [items]
+              additionalProperties: false
               properties:
                 items:
                   type: array
+                  maxItems: 100
                   items:
                     type: object
+                    required: [productId, qty]
+                    additionalProperties: false
                     properties:
                       productId: { $ref: '#/components/schemas/ObjectId' }
-                      qty: { type: integer, minimum: 1 }
+                      qty: { type: integer, minimum: 1, maximum: 100000 }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/Cart' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+        '409': { $ref: '#/components/responses/Error', description: "`CART_CONFLICT` (concurrent writes, retry)" }
 
   # ---------------- ORDERS ----------------
   /orders:
@@ -1317,7 +1356,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CART_CONFLICT, CART_LIMIT_REACHED] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }
@@ -1581,14 +1620,27 @@ components:
           items:
             type: object
             properties:
-              product: { $ref: '#/components/schemas/Product' }
-              qty: { type: integer }
-              lineTotal: { type: integer }
-              issue: { type: [string, 'null'], enum: [OUT_OF_STOCK, QTY_REDUCED, UNAVAILABLE, null] }
-        subtotal: { type: integer }
-        deliveryFee: { type: integer, description: 'Resolved fee in halalas; 0 renders as "Free delivery"' }
+              product:
+                anyOf: [{ $ref: '#/components/schemas/Product' }, { type: 'null' }]
+                description: Null when the product no longer exists (issue UNAVAILABLE)
+              qty: { type: integer, description: Effective quantity (stored qty capped at live stock; 0 when OUT_OF_STOCK/UNAVAILABLE) }
+              lineTotal: { type: integer, description: unitPrice × effective qty; 0 for OUT_OF_STOCK/UNAVAILABLE lines }
+              issue:
+                type: [string, 'null']
+                enum: [UNAVAILABLE, OUT_OF_STOCK, QTY_REDUCED, PRICE_CHANGED, null]
+                description: 'Priority when several apply: UNAVAILABLE > OUT_OF_STOCK > QTY_REDUCED > PRICE_CHANGED'
+              details: { type: ['object', 'null'], description: 'PRICE_CHANGED only: {oldPrice, newPrice} in halalas (oldPrice = the line''s stored priceSeen)' }
+        subtotal: { type: integer, description: Sum of effective lineTotals; 0 for an empty cart }
+        deliveryFee: { type: integer, description: 'Resolved fee in halalas; 0 renders as "Free delivery"; always 0 when no effective lines' }
         vat: { $ref: '#/components/schemas/OrderVat' }
-        total: { type: integer, description: 'subtotal + deliveryFee, plus vat.vatAmount when prices exclude VAT' }
+        total: { type: integer, description: 'subtotal + deliveryFee, plus vat.vatAmount when prices exclude VAT; 0 when no effective lines' }
+        address:
+          type: ['object', 'null']
+          description: Present only when `addressId` was given. `isDeliverable` uses the T-007 rule (active city in SiteSetting.deliveryCities); false means the web shows "We don't deliver to this city" and disables checkout (web T-036/T-038).
+          properties:
+            id: { $ref: '#/components/schemas/ObjectId' }
+            cityCode: { type: string }
+            isDeliverable: { type: boolean }
     StatusEvent:
       type: object
       properties:

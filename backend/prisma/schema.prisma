@@ -139,6 +139,7 @@ type OrderVat {
 type CartItem {
   productId String @db.ObjectId
   qty       Int
+  priceSeen Int // halalas; unit price at the last PUT/merge of this line (T-012, PRICE_CHANGED flag)
 }
 
 type OrderItem {
@@ -316,6 +317,8 @@ model Cart {
   userId    String     @unique @db.ObjectId
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     CartItem[]
+  // Optimistic concurrency (T-012): every write is conditional on (userId, version) and sets version + 1.
+  version   Int        @default(0)
   updatedAt DateTime   @updatedAt
 }
 

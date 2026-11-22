@@ -8,6 +8,7 @@ import { createLogger, type Logger } from './lib/logger.js';
 import { createErrorHandler, notFoundHandler } from './middleware/error.js';
 import { requestId } from './middleware/requestId.js';
 import { authRouter } from './modules/auth/routes.js';
+import { cartRouter } from './modules/cart/routes.js';
 import { adminCategoriesRouter, categoriesRouter } from './modules/categories/routes.js';
 import {
   adminBannersRouter,
@@ -66,6 +67,7 @@ export function createApp(arg: Env | CreateAppOptions = {}) {
   const v1 = Router();
   v1.use('/auth', authRouter);
   v1.use('/me', meRouter);
+  v1.use('/cart', cartRouter);
   v1.use('/categories', categoriesRouter);
   v1.use('/products', productsRouter);
   v1.use('/cms', cmsRouter);

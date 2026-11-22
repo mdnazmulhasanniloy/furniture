@@ -13,6 +13,7 @@ export const REDACT_PATHS = [
   'req.headers.authorization',
   'req.headers.cookie',
   'req.headers["x-csrf-token"]',
+  'req.headers["x-cron-secret"]', // CRON_SECRET (T-025); the Bearer form is covered by authorization
   'res.headers["set-cookie"]',
   ...[
     'password',

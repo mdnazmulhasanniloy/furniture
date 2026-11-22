@@ -9,6 +9,7 @@ import { createErrorHandler, notFoundHandler } from './middleware/error.js';
 import { requestId } from './middleware/requestId.js';
 import { adminAdminsRouter, adminCustomersRouter } from './modules/adminUsers/routes.js';
 import { authRouter } from './modules/auth/routes.js';
+import { createCronRouter } from './modules/cron/routes.js';
 import { dashboardRouter } from './modules/dashboard/routes.js';
 import { cartRouter } from './modules/cart/routes.js';
 import { adminCategoriesRouter, categoriesRouter } from './modules/categories/routes.js';
@@ -94,6 +95,9 @@ export function createApp(arg: Env | CreateAppOptions = {}) {
   v1.use('/admin/uploads', uploadsRouter);
   for (const { path, router } of extraRouters) v1.use(path, router);
   app.use('/api/v1', v1);
+
+  // T-025 (NFR-08): Vercel Cron target, not under /api/v1; unset CRON_SECRET -> not mounted (404).
+  if (env.CRON_SECRET) app.use('/internal/cron', createCronRouter(env.CRON_SECRET));
 
   app.use(notFoundHandler);
   app.use(createErrorHandler(logger));

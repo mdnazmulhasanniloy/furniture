@@ -80,6 +80,18 @@ export const forgotPassword: RequestHandler = async (req, res) => {
   res.status(200).json({ message: msg('resent', req) });
 };
 
+export const acceptInvite: RequestHandler = async (req, res) => {
+  const { email, code, password } = req.body as { email: string; code: string; password: string };
+  const { user, accessToken, refreshToken } = await auth.acceptInvite(
+    email,
+    code,
+    password,
+    req.get('user-agent'),
+  );
+  setRefreshCookie(res, refreshToken);
+  res.status(200).json({ accessToken, user: auth.toPublicUser(user) });
+};
+
 export const resetPassword: RequestHandler = async (req, res) => {
   const { email, code, newPassword } = req.body as {
     email: string;

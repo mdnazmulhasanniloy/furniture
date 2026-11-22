@@ -64,7 +64,7 @@ export const testHooks = createTestHooks<{
 
 // ---------------------------------------------------------------- response shaping
 
-const USER_INCLUDE = {
+export const USER_INCLUDE = {
   user: { select: { id: true, firstName: true, lastName: true, email: true } },
 } satisfies Prisma.OrderInclude;
 

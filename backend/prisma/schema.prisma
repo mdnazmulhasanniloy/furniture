@@ -24,6 +24,7 @@ enum Locale {
 enum OtpPurpose {
   VERIFY_EMAIL
   RESET_PASSWORD
+  INVITE_ADMIN // T-017: issued only by POST /admin/admins (+ resend); TTL = INVITE_TTL_SECONDS
 }
 
 enum ProductType {
@@ -180,6 +181,7 @@ model User {
   phone             String?
   avatar            String?
   preferredLocale   Locale         @default(ar)
+  invitedById       String?        @db.ObjectId // T-017 audit: the admin who created the invite; explicit null otherwise
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   addresses         Address[]

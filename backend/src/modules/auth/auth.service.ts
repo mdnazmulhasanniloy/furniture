@@ -77,7 +77,8 @@ export async function register(
 
   if (!existing) {
     try {
-      await prisma.user.create({ data: { email, ...pending } });
+      // Rule 8: writers set optional fields to an explicit null (invitedById is admin-invite audit, T-017).
+      await prisma.user.create({ data: { email, ...pending, invitedById: null } });
     } catch (err) {
       if (!isUniqueViolation(err)) throw err; // lost a race with another register: keep that account untouched
     }
@@ -235,4 +236,63 @@ export async function resetPassword(
     locale: user.preferredLocale,
     data: { firstName: user.firstName },
   });
+}
+
+/**
+ * ADM-11 (T-017). Accepts an admin invite: the invitee proves the emailed INVITE_ADMIN code and sets
+ * their own password (the inviter never knows it). Anti-enumeration mirrors `resetPassword`: every
+ * failure to match a live code — unknown email, no live code, expired, used, wrong, or the account is
+ * not a pending admin invite — is the identical 400 OTP_INVALID with one argon2 verify spent.
+ * ACCOUNT_BLOCKED (403) only after a correct code. Logs the invitee in (like `verifyOtp`).
+ *
+ * `passwordChangedAt` is intentionally NOT set: this is the account's first password (nothing earlier
+ * can exist — unverified users fail requireAuth and the pre-accept hash is random), and setting it
+ * would reject the access token issued in the same second (`iat <= passwordChangedAt`).
+ */
+export async function acceptInvite(
+  email: string,
+  code: string,
+  password: string,
+  userAgent?: string,
+) {
+  let match;
+  try {
+    match = await matchOtp(email, 'INVITE_ADMIN', code, 'OTP_INVALID');
+  } catch (err) {
+    await dummyVerify(password);
+    throw err;
+  }
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || user.role !== 'ADMIN' || user.isVerified) {
+    await dummyVerify(password);
+    throw otpInvalid();
+  }
+  if (user.isBlocked) throw new AppError(403, 'ACCOUNT_BLOCKED', 'Account blocked');
+
+  const passwordHash = await hashPassword(password);
+  const now = new Date();
+  let verified;
+  try {
+    verified = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.otp.updateMany({
+        where: { id: match.id, ...UNCONSUMED, expiresAt: { gt: now } },
+        data: { consumedAt: now },
+      });
+      if (claimed.count === 0) throw otpInvalid(); // lost the race for this one-time code
+      await tx.otp.updateMany({
+        where: { email, purpose: 'INVITE_ADMIN', ...UNCONSUMED },
+        data: { consumedAt: now },
+      });
+      return tx.user.update({
+        where: { id: user.id },
+        data: { passwordHash, isVerified: true },
+      });
+    });
+  } catch (err) {
+    if (isWriteConflict(err)) throw otpInvalid(); // a concurrent accept with the same code won
+    throw err;
+  }
+
+  const refreshToken = await issueRefreshToken(verified.id, userAgent);
+  return { user: verified, accessToken: signAccessToken(verified), refreshToken };
 }

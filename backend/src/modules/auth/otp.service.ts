@@ -57,6 +57,10 @@ export async function assertCanIssue(
   }
 }
 
+/** Code validity per purpose: invites live `INVITE_TTL_SECONDS` (48 h default, T-017), the rest `OTP_TTL_SECONDS`. */
+const ttlSecondsFor = (purpose: OtpPurpose): number =>
+  purpose === 'INVITE_ADMIN' ? getEnv().INVITE_TTL_SECONDS : getEnv().OTP_TTL_SECONDS;
+
 /** Creates an OTP row and returns the plaintext code (only the keyed hash is stored). */
 export async function createOtp(args: {
   email: string;
@@ -76,7 +80,7 @@ export async function createOtp(args: {
       purpose: args.purpose,
       codeHash: hashOtp(args.email, code),
       attempts: active._max.attempts ?? 0,
-      expiresAt: new Date(now.getTime() + getEnv().OTP_TTL_SECONDS * 1000),
+      expiresAt: new Date(now.getTime() + ttlSecondsFor(args.purpose) * 1000),
       createdAt: now,
       consumedAt: null,
       pendingRegistration: args.pendingRegistration,

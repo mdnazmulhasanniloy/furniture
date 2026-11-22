@@ -73,6 +73,7 @@ export async function runSeed(prisma: PrismaClient, opts: SeedOptions): Promise<
         lastName: (a.lastName as string).trim(),
         role: 'ADMIN',
         isVerified: true,
+        invitedById: null, // rule 8: explicit null (T-017 audit field; the seeded admin is not invited)
       },
     });
     result.admin = true;

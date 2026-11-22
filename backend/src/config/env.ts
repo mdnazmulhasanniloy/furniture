@@ -46,6 +46,8 @@ const schema = z.object({
   ARGON2_TIME_COST: intWithDefault(2),
   ARGON2_PARALLELISM: intWithDefault(1),
   OTP_TTL_SECONDS: intWithDefault(600),
+  INVITE_TTL_SECONDS: intWithDefault(172_800), // ADM-11 (T-017): admin-invite code validity, 48 h
+
   LOGIN_MAX_FAILURES: intWithDefault(5),
   LOGIN_LOCKOUT_SECONDS: intWithDefault(900),
   MAX_ACTIVE_SESSIONS: intWithDefault(5),

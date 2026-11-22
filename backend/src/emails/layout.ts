@@ -43,6 +43,27 @@ export function formatMinutes(ttlSeconds: number, locale: Locale): string {
   }
 }
 
+/**
+ * TTL seconds -> hours when it is a whole number of hours >= 1 ("48 hours" / "48 ساعة"),
+ * otherwise minutes via `formatMinutes`. Used by long-lived codes (admin invite, T-017).
+ */
+export function formatDuration(ttlSeconds: number, locale: Locale): string {
+  if (ttlSeconds < 3600 || ttlSeconds % 3600 !== 0) return formatMinutes(ttlSeconds, locale);
+  const n = ttlSeconds / 3600;
+  const category = pluralRules[locale].select(n);
+  if (locale === 'en') return category === 'one' ? `${n} hour` : `${n} hours`;
+  switch (category) {
+    case 'one':
+      return 'ساعة واحدة';
+    case 'two':
+      return 'ساعتان';
+    case 'few':
+      return `${n} ساعات`; // 3-10
+    default:
+      return `${n} ساعة`; // many (11-99) and other
+  }
+}
+
 export function otpBox(code: string): string {
   return `<p style="font-size:32px;letter-spacing:8px;font-weight:bold;margin:24px 0;direction:ltr;text-align:center">${escapeHtml(code)}</p>`;
 }

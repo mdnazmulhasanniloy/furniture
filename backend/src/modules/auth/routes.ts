@@ -4,6 +4,7 @@ import { requireAuth } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
 import * as controller from './controller.js';
 import {
+  acceptInviteBody,
   forgotPasswordBody,
   loginBody,
   registerBody,
@@ -44,6 +45,20 @@ authRouter.post(
   resetIpLimiter,
   validate({ body: resetPasswordBody }),
   controller.resetPassword,
+);
+/** ADM-11 (T-017): same guessing protection as reset-password — 10 failed accepts / 15 min / IP. */
+const acceptInviteIpLimiter = createRateLimiter({
+  name: 'accept-invite',
+  limit: 10,
+  windowSeconds: 900,
+  skipSuccessful: true,
+});
+
+authRouter.post(
+  '/accept-invite',
+  acceptInviteIpLimiter,
+  validate({ body: acceptInviteBody }),
+  controller.acceptInvite,
 );
 authRouter.get('/csrf', controller.csrf);
 authRouter.post('/refresh', controller.refresh);

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-const email = z.string().trim().toLowerCase().email().max(254);
-const name = z.string().trim().min(1).max(40);
+export const email = z.string().trim().toLowerCase().email().max(254);
+export const name = z.string().trim().min(1).max(40);
 
 /** PRD AUTH-03: 8-128 characters, at least one letter and one number. */
 export const password = z
@@ -13,7 +13,7 @@ export const password = z
     'Password must contain at least one letter and one number',
   );
 
-const locale = z.enum(['ar', 'en']);
+export const locale = z.enum(['ar', 'en']);
 const otpPurpose = z.enum(['VERIFY_EMAIL', 'RESET_PASSWORD']);
 
 export const registerBody = z.object({
@@ -43,6 +43,13 @@ export const resetPasswordBody = z.object({
   email,
   code: z.string().regex(/^\d{6}$/),
   newPassword: password,
+});
+
+/** ADM-11 (T-017): the invitee sets their own password with the invite code. */
+export const acceptInviteBody = z.object({
+  email,
+  code: z.string().regex(/^\d{6}$/),
+  password,
 });
 
 export type ResendOtpBody = z.infer<typeof resendOtpBody>;

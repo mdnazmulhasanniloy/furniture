@@ -253,6 +253,53 @@ paths:
         '403': { description: "`ACCOUNT_BLOCKED`, only after a correct code", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '422': { $ref: '#/components/responses/Error', description: "Validation error (malformed email or code, weak password); the code stays usable" }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (per-IP limit on failed attempts)" }
+  /auth/accept-invite:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Accept an admin invite — set the password, verify, log in (ADM-11, T-017)
+      description: |
+        Completes an invite created by `POST /admin/admins`. The invitee chooses their own password here;
+        the inviting admin never knows it (owner decision 2026-11-22).
+
+        **No enumeration.** Every failure to match a live `INVITE_ADMIN` code (unknown email, no live code,
+        expired — invites live `INVITE_TTL_SECONDS`, default 48 h —, already used, wrong code) is the identical
+        400 `OTP_INVALID`, and each failure path spends one argon2 verify so timing matches. The 5th wrong code
+        for an email burns every live code. `ACCOUNT_BLOCKED` (403) is returned only after a correct code.
+        A weak password -> 422 and the code stays usable.
+
+        **On success, in one transaction:** the chosen password's argon2id hash is stored, `isVerified` is set,
+        and every `INVITE_ADMIN` OTP of the email is consumed. The invitee is logged in (same response shape as
+        `/auth/verify-otp`: access token + `fx_rt` refresh cookie). `passwordChangedAt` is NOT set: this is the
+        account's first password, no earlier session or token can exist (unverified users fail `requireAuth` and
+        the pre-accept hash is unusable), and setting it would reject the access token issued in the same second.
+
+        **IP limit:** 10 failed attempts per 15 min per IP (successes do not count) -> 429 `RATE_LIMITED`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code, password]
+              properties:
+                email: { type: string, format: email }
+                code: { type: string, pattern: '^[0-9]{6}$' }
+                password: { type: string, minLength: 8, maxLength: 128, description: "At least one letter and one number (same rule as registration)" }
+      responses:
+        '200':
+          description: Verified and logged in (sets the `fx_rt` refresh cookie, same flags as login)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+                  user: { $ref: '#/components/schemas/User' }
+        '400': { $ref: '#/components/responses/Error', description: "`OTP_INVALID` (any failure to match a live code; see above)" }
+        '403': { description: "`ACCOUNT_BLOCKED`, only after a correct code", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/Error', description: "Validation error (malformed email or code, weak password); the code stays usable" }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (per-IP limit on failed attempts)" }
   /auth/me:
     get:
       tags: [Auth]
@@ -743,8 +790,11 @@ paths:
       tags: [Internal]
       summary: Cleanup job called by Vercel Cron (daily). Also accepts POST for manual runs.
       description: >
-        Deletes expired or consumed OTPs, expired or revoked refresh tokens and Socket.IO adapter documents older than
-        SOCKET_ADAPTER_TTL_SECONDS. Authenticated by `Authorization: Bearer CRON_SECRET` (what Vercel Cron sends) or header
+        Deletes expired or consumed OTPs; expired or revoked refresh tokens; Socket.IO adapter documents older than
+        SOCKET_ADAPTER_TTL_SECONDS; read notifications (readAt set) older than 90 days and unread ones (readAt null or
+        missing) older than 180 days; and Upload rows never attached after 24 h (max 200 per run — the R2 object is
+        deleted first, a failed R2 delete keeps the row for the next run; an R2 object referenced by an order item's
+        imageKey is never deleted). Authenticated by `Authorization: Bearer CRON_SECRET` (what Vercel Cron sends) or header
         `x-cron-secret: CRON_SECRET`; not available to bearer JWTs. Idempotent. Not mounted when CRON_SECRET is unset.
       security: [{ cronBearer: [] }, { cronHeader: [] }]
       responses:
@@ -753,27 +803,27 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [otps, refreshTokens, socketEvents]
-                properties:
-                  otps: { type: integer }
-                  refreshTokens: { type: integer }
-                  socketEvents: { type: integer }
+                $ref: '#/components/schemas/CronCleanupResult'
         '401': { $ref: '#/components/responses/Error' }
     post:
       tags: [Internal]
       summary: Same as GET (manual run)
       security: [{ cronBearer: [] }, { cronHeader: [] }]
       responses:
-        '200': { description: Counts of removed documents }
+        '200':
+          description: Counts of removed documents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CronCleanupResult'
         '401': { $ref: '#/components/responses/Error' }
 
   # ---------------- NOTIFICATIONS ----------------
   /notifications:
     get:
       tags: [Notifications]
-      summary: My notifications (NOTIF-03)
-      parameters: [{ $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      summary: My notifications, newest first (NOTIF-03; any authenticated user — admins see their NEW_ORDER rows, ADM-10)
+      parameters: [{ $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/NotificationLimit' }]
       responses:
         '200':
           description: OK
@@ -784,26 +834,40 @@ paths:
                 properties:
                   items: { type: array, items: { $ref: '#/components/schemas/Notification' } }
                   meta: { $ref: '#/components/schemas/PageMeta' }
-                  unread: { type: integer }
+                  unread: { type: integer, description: Caller's unread count (readAt null or missing); clients re-fetch this endpoint after every socket connect (integrations.md) }
+        '401': { $ref: '#/components/responses/Error' }
   /notifications/{id}/read:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
       tags: [Notifications]
-      summary: Mark one as read
+      summary: Mark one as read (idempotent — an already-read own id answers 204 again without touching readAt)
       responses:
         '204': { description: OK }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error', description: 'NOT_FOUND: unknown, malformed or another user''s notification id (ownership is never revealed, T-016)' }
   /notifications/read-all:
     post:
       tags: [Notifications]
-      summary: Mark all as read
+      summary: Mark all my notifications as read
       responses:
         '204': { description: OK }
+        '401': { $ref: '#/components/responses/Error' }
 
   # ---------------- ADMIN ----------------
   /admin/dashboard/summary:
     get:
       tags: [Admin]
       summary: KPIs, 30-day order series, latest orders, low stock (ADM-01)
+      description: |
+        All day and month boundaries are **Asia/Riyadh calendar days** (fixed UTC+3, no DST — the T-014
+        convention). `todayOrders` counts every order placed today, any status. `pendingOrders` counts all
+        orders currently PENDING. `monthRevenue` is the sum of `Order.total` (integer halalas, summed in the
+        database — no float math on money, NFR on ADR-009) over orders whose **DELIVERED status event** falls
+        in the current Riyadh month, so an order created last month but delivered this month counts, and one
+        delivered last month does not. `lowStockCount` counts PUBLISHED products with `stock <= 2` (DRAFT and
+        ARCHIVED excluded). `ordersByDay` is the last 30 Riyadh days including today, oldest first,
+        zero-filled, `date` = the Riyadh `YYYY-MM-DD`. `latestOrders` = the 5 newest orders in the admin
+        `Order` shape (T-018).
       responses:
         '200':
           description: OK
@@ -814,10 +878,12 @@ paths:
                 properties:
                   todayOrders: { type: integer }
                   pendingOrders: { type: integer }
-                  monthRevenue: { type: integer }
+                  monthRevenue: { type: integer, description: Halalas; sum of DELIVERED totals this Riyadh month }
                   lowStockCount: { type: integer }
-                  ordersByDay: { type: array, items: { type: object, properties: { date: { type: string, format: date }, count: { type: integer } } } }
-                  latestOrders: { type: array, items: { $ref: '#/components/schemas/Order' } }
+                  ordersByDay: { type: array, minItems: 30, maxItems: 30, items: { type: object, properties: { date: { type: string, format: date }, count: { type: integer } } } }
+                  latestOrders: { type: array, maxItems: 5, items: { $ref: '#/components/schemas/Order' } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
   /admin/uploads/presign:
     post:
       tags: [Admin]
@@ -1109,7 +1175,11 @@ paths:
     get:
       tags: [Admin]
       summary: Customers with order count (ADM-05)
-      parameters: [{ name: q, in: query, schema: { type: string } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+      description: >-
+        Users with role CUSTOMER only (verified and unverified), newest first. `q` (trimmed, <= 100 chars)
+        matches the email, first name or last name case-insensitively (escaped literal, rule 9), or — when it
+        normalises to a Saudi mobile number (NFR-06, incl. Arabic-Indic digits) — the exact stored phone.
+      parameters: [{ name: q, in: query, schema: { type: string, maxLength: 100 } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
       responses:
         '200':
           description: OK
@@ -1118,13 +1188,17 @@ paths:
               schema:
                 type: object
                 properties:
-                  items: { type: array, items: { $ref: '#/components/schemas/User' } }
+                  items: { type: array, items: { $ref: '#/components/schemas/CustomerListItem' } }
                   meta: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — `q` over 100 chars, bad page/limit" }
   /admin/customers/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     get:
       tags: [Admin]
-      summary: Customer detail with orders
+      summary: Customer detail with their orders (newest first, paginated)
+      parameters: [{ $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
       responses:
         '200':
           description: OK
@@ -1135,20 +1209,37 @@ paths:
                 properties:
                   user: { $ref: '#/components/schemas/User' }
                   orders: { type: array, items: { $ref: '#/components/schemas/Order' } }
+                  meta: { $ref: '#/components/schemas/PageMeta' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404':
+          description: NOT_FOUND — unknown or malformed id, or the user is not a CUSTOMER (admins are served by /admin/admins)
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /admin/customers/{id}/block:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
       tags: [Admin]
-      summary: Block / unblock; blocking revokes refresh tokens
+      summary: Block / unblock a customer
+      description: >-
+        Customers only — an ADMIN id -> 404 (admins are blocked via /admin/admins/{id}/block). Idempotent.
+        Blocking revokes every refresh token in the same transaction and then disconnects the user's live
+        sockets (`socketEmitter.disconnectUser`, T-023); the still-valid access token is rejected by
+        `requireAuth` (T-005). Unblocking only clears the flag (the login lockout counter is untouched).
       requestBody:
         required: true
         content:
           application/json:
-            schema: { type: object, required: [isBlocked], properties: { isBlocked: { type: boolean } } }
+            schema: { type: object, additionalProperties: false, required: [isBlocked], properties: { isBlocked: { type: boolean } } }
       responses:
         '200':
           description: OK
           content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404':
+          description: NOT_FOUND — unknown or malformed id, or the user is not a CUSTOMER
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — isBlocked missing or not boolean" }
   /admin/banners:
     get:
       tags: [Admin]
@@ -1342,29 +1433,88 @@ paths:
     get:
       tags: [Admin]
       summary: List admins (ADM-11)
+      description: All ADMIN users (verified and pending invites), newest first, with `invitedById` for audit.
       responses:
         '200':
           description: OK
-          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/User' } } } }
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/AdminUser' } } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
     post:
       tags: [Admin]
-      summary: Invite admin (creates unverified ADMIN, emails OTP)
+      summary: Invite admin (ADM-11, T-017)
+      description: |
+        Creates a User with role ADMIN, `isVerified: false`, **no usable password** (a random hash; the invitee
+        sets their own via `POST /auth/accept-invite`, so the inviter never knows it — owner decision 2026-11-22)
+        and `invitedById` = the inviting admin. Issues an `INVITE_ADMIN` OTP valid `INVITE_TTL_SECONDS`
+        (default 172800 = 48 h) and emails it (`admin-invite` template) in `preferredLocale` with a link to
+        `ADMIN_URL + "/accept-invite?email=<urlencoded email>"` — the code is never in the URL.
+        The T-004 issue limits apply per invited email (60 s cooldown, 5/hour) -> 429 `RATE_LIMITED`.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [firstName, lastName, email, password]
+              additionalProperties: false
+              required: [firstName, lastName, email]
               properties:
                 firstName: { type: string, minLength: 1, maxLength: 40 }
                 lastName: { type: string, minLength: 1, maxLength: 40 }
                 email: { type: string, format: email }
-                password: { type: string, minLength: 8 }
+                preferredLocale: { $ref: '#/components/schemas/Locale', description: "Stored on the user and used for the invite and resend emails (not the inviter's Accept-Language). Default ar." }
       responses:
         '201':
-          description: Created
-          content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
+          description: Created (pending acceptance)
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminUser' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error', description: "`EMAIL_IN_USE` — any existing user with that email (any role, verified or not, incl. a pending customer registration)" }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — missing/overlong names, malformed email, unknown fields" }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` — OTP cooldown or hourly cap for that email" }
+  /admin/admins/{id}/resend-invite:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [Admin]
+      summary: Re-send a pending admin invite (ADM-11, T-017)
+      description: >-
+        Burns every live `INVITE_ADMIN` code of the invitee and issues a fresh one (full `INVITE_TTL_SECONDS`
+        validity), emailed in the invitee's stored `preferredLocale`. Cooldown and hourly cap apply (429).
+      responses:
+        '200': { $ref: '#/components/responses/Message' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404':
+          description: NOT_FOUND — unknown or malformed id, or the user is not an ADMIN
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '409': { $ref: '#/components/responses/Error', description: "`ALREADY_VERIFIED` — the invite was already accepted" }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` — OTP cooldown or hourly cap for that email" }
+  /admin/admins/{id}/block:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [Admin]
+      summary: Block / unblock an admin (ADM-11, T-017)
+      description: >-
+        Admins only — a CUSTOMER id -> 404. Same effects as the customer block (refresh tokens revoked in the
+        transaction, live sockets disconnected, access tokens rejected). Guards: blocking yourself -> 422
+        `SELF_BLOCK`; blocking the last active verified admin -> 409 `LAST_ADMIN` (the store must always keep
+        one admin who can log in; the check is serialized against concurrent admin blocks). Idempotent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [isBlocked], properties: { isBlocked: { type: boolean } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminUser' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404':
+          description: NOT_FOUND — unknown or malformed id, or the user is not an ADMIN
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '409': { $ref: '#/components/responses/Error', description: "`LAST_ADMIN` — would leave no active verified admin" }
+        '422': { $ref: '#/components/responses/Error', description: "`SELF_BLOCK` — an admin cannot block themselves; or `VALIDATION_ERROR`" }
 
 components:
   securitySchemes:
@@ -1375,6 +1525,7 @@ components:
     Id: { name: id, in: path, required: true, schema: { $ref: '#/components/schemas/ObjectId' } }
     Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
     Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 24 } }
+    NotificationLimit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 }, description: 'NOTIF-03 page size (owner 2026-11-22: max 50, default 20)' }
     CsrfToken: { name: X-CSRF-Token, in: header, required: true, schema: { type: string }, description: Token from GET /auth/csrf }
   responses:
     Error:
@@ -1456,7 +1607,7 @@ components:
         pricesIncludeVat: { type: boolean }
         registrationNumber: { type: [string, 'null'] }
     Role: { type: string, enum: [ADMIN, CUSTOMER] }
-    OtpPurpose: { type: string, enum: [VERIFY_EMAIL, RESET_PASSWORD] }
+    OtpPurpose: { type: string, enum: [VERIFY_EMAIL, RESET_PASSWORD], description: "Purposes accepted by POST /auth/resend-otp. A third purpose INVITE_ADMIN exists in the data model (T-017) but is issued and resent only via /admin/admins; resend-otp rejects it (422)." }
     ProductType: { type: string, enum: [NEW, RESALE] }
     Condition: { type: string, enum: [NEW, LIKE_NEW, GOOD, FAIR] }
     ProductStatus: { type: string, enum: [DRAFT, PUBLISHED, ARCHIVED] }
@@ -1466,7 +1617,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, ALREADY_VERIFIED] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }
@@ -1477,6 +1628,16 @@ components:
         limit: { type: integer }
         total: { type: integer }
         totalPages: { type: integer }
+    CronCleanupResult:
+      type: object
+      description: Counts of documents removed by /internal/cron/cleanup (NFR-08). `uploads` counts rows actually removed — a row kept because its R2 delete failed is not counted.
+      required: [otps, refreshTokens, socketEvents, uploads, notifications]
+      properties:
+        otps: { type: integer }
+        refreshTokens: { type: integer }
+        socketEvents: { type: integer }
+        uploads: { type: integer }
+        notifications: { type: integer }
     LocalizedText:
       type: object
       required: [en, ar]
@@ -1518,6 +1679,18 @@ components:
         isBlocked: { type: boolean }
         preferredLocale: { $ref: '#/components/schemas/Locale' }
         createdAt: { type: string, format: date-time }
+    CustomerListItem:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            orderCount: { type: integer, description: Total orders of this customer (any status), derived (ADM-05) }
+    AdminUser:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            invitedById: { type: [string, 'null'], description: "Id of the admin who created the invite; null for non-invited admins (e.g. the seeded admin). Audit only (T-017)." }
     AddressInput:
       type: object
       additionalProperties: false
@@ -1819,12 +1992,17 @@ components:
         meta: { $ref: '#/components/schemas/PageMeta' }
     Notification:
       type: object
+      description: >-
+        One user's notification row (NOTIF-03). It is also the `notification:new` socket event payload —
+        every recipient receives their OWN serialized row, id included, via room `user:{id}` (owner
+        2026-11-22, T-016). The row is written before the emit; the row is the source of truth.
       properties:
         id: { $ref: '#/components/schemas/ObjectId' }
         type: { type: string, enum: [ORDER_PLACED, ORDER_STATUS, NEW_ORDER, SYSTEM] }
         title: { $ref: '#/components/schemas/LocalizedText' }
         body: { $ref: '#/components/schemas/LocalizedText' }
-        link: { type: [string, 'null'] }
+        link: { type: [string, 'null'], description: 'Logical path to the related resource, e.g. /orders/{orderId}; clients map it to their own routes — `data` is the authoritative navigation payload (owner 2026-11-22, T-016)' }
+        data: { type: [object, 'null'], description: 'Navigation payload, e.g. {orderId, orderNo, status} (T-016)' }
         readAt: { type: [string, 'null'], format: date-time }
         createdAt: { type: string, format: date-time }
     SafeHref:

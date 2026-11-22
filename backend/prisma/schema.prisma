@@ -3,6 +3,8 @@
 
 generator client {
   provider = "prisma-client-js"
+  // T-026 (ADR-012 §6): rhel-openssl-3.0.x = Vercel's Node runtime; native keeps local dev/tests working.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {

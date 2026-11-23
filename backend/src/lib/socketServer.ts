@@ -13,7 +13,13 @@ import { verifyAccessToken } from './tokens.js';
  * Used by both the dev entry (`src/server.ts`) and the Vercel socket function (`api/socket-io.ts`).
  */
 
-export const SOCKET_PATH = '/api/socket-io/socket.io';
+/**
+ * Vercel routes ONLY the exact function path `/api/socket-io` to `api/socket-io.ts` — sub-paths
+ * such as `/api/socket-io/socket.io/` get the platform's 404 (verified on the deployed preview,
+ * 2026-11-23). Socket.IO therefore serves the function path itself, with `addTrailingSlash: false`
+ * so engine.io requests are `/api/socket-io?EIO=…`, never `/api/socket-io/?EIO=…`.
+ */
+export const SOCKET_PATH = '/api/socket-io';
 /** NFR-01: connection attempts per IP (counted before auth, shared across instances via T-024). */
 export const SOCKET_CONNECT_LIMIT = 30;
 export const SOCKET_CONNECT_WINDOW_SECONDS = 60;
@@ -40,6 +46,7 @@ export function createSocketServer(
     !origin || env.CORS_ALLOWED_ORIGINS.includes(origin);
   const io = new Server(httpServer, {
     path: SOCKET_PATH,
+    addTrailingSlash: false,
     transports: ['websocket'],
     maxHttpBufferSize: SOCKET_MAX_BUFFER_BYTES,
     cors: {

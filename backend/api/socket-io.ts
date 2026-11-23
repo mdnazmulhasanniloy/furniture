@@ -10,13 +10,16 @@ const env = getEnv();
 initSentry(env);
 
 /**
- * Vercel socket function (ADR-012 §1, amended 2026-11-23): the official Vercel WebSocket shape —
- * default-export an http.Server with Socket.IO attached, and let the platform route
- * `/api/socket-io/*` (including the websocket upgrade) to it (vercel.com/docs/functions/websockets).
- * No vercel.json rewrite may touch this path: upgrade requests pass through rewrites BEFORE the
- * upgrade (same doc), so a rewrite moves the URL away from `SOCKET_PATH` and engine.io never
- * answers 101. The request listener below only serves non-socket paths (health probes,
- * misconfigured clients): engine.io wraps it on attach and owns `SOCKET_PATH`.
+ * Vercel socket function (ADR-012 §1, amended 2026-11-23 twice): the official Vercel WebSocket
+ * shape — default-export an http.Server with Socket.IO attached. Preview verification showed the
+ * platform routes ONLY the exact function path `/api/socket-io` here (sub-paths like
+ * `/api/socket-io/socket.io/` get the platform 404), so Socket.IO serves the function path itself:
+ * `path: SOCKET_PATH` (= `/api/socket-io`) with `addTrailingSlash: false` in socketServer.ts.
+ * No vercel.json rewrite may touch this path either: upgrade requests pass through rewrites BEFORE
+ * the upgrade (vercel.com/docs/functions/websockets). engine.io wraps the request listener on
+ * attach and owns every URL starting with `SOCKET_PATH` — a GET without an `EIO` query gets
+ * engine.io's 400 `{"code":0,"message":"Transport unknown"}`, which doubles as the reachability
+ * probe. The listener below only answers paths outside `SOCKET_PATH`, which Vercel never sends.
  */
 const server = createServer((_req, res) => {
   res.statusCode = 200;

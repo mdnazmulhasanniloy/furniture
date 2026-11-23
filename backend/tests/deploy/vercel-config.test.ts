@@ -62,12 +62,46 @@ describe('Vercel configuration (T-026)', () => {
     expect(res.body).toEqual({ status: 'ok' });
   });
 
-  it('NFR-08 · the socket function default-exports an http.Server with Socket.IO attached (official Vercel WebSocket shape)', async () => {
+  it('NFR-08 · the socket function default-exports an http.Server and engine.io owns the exact function path', async () => {
     expect(socketServer).toBeInstanceOf(HttpServer);
-    // engine.io owns SOCKET_PATH; every other path falls through to the plain JSON responder.
-    const probe = await fetch(`http://127.0.0.1:${port}/api/socket-io`);
-    expect(probe.status).toBe(200);
-    expect(await probe.json()).toEqual({ ok: true, transport: 'websocket-only' });
+    // Vercel routes ONLY the exact function path /api/socket-io to this server (sub-paths got the
+    // platform 404 on the deployed preview, 2026-11-23), so Socket.IO must serve that very path:
+    // a GET without an EIO query is answered by engine.io (400 "Transport unknown"), proving
+    // engine.io — not the fallback — owns the one URL the platform delivers.
+    const probe = await fetch(`http://127.0.0.1:${port}${SOCKET_PATH}`);
+    expect(probe.status).toBe(400);
+    expect(await probe.json()).toEqual({ code: 0, message: 'Transport unknown' });
+    // Paths outside SOCKET_PATH (never sent by Vercel) fall through to the JSON responder.
+    const fallback = await fetch(`http://127.0.0.1:${port}/`);
+    expect(fallback.status).toBe(200);
+    expect(await fallback.json()).toEqual({ ok: true, transport: 'websocket-only' });
+  });
+
+  it('NFR-08 · the client wire path is exactly /api/socket-io (addTrailingSlash false, no /socket.io suffix)', async () => {
+    expect(SOCKET_PATH).toBe('/api/socket-io');
+    // Record what a real socket.io-client (the shared helper = the ADR-012 §3 client contract)
+    // actually requests: it must be the one URL Vercel routes to the function. The old
+    // '/api/socket-io/socket.io/' wire path is a platform 404 on Vercel and must not be used.
+    const upgradeUrls: string[] = [];
+    socketServer.prependListener('upgrade', (req) => {
+      upgradeUrls.push(req.url ?? '');
+    });
+    const user = await prisma.user.create({
+      data: {
+        firstName: 'Wire',
+        lastName: 'Path',
+        email: `${randomUUID()}@example.com`,
+        passwordHash: 'x',
+        isVerified: true,
+      },
+    });
+    const socket = connectClient(port, signAccessToken(user));
+    clients.push(socket);
+    await connected(socket);
+    expect(upgradeUrls.length).toBeGreaterThan(0);
+    for (const url of upgradeUrls) {
+      expect(url.split('?')[0], 'upgrade path is the exact function path').toBe(SOCKET_PATH);
+    }
   });
 
   it('NFR-08 · a websocket client connects and receives events through the socket function', async () => {
@@ -109,7 +143,10 @@ describe('Vercel configuration (T-026)', () => {
     const catchAll = new RegExp(`^${cfg.rewrites[0]!.source}$`);
     expect(catchAll.test(SOCKET_PATH)).toBe(false);
     expect(catchAll.test(`${SOCKET_PATH}/`)).toBe(false);
-    expect(catchAll.test('/api/socket-io')).toBe(false);
+    // The retired wire path stays excluded too (an old client must hit the platform 404, never
+    // get rewritten into the API function).
+    expect(catchAll.test('/api/socket-io/socket.io')).toBe(false);
+    expect(catchAll.test('/api/socket-io/socket.io/')).toBe(false);
     for (const apiPath of ['/health', '/api/v1/auth/login', '/internal/cron/cleanup']) {
       expect(catchAll.test(apiPath), `${apiPath} reaches the API function`).toBe(true);
     }
@@ -138,11 +175,11 @@ describe('Vercel configuration (T-026)', () => {
 
   it('NFR-08 · a websocket upgrade arriving with the rewritten destination URL is restored for engine.io (defensive)', async () => {
     // No rewrite touches the socket path any more, but the restore listener stays as a guard: a
-    // raw upgrade delivered with URL /api/socket-io and the requested path in __originalPath (a
-    // real client requests `${SOCKET_PATH}/?EIO=…`) must still reach engine.io, which answers 101
-    // only when the restored path matches.
+    // raw upgrade delivered with the requested path in __originalPath (a real client requests
+    // `${SOCKET_PATH}?EIO=…`) must still reach engine.io, which answers 101 only when the
+    // restored path matches.
     const requestLine =
-      `GET /api/socket-io?__originalPath=${encodeURIComponent(`${SOCKET_PATH}/`)}` +
+      `GET /api/socket-io?__originalPath=${encodeURIComponent(SOCKET_PATH)}` +
       `&EIO=4&transport=websocket HTTP/1.1\r\n`;
     const head = await new Promise<string>((resolve, reject) => {
       const socket = connect(port, '127.0.0.1', () => {

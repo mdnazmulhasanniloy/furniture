@@ -57,7 +57,7 @@ Layering: routes → controller (HTTP only) → service (business rules, Prisma)
 
 ## Real-time (ADR-012)
 
-Socket function `api/socket-io.ts`, path `/api/socket-io/socket.io`, WebSocket transport only. Handshake `auth.token` = access token. Rooms: `user:{userId}`, `admins`. Events: `notification:new` (payload = Notification), `order:updated` ({id, status}).
+Socket function `api/socket-io.ts`, path `/api/socket-io` (`addTrailingSlash: false` — Vercel routes only the exact function path), WebSocket transport only. Handshake `auth.token` = access token. Rooms: `user:{userId}`, `admins`. Events: `notification:new` (payload = Notification), `order:updated` ({id, status}).
 
 ```
 REST instance A ──(1) insert Notification row (MongoDB)

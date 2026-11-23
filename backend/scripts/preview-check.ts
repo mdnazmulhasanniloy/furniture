@@ -16,7 +16,7 @@ import { io as clientIo, type Socket as ClientSocket } from 'socket.io-client';
 dotenv.config({ path: '.env.preview-check' });
 
 /** Mirrors `SOCKET_PATH` in src/lib/socketServer.ts (not imported: src modules read DATABASE_URL). */
-const SOCKET_PATH = '/api/socket-io/socket.io';
+const SOCKET_PATH = '/api/socket-io';
 const CONNECT_TIMEOUT_MS = 20_000;
 /** --long: vercel.json caps the socket function at 300 s; allow slack before calling it a failure. */
 const LONG_MAX_WAIT_MS = 7.5 * 60_000;
@@ -91,6 +91,8 @@ async function login(email: string, password: string, who: string) {
 function connectSocket(token: string, reconnection: boolean): ClientSocket {
   return clientIo(base, {
     path: SOCKET_PATH,
+    // Vercel routes only the exact function path; requests must be /api/socket-io?EIO=…
+    addTrailingSlash: false,
     transports: ['websocket'],
     forceNew: true,
     reconnection,

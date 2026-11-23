@@ -49,7 +49,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 ### T-040 Live notifications · todo
 - Req: NOTIF-01, NOTIF-03 · Depends: T-039, backend T-016
-- Done: socket client per ADR-012 (`path: '/api/socket-io/socket.io'`, `transports: ['websocket']`, backoff reconnect, `auth` callback returns a fresh access token, refresh before reconnect); after every `connect` re-fetch `GET /notifications`; toast + bell badge; notifications page; tests: `NOTIF-01` unit test with a mocked socket — a notification created while disconnected is shown after reconnect (bell count, list, grouped toast); Playwright: admin status change → customer toast < 2 s while connected; forced disconnect then reconnect shows the missed notification.
+- Done: socket client per ADR-012 (`path: '/api/socket-io'`, `addTrailingSlash: false` — Vercel routes only the exact function path, 2026-11-23 — `transports: ['websocket']`, backoff reconnect, `auth` callback returns a fresh access token, refresh before reconnect); after every `connect` re-fetch `GET /notifications`; toast + bell badge; notifications page; tests: `NOTIF-01` unit test with a mocked socket — a notification created while disconnected is shown after reconnect (bell count, list, grouped toast); Playwright: admin status change → customer toast < 2 s while connected; forced disconnect then reconnect shows the missed notification.
 
 ### T-041 Static pages + SEO + revalidate route · todo
 - Req: ADM-08, NFR-03 · Depends: T-033

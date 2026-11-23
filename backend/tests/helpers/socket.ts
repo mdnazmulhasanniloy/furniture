@@ -28,6 +28,7 @@ export function connectClient(
 ): ClientSocket {
   return clientIo(`http://127.0.0.1:${port}`, {
     path: SOCKET_PATH,
+    addTrailingSlash: false,
     transports: ['websocket'],
     reconnection: false,
     forceNew: true,

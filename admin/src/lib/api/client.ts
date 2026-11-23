@@ -193,6 +193,8 @@ export const api = {
   get: <T>(p: string, o?: Omit<RequestOptions, "method" | "body">) => apiRequest<T>(p, { ...o, method: "GET" }),
   post: <T>(p: string, body?: unknown, o?: Omit<RequestOptions, "method" | "body">) =>
     apiRequest<T>(p, { ...o, method: "POST", body }),
+  put: <T>(p: string, body?: unknown, o?: Omit<RequestOptions, "method" | "body">) =>
+    apiRequest<T>(p, { ...o, method: "PUT", body }),
   patch: <T>(p: string, body?: unknown, o?: Omit<RequestOptions, "method" | "body">) =>
     apiRequest<T>(p, { ...o, method: "PATCH", body }),
   delete: <T>(p: string, o?: Omit<RequestOptions, "method" | "body">) =>

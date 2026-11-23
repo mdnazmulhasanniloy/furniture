@@ -324,6 +324,47 @@
       "reload": "Reload the latest version"
     }
   },
+  "sections": {
+    "title": "Home sections",
+    "hint": "Drag a section by its handle, or use the arrow buttons, to change the order on the home page.",
+    "loading": "Loading sections…",
+    "retry": "Retry",
+    "empty": "No home sections yet.",
+    "edit": "Edit section",
+    "editNamed": "Edit {name}",
+    "dragHandle": "Drag to reorder: {name}",
+    "moveUp": "Move up: {name}",
+    "moveDown": "Move down: {name}",
+    "toggleVisible": "Visible on the website: {name}",
+    "visible": "Visible",
+    "hidden": "Hidden",
+    "moved": "{name} moved to position {position} of {total}.",
+    "type": {
+      "FEATURED_PRODUCTS": "Featured products",
+      "NEW_ARRIVALS": "New arrivals",
+      "RESALE_PICKS": "Resale picks",
+      "CATEGORY_GRID": "Category grid",
+      "PROMO_BANNER": "Promo banner",
+      "TESTIMONIALS": "Testimonials"
+    },
+    "form": {
+      "languages": "Languages",
+      "titleEn": "Title (English)",
+      "titleAr": "Title (Arabic)",
+      "subtitleEn": "Subtitle (English)",
+      "subtitleAr": "Subtitle (Arabic)",
+      "limit": "Number of products",
+      "limitHint": "Between 1 and 24. The website shows 8 when not set.",
+      "visible": "Visible (shown on the website)",
+      "required": "This field is required.",
+      "tooLong": "This text is too long.",
+      "bothLocales": "Fill in both languages or leave both empty.",
+      "limitInvalid": "Enter a whole number from 1 to 24.",
+      "hasErrors": "has errors",
+      "stale": "This section was changed, reload. Your edits are kept below.",
+      "reload": "Reload the latest version"
+    }
+  },
   "products": {
     "title": "Products",
     "new": "New product",

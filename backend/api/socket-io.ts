@@ -1,4 +1,4 @@
-import type { IncomingMessage, Server as HttpServer, ServerResponse } from 'node:http';
+import { createServer } from 'node:http';
 import { getEnv } from '../src/config/env.js';
 import { createLogger } from '../src/lib/logger.js';
 import { ensureSocketIndexes } from '../src/lib/mongo.js';
@@ -6,33 +6,35 @@ import { initSentry } from '../src/lib/sentry.js';
 import { createSocketServer } from '../src/lib/socketServer.js';
 import { restoreOriginalUrl } from '../src/lib/vercelUrl.js';
 
-initSentry(getEnv());
-
-let attachedTo: HttpServer | undefined;
+const env = getEnv();
+initSentry(env);
 
 /**
- * Vercel socket function (ADR-012 §1): one Socket.IO server per instance, attached to the runtime's
- * Node server so engine.io owns the websocket upgrades for `SOCKET_PATH`. WebSocket support and the
- * function duration limit are stated platform facts that T-026 verifies on a real preview deploy
- * (clients reconnect + re-fetch on the planned close, so the limit is invisible to users).
+ * Vercel socket function (ADR-012 §1, amended 2026-11-23): the official Vercel WebSocket shape —
+ * default-export an http.Server with Socket.IO attached, and let the platform route
+ * `/api/socket-io/*` (including the websocket upgrade) to it (vercel.com/docs/functions/websockets).
+ * No vercel.json rewrite may touch this path: upgrade requests pass through rewrites BEFORE the
+ * upgrade (same doc), so a rewrite moves the URL away from `SOCKET_PATH` and engine.io never
+ * answers 101. The request listener below only serves non-socket paths (health probes,
+ * misconfigured clients): engine.io wraps it on attach and owns `SOCKET_PATH`.
  */
-export default function handler(req: IncomingMessage, res: ServerResponse): void {
-  const env = getEnv();
-  const server = (res.socket as { server?: HttpServer } | null)?.server;
-  if (server && server !== attachedTo) {
-    // Registered BEFORE engine.io's upgrade listener (createSocketServer below), so a websocket
-    // upgrade arriving with the rewrite destination as its URL (`/api/socket-io?__originalPath=…`,
-    // Vercel rewrite-by-destination routing) is restored to the real socket path first.
-    server.on('upgrade', (req) => restoreOriginalUrl(req, '/api/socket-io'));
-    createSocketServer(server, env);
-    ensureSocketIndexes().catch((err: unknown) => {
-      // Not fatal: the memo is cleared on failure, so the next invocation retries.
-      createLogger(env).error({ err }, 'socket TTL index creation failed');
-    });
-    attachedTo = server;
-  }
-  // A plain HTTP request (health probe / misconfigured client): sockets are websocket-only (ADR-012).
+const server = createServer((_req, res) => {
   res.statusCode = 200;
   res.setHeader('content-type', 'application/json');
   res.end(JSON.stringify({ ok: true, transport: 'websocket-only' }));
-}
+});
+
+// Defensive only: should routing ever deliver an upgrade with the rewrite-destination URL
+// (`/api/socket-io?__originalPath=…`), restore it. Registered before engine.io's upgrade listener;
+// a no-op for normal upgrade URLs.
+server.on('upgrade', (req) => restoreOriginalUrl(req, '/api/socket-io'));
+
+/** Exported for tests; Vercel only uses the default export. */
+export const io = createSocketServer(server, env);
+
+ensureSocketIndexes().catch((err: unknown) => {
+  // Not fatal: the memo is cleared on failure, so the next call retries.
+  createLogger(env).error({ err }, 'socket TTL index creation failed');
+});
+
+export default server;

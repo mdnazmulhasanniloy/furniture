@@ -5,11 +5,7 @@
     "api/socket-io.ts": { "maxDuration": 300 }
   },
   "rewrites": [
-    {
-      "source": "/api/socket-io/(.*)",
-      "destination": "/api/socket-io?__originalPath=/api/socket-io/$1"
-    },
-    { "source": "/(.*)", "destination": "/api/index?__originalPath=/$1" }
+    { "source": "/((?!api/socket-io).*)", "destination": "/api/index?__originalPath=/$1" }
   ],
   "crons": [{ "path": "/internal/cron/cleanup", "schedule": "0 3 * * *" }]
 }

@@ -18,7 +18,7 @@
 | `furnixa-web` | `web` | Next.js | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SOCKET_URL`, `REVALIDATE_SECRET` | `furnixa.com` |
 | `furnixa-admin` | `admin` | Vite; build `npm run build`; output `dist`; rewrite `/(.*)` to `/index.html` | `VITE_API_URL`, `VITE_SOCKET_URL` | `admin.furnixa.com` |
 
-`backend/vercel.json`: functions (`api/index.ts` 30 s, `api/socket-io.ts` 300 s, check plan limits), rewrites (socket path to the socket function, everything else to the API), crons (`GET /internal/cron/cleanup`, `0 3 * * *`). Function entry files exist (`api/index.ts`, `api/socket-io.ts`); a conformance test (`NFR-08`, T-026) locks `vercel.json` to this shape.
+`backend/vercel.json`: functions (`api/index.ts` 30 s, `api/socket-io.ts` 300 s, check plan limits), one rewrite (everything **except** `/api/socket-io/*` to the API: `"/((?!api/socket-io).*)"`), crons (`GET /internal/cron/cleanup`, `0 3 * * *`). The socket function default-exports an `http.Server` and the platform routes `/api/socket-io/*` — including the websocket upgrade — to it natively (official Vercel WebSocket pattern); **no rewrite may match the socket path**, because upgrade requests pass through rewrites before upgrading. A conformance test (`NFR-08`, T-026) locks `vercel.json` to this shape, including that the socket path never matches the catch-all.
 
 **Rewrite-by-destination routing (2026-11-23):** Vercel's backend-framework routing invokes functions with `req.url` set to the rewrite *destination* (`/api/index`, `/api/socket-io`), so each rewrite carries the requested path in the `__originalPath` destination query; the app's first middleware and the socket function's upgrade listener restore it (`src/lib/vercelUrl.ts`, tested with a rewritten HTTP request and a rewritten websocket upgrade). **Vercel-compiler type-check:** `npm run build:vercel` type-checks everything reachable from `api/` with the same resolver the Vercel function compiler uses (require-condition view in ESM files, `scripts/vercel-typecheck.mjs`) — run it before deploying; a package it flags gets a `paths` pin to its ESM types in `tsconfig.json` (helmet is pinned). `engines.node` is pinned to `22.x` so Vercel builds and runs on the same Node major as local dev.
 
@@ -30,9 +30,9 @@ All three environments share one Atlas cluster but use **separate databases** (d
 
 | Environment | Database (in `DATABASE_URL`) | Notes |
 |---|---|---|
-| Local dev | `furnixa_dev` | `backend/.env` |
-| Vercel Preview env | `furnixa_preview` | set `DATABASE_URL` in the Vercel Preview environment |
-| Vercel Production env | `furnixa_prod` | set `DATABASE_URL` in the Vercel Production environment |
+| Local dev | `furniture_dev` | `backend/.env` |
+| Vercel Preview env | `furniture_preview` | set `DATABASE_URL` in the Vercel Preview environment |
+| Vercel Production env | `furniture_prod` | set `DATABASE_URL` in the Vercel Production environment |
 
 Seed the preview database once with `npm run seed` (run locally with `DATABASE_URL` pointed at `furnixa_preview`). `SEED_DEMO_DATA=true` is allowed on preview — the preview check's `--long` step needs at least one published product — but **never on production** (the seed refuses it when `NODE_ENV=production`).
 

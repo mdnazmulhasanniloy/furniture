@@ -24,6 +24,7 @@ Local infra: MongoDB Atlas + Gmail SMTP (see `.env.example`); no Docker needed. 
 7. All user-facing text (emails, notification bodies) exists in `en` and `ar`.
 8. MongoDB null-vs-missing: a Prisma `{ field: null }` **where**-filter matches only an explicit null, never a missing field. Filter "field is empty" with `notSet(...)` from `src/lib/prismaFilters.ts` (see `UNCONSUMED`, `UNREVOKED`, `UNATTACHED`) and add a regression test with a document created without the field; writers set optional fields to an explicit `null`.
 9. User input used in Prisma `contains`/`startsWith`/`endsWith` must go through `escapeRegex` (`src/lib/searchText.ts`; Prisma MongoDB passes it to `$regex` unescaped) and must have a max length. This includes `equals` with `mode: 'insensitive'`, which is also `$regex`-backed. Add a regression test per spot ("." or "(" is literal; T-010).
+10. Security: never run or add scripts named `init` or similar loaders; `package.json` scripts and `.vscode/` are reviewed in every `/review-task`; stop and report any obfuscated code or unexpected network calls.
 
 ## Never
 

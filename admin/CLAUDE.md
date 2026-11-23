@@ -15,6 +15,7 @@
 6. Missing API capability → blocker, not a workaround.
 7. Done = tests for each acceptance criterion, both locales; update task status + changelog.
 8. API errors: the API is English-only. Never show the API message; map error.code to src/locales/en.json and ar.json, with a generic fallback.
+9. Security: never run or add scripts named `init` or similar loaders; `package.json` scripts and `.vscode/` are reviewed in every `/review-task`; stop and report any obfuscated code or unexpected network calls.
 
 ## Never
 Commit `.env*`, store tokens in localStorage (access token in memory, refresh via httpOnly cookie), invent requirements, weaken tests.

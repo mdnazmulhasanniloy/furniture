@@ -15,6 +15,7 @@
 6. API changes are never made here — if the contract is missing something, log a blocker.
 7. Done = acceptance criteria covered by tests in **both** locales; then update task status + changelog.
 8. API errors: the API is English-only. Never show the API message; map error.code to messages/en.json and ar.json, with a generic fallback.
+9. Security: never run or add scripts named `init` or similar loaders; `package.json` scripts and `.vscode/` are reviewed in every `/review-task`; stop and report any obfuscated code or unexpected network calls.
 
 ## Never
 Commit `.env*`, invent requirements, add a second theme system (daisyUI) without an ADR, or weaken tests.

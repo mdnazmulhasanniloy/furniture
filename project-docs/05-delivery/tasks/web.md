@@ -70,9 +70,11 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 - Req: UI-01, UI-02 · Depends: T-030..T-041
 - Done: axe checks pass on key pages in both locales; Lighthouse ≥ 90 perf/a11y on home + PDP (mobile).
 
-### T-043 Saudi market formatting + default locale · todo
+### T-043 Saudi market formatting + default locale · done
 - Req: I18N-01, NFR-06, NFR-07 · Depends: T-030 · Docs: `design-system.md` §8, `adr/ADR-008`
 - Done: next-intl `defaultLocale` ar (`/` -> `/ar`); shared `formatPrice(halalas, locale)` (SAR, `ar-SA` / `en-SA`, whole riyals without decimals, `<bdi>` in RTL), Saudi phone display helper and client-side phone validation matching backend (T-020: same normalisation, then the `x-canonical-pattern` read from `api-spec.yaml`); unit tests named `NFR-07` and `NFR-06`.
+- Plan (autopilot, pending owner review): `src/lib/format/index.ts` (`formatPrice`, `formatNumber`, `formatPercent`, `formatDate`, tags pinned `-u-nu-latn` / `-u-ca-gregory` per B-015 draft), `src/lib/format/phone.ts` (normalise + pattern mirroring backend, display helper), `src/components/format.tsx` (`Price` with `<bdi>`, `PhoneText` with `dir=ltr`), `proxy.ts` redirect `/` -> `/ar`.
+- Closed 2026-11-24 (autopilot): `/review-task T-043` PASS. Tests `NFR-07 · ...`, `NFR-06 · ...`, `I18N-01 · ...` in `src/test/nfr-06-07-formatting.test.tsx` and `e2e/i18n.spec.ts`. Finding: next-intl's Accept-Language detection sent `/` to `/en` for English browsers, so `proxy.ts` now redirects `/` to `/ar` unless a `NEXT_LOCALE` cookie exists (ADR-002 amendment). Assumptions (autopilot) — owner to confirm: (1) digits/dates follow the B-015 draft (Western digits, Gregorian) since B-015 is still open; (2) `Price` always wraps in `<bdi>` (both locales); (3) phone pattern is a copy of the backend pattern, a unit test compares it with `x-canonical-pattern` in api-spec.yaml; (4) no new messages were needed (helpers only).
 
 ### T-044 Cart / checkout fee + VAT display · todo
 - Req: CART-01, ORD-01 · Depends: T-036, T-038, backend T-021 · Docs: `screen-specs.md`

@@ -63,3 +63,19 @@ test.describe("I18N-01 — language routing, dir and RTL", () => {
     expect(Math.abs(menuBox.x - triggerBox.x)).toBeLessThanOrEqual(2);
   });
 });
+
+test.describe("I18N-01 — default locale redirect", () => {
+  test("I18N-01: / redirects to /ar by default", async ({ page }) => {
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/ar\/?$/);
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  });
+});
+
+test.describe("I18N-01 — returning visitor keeps chosen locale", () => {
+  test("I18N-01: / honours the NEXT_LOCALE=en cookie", async ({ page, context, baseURL }) => {
+    await context.addCookies([{ name: "NEXT_LOCALE", value: "en", url: baseURL! }]);
+    await page.goto("/");
+    await expect(page).toHaveURL(/\/en\/?$/);
+  });
+});

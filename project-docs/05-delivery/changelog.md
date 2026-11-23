@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (web T-043 Saudi formatting + default locale done)
+- **web T-043 (I18N-01, NFR-06, NFR-07): `formatPrice` (SAR, halalas, whole riyals without decimals), number/percent/date helpers pinned to Western digits + Gregorian, `Price` (`<bdi>`), Saudi phone normaliser/validator/display helper, `/` redirects to `/ar` (proxy, ignores Accept-Language unless `NEXT_LOCALE` set).** Vitest 94/94, e2e 25/25, build, typecheck, lint, i18n 111 keys green. Assumptions (autopilot) — owner to confirm: digits/dates follow the open B-015 draft; `Price` always uses `<bdi>`; phone pattern copied from backend and checked against `x-canonical-pattern` by a test.
+
 ## 2026-11-24 (web T-037 Auth pages done)
 - **web T-037 (AUTH-01..04): login, register, OTP verify (6 boxes, paste, 60 s resend countdown), forgot and reset password; unverified login redirects to verify; OTP_EXPIRED re-submits register from memory; reset success goes to login (no auto-login); Retry-After shown for 429; all errors localized by code (en/ar).** Vitest 85/85, e2e 23/23. Assumptions (autopilot) — owner to confirm: hand-built 6-box OTP input (no `input-otp` dependency); decorative colour panel instead of an image (no asset specified); register data and password kept in an in-memory store only, a verify-screen reload sends the user to /register; after OTP_EXPIRED without register data (login-started flow) the screen asks the user to register again; forgot-password then always moves to /reset-password with the email in memory; login/verify success goes to `/` (no return-to); post-reset notice via `/login?reset=1`; client password rule mirrors the API (8-128, letter + number), server stays the authority; pasted Arabic-Indic digits are normalised.
 

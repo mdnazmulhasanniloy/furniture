@@ -27,6 +27,7 @@ import { registerOrderEmailConsumers } from './modules/orders/emails.js';
 import { adminOrdersRouter, ordersRouter } from './modules/orders/routes.js';
 import { adminProductsRouter, productsRouter } from './modules/products/routes.js';
 import { uploadsRouter } from './modules/uploads/routes.js';
+import { restoreOriginalUrl } from './lib/vercelUrl.js';
 
 export interface CreateAppOptions {
   env?: Env;
@@ -53,6 +54,14 @@ export function createApp(arg: Env | CreateAppOptions = {}) {
 
   app.set('trust proxy', env.TRUST_PROXY);
   app.disable('x-powered-by');
+
+  // Vercel's backend-framework routing invokes the function with the rewrite DESTINATION as
+  // `req.url` (/api/index); vercel.json carries the requested path in `__originalPath`. Restore it
+  // before anything logs or routes. A no-op everywhere else (dev, tests, old routing behaviour).
+  app.use((req, _res, next) => {
+    restoreOriginalUrl(req, '/api/index');
+    next();
+  });
 
   app.use(requestId);
   app.use(pinoHttp({ logger, genReqId: (req) => (req as express.Request).id }));

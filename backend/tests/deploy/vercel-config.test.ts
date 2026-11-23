@@ -1,8 +1,8 @@
 import { execSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { createServer, type Server as HttpServer } from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { connect, type AddressInfo } from 'node:net';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -122,8 +122,11 @@ describe('Vercel configuration (T-026)', () => {
     expect(socketRewrite).toBeGreaterThanOrEqual(0);
     expect(catchAll).toBe(sources.length - 1);
     expect(socketRewrite).toBeLessThan(catchAll);
-    expect(cfg.rewrites[socketRewrite]?.destination).toBe('/api/socket-io');
-    expect(cfg.rewrites[catchAll]?.destination).toBe('/api/index');
+    // Rewrite-by-destination routing: the requested path travels in __originalPath (vercelUrl.ts).
+    expect(cfg.rewrites[socketRewrite]?.destination).toBe(
+      '/api/socket-io?__originalPath=/api/socket-io/$1',
+    );
+    expect(cfg.rewrites[catchAll]?.destination).toBe('/api/index?__originalPath=/$1');
     // The live socket path must be routed by the socket rewrite, never by the API catch-all.
     expect(SOCKET_PATH.startsWith('/api/socket-io/')).toBe(true);
 
@@ -134,6 +137,56 @@ describe('Vercel configuration (T-026)', () => {
     expect(res.status).toBe(401);
   });
 
+  it('NFR-08 · a request arriving with the rewritten destination URL is restored to the original path', async () => {
+    // New Vercel routing: req.url is the rewrite destination; __originalPath carries the request.
+    const rewritten = await request(apiEntry).get('/api/index?__originalPath=/health');
+    expect(rewritten.status).toBe(200);
+    expect(rewritten.body).toEqual({ status: 'ok' });
+
+    // Old routing behaviour / local dev: the original URL arrives untouched and stays untouched.
+    const direct = await request(apiEntry).get('/health');
+    expect(direct.status).toBe(200);
+
+    // A value that is not a plain path is ignored (the URL stays /api/index → 404, never a rewrite).
+    const schemeRelative = await request(apiEntry).get('/api/index?__originalPath=//evil.example');
+    expect(schemeRelative.status).toBe(404);
+  });
+
+  it('NFR-08 · a websocket upgrade arriving with the rewritten destination URL is restored for engine.io', async () => {
+    // Raw upgrade request the way the platform would deliver it under rewrite-by-destination
+    // routing: URL = /api/socket-io with the requested path in __originalPath. A real client
+    // requests `${SOCKET_PATH}/?EIO=…` (engine.io normalizes its path with a trailing slash), so
+    // that is what the rewrite captures. engine.io answers 101 only when the restored path
+    // matches; unrestored, it would never upgrade.
+    const requestLine =
+      `GET /api/socket-io?__originalPath=${encodeURIComponent(`${SOCKET_PATH}/`)}` +
+      `&EIO=4&transport=websocket HTTP/1.1\r\n`;
+    const head = await new Promise<string>((resolve, reject) => {
+      const socket = connect(port, '127.0.0.1', () => {
+        socket.write(
+          requestLine +
+            `Host: 127.0.0.1:${port}\r\n` +
+            'Connection: Upgrade\r\nUpgrade: websocket\r\n' +
+            `Sec-WebSocket-Key: ${randomBytes(16).toString('base64')}\r\n` +
+            'Sec-WebSocket-Version: 13\r\n\r\n',
+        );
+      });
+      let buffer = '';
+      const finish = (value: string) => {
+        socket.destroy();
+        resolve(value);
+      };
+      socket.on('data', (chunk) => {
+        buffer += String(chunk);
+        if (buffer.includes('\r\n\r\n')) finish(buffer);
+      });
+      socket.on('close', () => finish(buffer));
+      socket.on('error', reject);
+      setTimeout(() => finish(buffer), 8000).unref();
+    });
+    expect(head.startsWith('HTTP/1.1 101')).toBe(true);
+  });
+
   it('NFR-08 · the Prisma client is generated for the Vercel runtime (binaryTargets + build script)', () => {
     const schema = readFileSync(join(backendRoot, 'prisma', 'schema.prisma'), 'utf8');
     const generator = /generator client \{[\s\S]*?\}/.exec(schema)?.[0] ?? '';
@@ -141,9 +194,13 @@ describe('Vercel configuration (T-026)', () => {
     expect(generator).toContain('"rhel-openssl-3.0.x"');
 
     const pkg = JSON.parse(readFileSync(join(backendRoot, 'package.json'), 'utf8')) as {
+      engines: Record<string, string>;
       scripts: Record<string, string>;
     };
     expect(pkg.scripts.build).toMatch(/^prisma generate && /);
     expect(pkg.scripts.postinstall).toBe('prisma generate');
+    // Pin the runtime Vercel builds and runs on, and keep the Vercel-resolver type-check wired.
+    expect(pkg.engines.node).toBe('22.x');
+    expect(pkg.scripts['build:vercel']).toBe('node scripts/vercel-typecheck.mjs');
   });
 });

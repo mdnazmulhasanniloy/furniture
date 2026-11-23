@@ -20,6 +20,8 @@
 
 `backend/vercel.json`: functions (`api/index.ts` 30 s, `api/socket-io.ts` 300 s, check plan limits), rewrites (socket path to the socket function, everything else to the API), crons (`GET /internal/cron/cleanup`, `0 3 * * *`). Function entry files exist (`api/index.ts`, `api/socket-io.ts`); a conformance test (`NFR-08`, T-026) locks `vercel.json` to this shape.
 
+**Rewrite-by-destination routing (2026-11-23):** Vercel's backend-framework routing invokes functions with `req.url` set to the rewrite *destination* (`/api/index`, `/api/socket-io`), so each rewrite carries the requested path in the `__originalPath` destination query; the app's first middleware and the socket function's upgrade listener restore it (`src/lib/vercelUrl.ts`, tested with a rewritten HTTP request and a rewritten websocket upgrade). **Vercel-compiler type-check:** `npm run build:vercel` type-checks everything reachable from `api/` with the same resolver the Vercel function compiler uses (require-condition view in ESM files, `scripts/vercel-typecheck.mjs`) — run it before deploying; a package it flags gets a `paths` pin to its ESM types in `tsconfig.json` (helmet is pinned). `engines.node` is pinned to `22.x` so Vercel builds and runs on the same Node major as local dev.
+
 **Deployment Protection:** when Vercel Deployment Protection is on (default for previews), automated checks authenticate with a bypass secret: Vercel → Project → Settings → Deployment Protection → "Protection Bypass for Automation" → generate a secret, then set it as `VERCEL_PROTECTION_BYPASS` in `backend/.env.preview-check`. The preview check sends it as the `x-vercel-protection-bypass` header on every HTTP request and in the websocket handshake.
 
 ## Databases per environment (T-026)

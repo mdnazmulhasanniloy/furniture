@@ -4,6 +4,7 @@ import { createLogger } from '../src/lib/logger.js';
 import { ensureSocketIndexes } from '../src/lib/mongo.js';
 import { initSentry } from '../src/lib/sentry.js';
 import { createSocketServer } from '../src/lib/socketServer.js';
+import { restoreOriginalUrl } from '../src/lib/vercelUrl.js';
 
 initSentry(getEnv());
 
@@ -19,6 +20,10 @@ export default function handler(req: IncomingMessage, res: ServerResponse): void
   const env = getEnv();
   const server = (res.socket as { server?: HttpServer } | null)?.server;
   if (server && server !== attachedTo) {
+    // Registered BEFORE engine.io's upgrade listener (createSocketServer below), so a websocket
+    // upgrade arriving with the rewrite destination as its URL (`/api/socket-io?__originalPath=…`,
+    // Vercel rewrite-by-destination routing) is restored to the real socket path first.
+    server.on('upgrade', (req) => restoreOriginalUrl(req, '/api/socket-io'));
     createSocketServer(server, env);
     ensureSocketIndexes().catch((err: unknown) => {
       // Not fatal: the memo is cleared on failure, so the next invocation retries.

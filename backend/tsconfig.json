@@ -10,7 +10,16 @@
     "resolveJsonModule": true,
     "outDir": "dist",
     "rootDir": ".",
-    "types": ["node", "vitest/globals"]
+    "types": ["node", "vitest/globals"],
+    // Vercel's function compiler resolves package types with the require condition even in ESM
+    // files (mode-less resolveModuleName; replicated by `npm run build:vercel`). helmet is
+    // dual-published with DIFFERENT type shapes per condition, so its CJS view breaks the default
+    // import there. Pinning its types to the ESM declarations gives both compilers the view that
+    // matches the runtime (Node resolves the import condition → index.mjs). Types-only: `paths`
+    // never changes the emitted import. Add a line here if build:vercel flags another package.
+    "paths": {
+      "helmet": ["./node_modules/helmet/index.d.mts"]
+    }
   },
   "include": ["src", "api", "tests", "prisma", "scripts", "vitest.config.ts"]
 }

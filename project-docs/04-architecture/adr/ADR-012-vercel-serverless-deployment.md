@@ -8,7 +8,7 @@ All three apps deploy on Vercel. Stated platform facts (client, SRC-007.1; re-ve
 ## Decision
 
 ### 1. Functions
-- **API function** `backend/api/index.ts` exports the Express app (`export default app`). `vercel.json` rewrites every path except the socket path to it. Base path stays `/api/v1`; health is `GET /health`.
+- **API function** `backend/api/index.ts` exports the Express app (`export default app`). `vercel.json` rewrites every path except the socket path to it. Base path stays `/api/v1`; health is `GET /health`. **Amended 2026-11-23 (T-026):** Vercel's backend-framework routing now invokes functions with `req.url` set to the rewrite *destination* path, so the rewrites carry the requested path in the `__originalPath` destination query and the app (first middleware) and the socket function (upgrade listener) restore it via `src/lib/vercelUrl.ts` — a no-op under local dev and the old routing behaviour. The function compiler also type-checks package imports with the require-condition view even in ESM files; `npm run build:vercel` (`scripts/vercel-typecheck.mjs`) replicates that resolver so a dual-published package that only breaks on Vercel (helmet needed a `paths` pin to its ESM types in `tsconfig.json`) is caught locally.
 - **Socket function** `backend/api/socket-io.ts` runs the Socket.IO server with `path: '/api/socket-io/socket.io'`, `transports: ['websocket']` and CORS = `CORS_ALLOWED_ORIGINS` (credentials). Its own function so connection lifetime and duration limits do not affect the API.
 - Local dev still runs one Node process (`npm run dev`) that mounts both on port 4100; the code is the same, only the entry differs.
 

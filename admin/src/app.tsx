@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router";
 import { restoreSession } from "@/lib/auth/flows";
 import { AcceptInvitePage } from "@/routes/accept-invite-page";
+import { CategoriesPage } from "@/routes/categories-page";
 import { LoginPage } from "@/routes/login-page";
 import { OverviewPage } from "@/routes/overview-page";
 import { PlaceholderPage } from "@/routes/placeholder-page";
@@ -27,6 +28,7 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
         <Route path="/accept-invite" element={<AcceptInvitePage />} />
         <Route element={<RequireAdmin />}>
           <Route index element={<OverviewPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
           <Route path="*" element={<PlaceholderPage />} />
         </Route>
       </Routes>

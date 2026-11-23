@@ -54,7 +54,13 @@
       "two": "Try again in {n} seconds.",
       "few": "Try again in {n} seconds.",
       "other": "Try again in {n} seconds."
-    }
+    },
+    "SLUG_TAKEN": "Another category already uses this slug.",
+    "CATEGORY_HAS_PRODUCTS": "This category still has products. Move or remove them first.",
+    "CATEGORY_HAS_CHILDREN": "This category still has sub-categories. Delete or move them first.",
+    "NOT_FOUND": "This item no longer exists. The list was refreshed.",
+    "FORBIDDEN": "You do not have permission to do this.",
+    "UPLOAD_NOT_ALLOWED": "The image could not be used. Upload it again."
   },
   "orders": {
     "newOrderToast": "New order {orderNo} · {count} items",
@@ -122,6 +128,50 @@
       "status": "Status",
       "total": "Total",
       "placed": "Placed"
+    }
+  },
+  "categories": {
+    "title": "Categories",
+    "new": "New category",
+    "edit": "Edit category",
+    "loading": "Loading categories…",
+    "retry": "Retry",
+    "empty": "No categories yet.",
+    "col": {
+      "name": "Name",
+      "slug": "Slug",
+      "parent": "Parent",
+      "products": "Products",
+      "sort": "Sort order",
+      "active": "Active",
+      "actions": "Actions"
+    },
+    "toggleActive": "Active: {name}",
+    "editNamed": "Edit {name}",
+    "deleteNamed": "Delete {name}",
+    "blockedProducts": "This category has products and cannot be deleted.",
+    "blockedChildren": "This category has sub-categories and cannot be deleted.",
+    "deleteTitle": "Delete category",
+    "deleteBody": "Delete “{name}” permanently? This cannot be undone.",
+    "form": {
+      "languages": "Languages",
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "slug": "Slug",
+      "parent": "Parent category",
+      "noParent": "None (top level)",
+      "hasChildrenHint": "This category has sub-categories, so it cannot become a sub-category.",
+      "sortOrder": "Sort order",
+      "active": "Active (visible in the shop)",
+      "image": "Image",
+      "noImage": "No image. Uploading images arrives with the product image uploader.",
+      "removeImage": "Remove image",
+      "imageRemoved": "The image will be removed when you save.",
+      "required": "This field is required.",
+      "tooLong": "Use at most 60 characters.",
+      "slugInvalid": "Use lowercase letters, numbers and single hyphens.",
+      "sortInvalid": "Enter a whole number, 0 or more.",
+      "hasErrors": "has errors"
     }
   }
 }

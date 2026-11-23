@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (admin T-063 Categories done)
+- **admin T-063 (ADM-03): Categories screen** at `/categories`: list (both names, slug, parent, product count, sort, active switch), create/edit dialog with English | العربية tabs, slug, root-only parent, sort order, remove image; delete with confirmation, offered only when the API would allow it; 409 `SLUG_TAKEN` / `CATEGORY_HAS_PRODUCTS` / `CATEGORY_HAS_CHILDREN` localized by code. Tests `ADM-03 ·` (en + ar, dark). Assumptions (autopilot) — owner to confirm: image upload deferred to the T-064 uploader (existing image can only be removed); flat list with parent column; slug auto-filled from the English name; delete disabled when productCount > 0 or children; hand-written dialogs without focus trap.
+
 ## 2026-11-24 (admin T-062 Overview done)
 - **admin T-062 (ADM-01): Overview screen** at `/`: four KPI cards, 30-day orders line chart (Recharts, with accessible data table), latest orders table; money shown as returned (halalas via `formatPrice`), en/ar, RTL, dark mode; 11 tests `ADM-01` (suite 56/56), typecheck, lint, build, i18n:check (95 keys), e2e 5/5 clean. `/review-task T-062` PASS. Assumptions (autopilot) — owner to confirm: low-stock card is count only (API has no list); no count-up animation; chart LTR in Arabic; order times in Asia/Riyadh; latest-order rows not linked until T-065; QueryClientProvider moved into `App`; jsdom `ResizeObserver` stub in test setup.
 

@@ -38,6 +38,12 @@ export const KNOWN_ERROR_CODES = [
   "OTP_INVALID",
   "VALIDATION_ERROR",
   "NOT_ADMIN",
+  "SLUG_TAKEN",
+  "CATEGORY_HAS_PRODUCTS",
+  "CATEGORY_HAS_CHILDREN",
+  "NOT_FOUND",
+  "FORBIDDEN",
+  "UPLOAD_NOT_ALLOWED",
 ] as const;
 
 /** Locale key for an error code, with a generic fallback. */

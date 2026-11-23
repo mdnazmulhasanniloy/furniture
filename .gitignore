@@ -1,6 +1,7 @@
 node_modules
 .DS_Store
-./backend/.env
-config.bat
 .env
-.env*
+.env.*
+!.env.example
+!**/.env.example
+.env.preview-check

@@ -35,6 +35,9 @@ export const KNOWN_ERROR_CODES = [
   "REFRESH_RACE",
   "CSRF_INVALID",
   "NETWORK_ERROR",
+  "OTP_INVALID",
+  "OTP_EXPIRED",
+  "EMAIL_IN_USE",
 ] as const;
 
 export function errorMessageKey(code: string): string {

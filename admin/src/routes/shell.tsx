@@ -1,5 +1,4 @@
 import {
-  Bell,
   FileText,
   Image,
   LayoutDashboard,
@@ -17,6 +16,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
+import { BellActions, NotificationToaster, NotificationsSync } from "@/components/notifications/live";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ADMIN_ROLE, logout } from "@/lib/auth/flows";
@@ -146,6 +146,7 @@ export function Shell() {
   };
   return (
     <div className="flex min-h-screen bg-background text-foreground">
+      <NotificationsSync />
       <aside
         data-testid="sidebar"
         data-collapsed={collapsed}
@@ -199,16 +200,14 @@ export function Shell() {
           />
           <div className="ms-auto flex items-center gap-2">
             <PreferenceToggles />
-            {/* Live bell arrives with T-071 (ADM-10). */}
-            <Button variant="ghost" size="icon" aria-label={t("shell.notifications")} data-testid="bell">
-              <Bell className="size-4" aria-hidden />
-            </Button>
+            <BellActions />
             <AvatarMenu />
           </div>
         </header>
         <main className="p-4">
           <Outlet />
         </main>
+        <NotificationToaster />
       </div>
     </div>
   );

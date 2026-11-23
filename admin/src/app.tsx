@@ -9,6 +9,7 @@ import { SectionsPage } from "@/routes/sections-page";
 import { CategoriesPage } from "@/routes/categories-page";
 import { InvoicePage } from "@/routes/invoice-page";
 import { LoginPage } from "@/routes/login-page";
+import { NotificationsPage } from "@/routes/notifications-page";
 import { OrderDetailPage } from "@/routes/order-detail-page";
 import { OrdersPage } from "@/routes/orders-page";
 import { OverviewPage } from "@/routes/overview-page";
@@ -50,6 +51,7 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/orders/:id" element={<OrderDetailPage />} />
           <Route path="/orders/:id/invoice" element={<InvoicePage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="*" element={<PlaceholderPage />} />

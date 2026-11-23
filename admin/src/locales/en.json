@@ -634,5 +634,21 @@
       "reload": "Reload",
       "saved": "Settings saved."
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "You have no notifications yet.",
+    "unread": "Unread",
+    "loading": "Loading notifications…",
+    "retry": "Try again",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}",
+    "grouped": "{count} new notifications",
+    "dismiss": "Dismiss",
+    "bellUnread": "Notifications, {n} unread",
+    "soundOn": "New-order sound: on (click to mute)",
+    "soundOff": "New-order sound: off (click to turn on)"
   }
 }

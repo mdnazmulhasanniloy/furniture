@@ -4,3 +4,4 @@ dist
 !.env.example
 test-results
 playwright-report
+tsconfig.tsbuildinfo

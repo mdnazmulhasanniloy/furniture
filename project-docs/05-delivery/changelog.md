@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (admin T-060 Bootstrap done)
+- **admin T-060 (I18N-01): Vite 6 + React 19 + Tailwind v4 SPA on port 3101, tokens (light + dark) in `src/index.css`, react-i18next (default `ar`, `<html lang dir>` synced, choice remembered), theme provider (dark class, remembered), hand-written shadcn-style Button, API client with in-memory access token and CSRF token fetched via `GET /auth/csrf` before refresh and logout (ADR-011, as web T-031). Tests `I18N-01 · ...` (9 Vitest, 2 Playwright). Assumptions (autopilot) — owner to confirm: no radix/zustand/@fontsource dependencies (system fonts until approved); language/theme stored in localStorage; `@playwright/test` ^1.65.1 to match web; cross-origin API calls with `credentials: include`; placeholder shell only; `npm audit` shows 35 advisories in the pinned tree (not force-fixed).**
+
 ## 2026-11-24 (web T-042 Motion & accessibility pass partly done)
 - **web T-042 (UI-01, UI-02): focus trap + focus return for mobile nav, cart drawer and mobile filter sheet (`use-dialog-a11y`), skip link to `#main-content` (en/ar `nav.skip`), global `:focus-visible` ring from `--ring`. Tests `UI-01 · ...`/`UI-02 · ...` in `ui-01-02-a11y.test.tsx` and `e2e/ui-a11y.spec.ts` (en + ar). Status partly done: axe and Lighthouse criteria not run.** Assumptions (autopilot) — owner to confirm: `@axe-core/playwright` not installed (only named in test-plan.md) so a manual checklist replaced axe; Lighthouse not measured; skip-link wording; filter-sheet trap below 1024 px only; no Framer Motion/AOS in components so no MotionConfig added.
 

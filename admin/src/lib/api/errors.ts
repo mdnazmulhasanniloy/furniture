@@ -1,0 +1,40 @@
+// API errors (api-spec.yaml#Error). The API is English-only: `message` is for logs
+// and is never shown; the UI localises by `code` (CLAUDE.md rule 8).
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string;
+  readonly requestId?: string;
+  readonly retryAfterSeconds?: number;
+  readonly details?: unknown;
+
+  constructor(init: {
+    status: number;
+    code: string;
+    message?: string;
+    requestId?: string;
+    retryAfterSeconds?: number;
+    details?: unknown;
+  }) {
+    super(init.message ?? init.code);
+    this.name = "ApiError";
+    this.status = init.status;
+    this.code = init.code;
+    this.requestId = init.requestId;
+    this.retryAfterSeconds = init.retryAfterSeconds;
+    this.details = init.details;
+  }
+}
+
+/** Codes with a dedicated entry under `errors` in the locale files. */
+export const KNOWN_ERROR_CODES = ["CSRF_INVALID", "UNAUTHORIZED", "NETWORK_ERROR"] as const;
+
+/** Locale key for an error code, with a generic fallback. */
+export function errorKey(code: string): string {
+  return (KNOWN_ERROR_CODES as readonly string[]).includes(code) ? `errors.${code}` : "errors.generic";
+}
+
+export function parseRetryAfter(v: string | null): number | undefined {
+  if (!v) return undefined;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? Math.ceil(n) : undefined;
+}

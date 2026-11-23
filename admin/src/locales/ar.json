@@ -1,5 +1,8 @@
 {
+  "app": { "title": "لوحة تحكم فورنيكسا", "subtitle": "لوحة التحكم" },
   "nav": { "overview": "نظرة عامة", "products": "المنتجات", "categories": "الفئات", "orders": "الطلبات", "customers": "العملاء", "content": "المحتوى", "banners": "البانرات", "sections": "أقسام الرئيسية", "pages": "الصفحات", "settings": "الإعدادات", "admins": "المشرفون" },
   "common": { "save": "حفظ", "cancel": "إلغاء", "delete": "حذف", "publish": "نشر", "draft": "مسودة", "search": "بحث…", "english": "English", "arabic": "العربية" },
+  "theme": { "switchToDark": "الوضع الداكن", "switchToLight": "الوضع الفاتح" },
+  "errors": { "generic": "حدث خطأ ما. حاول مرة أخرى.", "CSRF_INVALID": "تعذر التحقق من جلستك. حاول مرة أخرى.", "UNAUTHORIZED": "يرجى تسجيل الدخول مرة أخرى.", "NETWORK_ERROR": "خطأ في الشبكة. تحقق من اتصالك." },
   "orders": { "newOrderToast": "طلب جديد {orderNo} · {count} منتجات", "printInvoice": "طباعة الفاتورة" }
 }

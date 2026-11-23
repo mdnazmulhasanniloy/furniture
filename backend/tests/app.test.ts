@@ -135,3 +135,63 @@ describe('error handling', () => {
     expect(invalid.headers['x-request-id']).toMatch(/^[0-9a-f-]{36}$/);
   });
 });
+
+/**
+ * T-029 (zod 3→4): zod 3 had a DoS advisory — validating oversized constrained collections could
+ * exhaust memory. Defense in depth: the 1mb body-parser limit caps bytes, and schema `.max()`
+ * rejects oversized-but-under-limit payloads fast. The timing bounds are generous (normal runs are
+ * tens of ms); they exist to fail loudly on a quadratic or memory-exhausting regression.
+ */
+describe('NFR-01 · oversized payloads are rejected quickly (T-029)', () => {
+  /** Mirrors createApp's body parser (1mb limit) + validate + error handler, no DB routes. */
+  function payloadApp() {
+    const app = express();
+    app.use(requestId);
+    app.use(express.json({ limit: '1mb' }));
+    app.post(
+      '/bulk',
+      validate({
+        body: z
+          .object({ tags: z.array(z.string().max(60)).max(50), note: z.string().max(500) })
+          .strict(),
+      }),
+      (_req, res) => {
+        res.json({ ok: true });
+      },
+    );
+    app.use(createErrorHandler(createLogger(env)));
+    return app;
+  }
+
+  it('NFR-01 · a body over the 1mb body-parser limit is 413 PAYLOAD_TOO_LARGE', async () => {
+    const res = await request(createApp(env))
+      .post('/api/v1/anything')
+      .send({ note: 'x'.repeat(1_100_000) });
+    expect(res.status).toBe(413);
+    expect(res.body).toMatchObject({ code: 'PAYLOAD_TOO_LARGE' });
+    expect(res.body.requestId).toBeTruthy();
+  });
+
+  it('NFR-01 · a 100k-element array under the byte limit is 422 via the schema max, quickly', async () => {
+    const tags = Array.from({ length: 100_000 }, () => 'abc'); // ~600KB JSON, under the 1mb limit
+    const started = performance.now();
+    const res = await request(payloadApp()).post('/bulk').send({ tags, note: 'n' });
+    const elapsed = performance.now() - started;
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+    expect(res.body.details[0]).toMatchObject({ code: 'too_big', path: ['tags'] });
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it('NFR-01 · a 900KB string under the byte limit is 422 via the schema max, quickly', async () => {
+    const started = performance.now();
+    const res = await request(payloadApp())
+      .post('/bulk')
+      .send({ tags: [], note: 'x'.repeat(900_000) });
+    const elapsed = performance.now() - started;
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe('VALIDATION_ERROR');
+    expect(res.body.details[0]).toMatchObject({ code: 'too_big', path: ['note'] });
+    expect(elapsed).toBeLessThan(2000);
+  });
+});

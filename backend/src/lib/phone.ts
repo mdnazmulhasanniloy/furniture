@@ -28,12 +28,14 @@ export function normalizeSaudiPhone(input: unknown): string | null {
 
 /** zod schema used by profile and address (T-007): output is always `+9665XXXXXXXX`. */
 export const saudiPhone = z
-  .string({ required_error: 'Phone is required', invalid_type_error: 'Phone must be a string' })
+  .string({
+    error: (issue) => (issue.input === undefined ? 'Phone is required' : 'Phone must be a string'),
+  })
   .max(SAUDI_PHONE_MAX_LENGTH, 'Phone is too long')
   .transform((value, ctx) => {
     const normalized = normalizeSaudiPhone(value);
     if (normalized === null) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid Saudi mobile number' });
+      ctx.addIssue({ code: 'custom', message: 'Invalid Saudi mobile number' });
       return z.NEVER;
     }
     return normalized;

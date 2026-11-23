@@ -13,7 +13,10 @@ export const placeOrderBody = z
 
 /** Required `Idempotency-Key` header: a UUID, one per checkout attempt (missing/malformed -> 422). */
 export const idempotencyKey = z
-  .string({ required_error: 'Idempotency-Key header is required' })
+  .string({
+    error: (issue) =>
+      issue.input === undefined ? 'Idempotency-Key header is required' : undefined,
+  })
   .regex(
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
     'Idempotency-Key must be a UUID',
@@ -46,7 +49,7 @@ const isoDay = z
 
 /** `q` is matched literally (escapeRegex, rule 9) against orderNo/email, and as a phone when it normalises. */
 export const adminListOrdersQuery = z.object({
-  status: z.nativeEnum(OrderStatus).optional(),
+  status: z.enum(OrderStatus).optional(),
   q: z.string().trim().max(100).optional(),
   from: isoDay.optional(),
   to: isoDay.optional(),
@@ -57,14 +60,14 @@ export const adminListOrdersQuery = z.object({
 /** Transition body. The note is internal; CANCELLED requires it (the cancel reason, owner 2026-11-22). */
 export const orderStatusBody = z
   .object({
-    status: z.nativeEnum(OrderStatus),
+    status: z.enum(OrderStatus),
     note: z.string().trim().min(3).max(500).optional(),
   })
   .strict()
   .superRefine((val, ctx) => {
     if (val.status === 'CANCELLED' && val.note === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['note'],
         message: 'A cancel reason note (3-500 characters) is required to cancel an order',
       });

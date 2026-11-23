@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const email = z.string().trim().toLowerCase().email().max(254);
+export const email = z.string().trim().toLowerCase().pipe(z.email().max(254));
 export const name = z.string().trim().min(1).max(40);
 
 /** PRD AUTH-03: 8-128 characters, at least one letter and one number. */

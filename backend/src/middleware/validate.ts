@@ -1,10 +1,10 @@
 import type { RequestHandler } from 'express';
-import type { ZodTypeAny } from 'zod';
+import type { ZodType } from 'zod';
 
 interface Schemas {
-  body?: ZodTypeAny;
-  query?: ZodTypeAny;
-  params?: ZodTypeAny;
+  body?: ZodType;
+  query?: ZodType;
+  params?: ZodType;
 }
 
 /** Validates request parts with zod. A failure becomes 422 VALIDATION_ERROR via the error handler. */
@@ -19,7 +19,8 @@ export function validate(schemas: Schemas): RequestHandler {
           writable: true,
         });
       }
-      if (schemas.params) req.params = schemas.params.parse(req.params);
+      // zod 4's ZodType outputs `unknown`; the parsed value is still Express params-shaped.
+      if (schemas.params) req.params = schemas.params.parse(req.params) as typeof req.params;
       next();
     } catch (err) {
       next(err);

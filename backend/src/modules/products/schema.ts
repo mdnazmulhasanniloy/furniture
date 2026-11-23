@@ -88,11 +88,13 @@ export const updateProductBody = z
     message: 'At least one field to change is required',
   });
 
-const csv = <T extends z.ZodTypeAny>(item: T) =>
+const csv = <T extends z.ZodType<unknown, string>>(item: T) =>
   z
     .union([z.string(), z.array(z.string())])
     .transform((v) => (Array.isArray(v) ? v : [v]).flatMap((s) => s.split(',')))
-    .pipe(z.array(item).min(1));
+    // zod 4 types the array's input as `input<T>[]`; the pipe hands it plain `string[]`, which
+    // `item` validates at runtime, so widen the input type param only.
+    .pipe(z.array(item as z.ZodType<z.output<T>, string>).min(1));
 const boolParam = z.enum(['true', 'false']).transform((v) => v === 'true');
 const page = z.coerce.number().int().min(1).default(1);
 const limit = z.coerce.number().int().min(1).max(100).default(24);

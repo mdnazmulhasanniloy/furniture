@@ -217,7 +217,7 @@ export const putSettingsBody = z
       .strict()
       .nullable()
       .optional(),
-    contactEmail: z.string().trim().email().max(120),
+    contactEmail: z.string().trim().pipe(z.email().max(120)),
     contactPhone: z.string().trim().min(1).max(40),
     address: localizedLoose(300).nullable().optional(),
     socials: socials.nullable().optional(),

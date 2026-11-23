@@ -1,8 +1,89 @@
 {
-  "app": { "title": "لوحة تحكم فورنيكسا", "subtitle": "لوحة التحكم" },
-  "nav": { "overview": "نظرة عامة", "products": "المنتجات", "categories": "الفئات", "orders": "الطلبات", "customers": "العملاء", "content": "المحتوى", "banners": "البانرات", "sections": "أقسام الرئيسية", "pages": "الصفحات", "settings": "الإعدادات", "admins": "المشرفون" },
-  "common": { "save": "حفظ", "cancel": "إلغاء", "delete": "حذف", "publish": "نشر", "draft": "مسودة", "search": "بحث…", "english": "English", "arabic": "العربية" },
-  "theme": { "switchToDark": "الوضع الداكن", "switchToLight": "الوضع الفاتح" },
-  "errors": { "generic": "حدث خطأ ما. حاول مرة أخرى.", "CSRF_INVALID": "تعذر التحقق من جلستك. حاول مرة أخرى.", "UNAUTHORIZED": "يرجى تسجيل الدخول مرة أخرى.", "NETWORK_ERROR": "خطأ في الشبكة. تحقق من اتصالك." },
-  "orders": { "newOrderToast": "طلب جديد {orderNo} · {count} منتجات", "printInvoice": "طباعة الفاتورة" }
+  "app": {
+    "title": "لوحة تحكم فورنيكسا",
+    "subtitle": "لوحة التحكم"
+  },
+  "nav": {
+    "overview": "نظرة عامة",
+    "products": "المنتجات",
+    "categories": "الفئات",
+    "orders": "الطلبات",
+    "customers": "العملاء",
+    "content": "المحتوى",
+    "banners": "البانرات",
+    "sections": "أقسام الرئيسية",
+    "pages": "الصفحات",
+    "settings": "الإعدادات",
+    "admins": "المشرفون"
+  },
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "publish": "نشر",
+    "draft": "مسودة",
+    "search": "بحث…",
+    "english": "English",
+    "arabic": "العربية"
+  },
+  "theme": {
+    "switchToDark": "الوضع الداكن",
+    "switchToLight": "الوضع الفاتح"
+  },
+  "errors": {
+    "generic": "حدث خطأ ما. حاول مرة أخرى.",
+    "CSRF_INVALID": "تعذر التحقق من جلستك. حاول مرة أخرى.",
+    "UNAUTHORIZED": "يرجى تسجيل الدخول مرة أخرى.",
+    "NETWORK_ERROR": "خطأ في الشبكة. تحقق من اتصالك.",
+    "INVALID_CREDENTIALS": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+    "RATE_LIMITED": "محاولات كثيرة جدًا.",
+    "ACCOUNT_LOCKED": "هذا الحساب مقفل مؤقتًا.",
+    "ACCOUNT_BLOCKED": "هذا الحساب محظور. تواصل مع مشرف آخر.",
+    "EMAIL_NOT_VERIFIED": "لم يتم تفعيل هذا الحساب بعد. استخدم الرابط في رسالة الدعوة.",
+    "OTP_INVALID": "الرمز غير صالح.",
+    "VALIDATION_ERROR": "يرجى مراجعة البيانات والمحاولة مرة أخرى.",
+    "NOT_ADMIN": "هذا الحساب لا يملك صلاحية الدخول إلى لوحة التحكم.",
+    "retryMinutes": {
+      "one": "حاول مرة أخرى بعد دقيقة واحدة.",
+      "two": "حاول مرة أخرى بعد دقيقتين.",
+      "few": "حاول مرة أخرى بعد {n} دقائق.",
+      "other": "حاول مرة أخرى بعد {n} دقيقة."
+    },
+    "retrySeconds": {
+      "one": "حاول مرة أخرى بعد ثانية واحدة.",
+      "two": "حاول مرة أخرى بعد ثانيتين.",
+      "few": "حاول مرة أخرى بعد {n} ثوانٍ.",
+      "other": "حاول مرة أخرى بعد {n} ثانية."
+    }
+  },
+  "orders": {
+    "newOrderToast": "طلب جديد {orderNo} · {count} منتجات",
+    "printInvoice": "طباعة الفاتورة"
+  },
+  "auth": {
+    "loginTitle": "تسجيل الدخول",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "signIn": "تسجيل الدخول",
+    "required": "هذا الحقل مطلوب.",
+    "invalidEmail": "أدخل بريدًا إلكترونيًا صالحًا.",
+    "restoring": "جارٍ التحقق من جلستك…",
+    "inviteTitle": "قبول الدعوة",
+    "code": "الرمز المكوّن من 6 أرقام",
+    "newPassword": "كلمة المرور الجديدة",
+    "passwordRule": "8 أحرف على الأقل، مع حرف ورقم.",
+    "invalidCode": "أدخل الرمز المكوّن من 6 أرقام من رسالة الدعوة.",
+    "inviteSubmit": "تعيين كلمة المرور وتسجيل الدخول",
+    "inviteHint": "اطلب من المشرف الذي دعاك إرسال دعوة جديدة."
+  },
+  "shell": {
+    "collapseSidebar": "طي الشريط الجانبي",
+    "expandSidebar": "توسيع الشريط الجانبي",
+    "mainNav": "التنقل الرئيسي",
+    "notifications": "الإشعارات",
+    "accountMenu": "قائمة الحساب",
+    "logout": "تسجيل الخروج",
+    "notFound": "الصفحة غير موجودة",
+    "notFoundHint": "هذه الصفحة غير موجودة."
+  }
 }

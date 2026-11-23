@@ -1,8 +1,89 @@
 {
-  "app": { "title": "Furnixa Admin", "subtitle": "Dashboard" },
-  "nav": { "overview": "Overview", "products": "Products", "categories": "Categories", "orders": "Orders", "customers": "Customers", "content": "Content", "banners": "Banners", "sections": "Home sections", "pages": "Pages", "settings": "Settings", "admins": "Admins" },
-  "common": { "save": "Save", "cancel": "Cancel", "delete": "Delete", "publish": "Publish", "draft": "Draft", "search": "Search…", "english": "English", "arabic": "العربية" },
-  "theme": { "switchToDark": "Dark mode", "switchToLight": "Light mode" },
-  "errors": { "generic": "Something went wrong. Please try again.", "CSRF_INVALID": "Your session could not be verified. Please try again.", "UNAUTHORIZED": "Please sign in again.", "NETWORK_ERROR": "Network error. Check your connection." },
-  "orders": { "newOrderToast": "New order {orderNo} · {count} items", "printInvoice": "Print invoice" }
+  "app": {
+    "title": "Furnixa Admin",
+    "subtitle": "Dashboard"
+  },
+  "nav": {
+    "overview": "Overview",
+    "products": "Products",
+    "categories": "Categories",
+    "orders": "Orders",
+    "customers": "Customers",
+    "content": "Content",
+    "banners": "Banners",
+    "sections": "Home sections",
+    "pages": "Pages",
+    "settings": "Settings",
+    "admins": "Admins"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "publish": "Publish",
+    "draft": "Draft",
+    "search": "Search…",
+    "english": "English",
+    "arabic": "العربية"
+  },
+  "theme": {
+    "switchToDark": "Dark mode",
+    "switchToLight": "Light mode"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "CSRF_INVALID": "Your session could not be verified. Please try again.",
+    "UNAUTHORIZED": "Please sign in again.",
+    "NETWORK_ERROR": "Network error. Check your connection.",
+    "INVALID_CREDENTIALS": "Incorrect email or password.",
+    "RATE_LIMITED": "Too many attempts.",
+    "ACCOUNT_LOCKED": "This account is temporarily locked.",
+    "ACCOUNT_BLOCKED": "This account is blocked. Contact another administrator.",
+    "EMAIL_NOT_VERIFIED": "This account is not verified yet. Use the link in your invitation email.",
+    "OTP_INVALID": "The code is not valid.",
+    "VALIDATION_ERROR": "Please check the details and try again.",
+    "NOT_ADMIN": "This account does not have access to the admin dashboard.",
+    "retryMinutes": {
+      "one": "Try again in 1 minute.",
+      "two": "Try again in {n} minutes.",
+      "few": "Try again in {n} minutes.",
+      "other": "Try again in {n} minutes."
+    },
+    "retrySeconds": {
+      "one": "Try again in 1 second.",
+      "two": "Try again in {n} seconds.",
+      "few": "Try again in {n} seconds.",
+      "other": "Try again in {n} seconds."
+    }
+  },
+  "orders": {
+    "newOrderToast": "New order {orderNo} · {count} items",
+    "printInvoice": "Print invoice"
+  },
+  "auth": {
+    "loginTitle": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "signIn": "Sign in",
+    "required": "This field is required.",
+    "invalidEmail": "Enter a valid email address.",
+    "restoring": "Checking your session…",
+    "inviteTitle": "Accept your invitation",
+    "code": "6-digit code",
+    "newPassword": "New password",
+    "passwordRule": "At least 8 characters, with a letter and a number.",
+    "invalidCode": "Enter the 6-digit code from your invitation email.",
+    "inviteSubmit": "Set password and sign in",
+    "inviteHint": "Ask the administrator who invited you to send a new invitation."
+  },
+  "shell": {
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "mainNav": "Main navigation",
+    "notifications": "Notifications",
+    "accountMenu": "Account menu",
+    "logout": "Sign out",
+    "notFound": "Page not found",
+    "notFoundHint": "This page does not exist."
+  }
 }

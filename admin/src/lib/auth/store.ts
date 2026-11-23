@@ -13,8 +13,15 @@ export type AuthUser = {
 };
 export type AuthSession = { accessToken: string; user: AuthUser };
 
-type State = { accessToken: string | null; csrfToken: string | null; user: AuthUser | null };
-let state: State = { accessToken: null, csrfToken: null, user: null };
+// `status`: "unknown" until the first refresh-cookie restore attempt finishes (route guards wait).
+export type AuthStatus = "unknown" | "authenticated" | "anonymous";
+type State = {
+  accessToken: string | null;
+  csrfToken: string | null;
+  user: AuthUser | null;
+  status: AuthStatus;
+};
+let state: State = { accessToken: null, csrfToken: null, user: null, status: "unknown" };
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
@@ -25,7 +32,7 @@ export const authStore = {
     return () => listeners.delete(fn);
   },
   setSession(s: AuthSession) {
-    state = { ...state, accessToken: s.accessToken, user: s.user };
+    state = { ...state, accessToken: s.accessToken, user: s.user, status: "authenticated" };
     emit();
   },
   setCsrfToken(t: string | null) {
@@ -33,7 +40,7 @@ export const authStore = {
     emit();
   },
   clear() {
-    state = { accessToken: null, csrfToken: null, user: null };
+    state = { accessToken: null, csrfToken: null, user: null, status: "anonymous" };
     emit();
   },
 };

@@ -29,6 +29,12 @@ function mount() {
 }
 
 beforeEach(async () => {
+  // The app restores its session from the refresh cookie on mount (T-061): never hit a real API in tests.
+  configureApiClient({
+    fetch: (async () =>
+      new Response(JSON.stringify({ code: "UNAUTHORIZED" }), { status: 401 })) as unknown as typeof fetch,
+  });
+  authStore.clear();
   localStorage.clear();
   document.documentElement.classList.remove("dark");
   initI18n("ar");

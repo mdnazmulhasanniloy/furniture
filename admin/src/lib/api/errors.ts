@@ -26,7 +26,19 @@ export class ApiError extends Error {
 }
 
 /** Codes with a dedicated entry under `errors` in the locale files. */
-export const KNOWN_ERROR_CODES = ["CSRF_INVALID", "UNAUTHORIZED", "NETWORK_ERROR"] as const;
+export const KNOWN_ERROR_CODES = [
+  "CSRF_INVALID",
+  "UNAUTHORIZED",
+  "NETWORK_ERROR",
+  "INVALID_CREDENTIALS",
+  "RATE_LIMITED",
+  "ACCOUNT_LOCKED",
+  "ACCOUNT_BLOCKED",
+  "EMAIL_NOT_VERIFIED",
+  "OTP_INVALID",
+  "VALIDATION_ERROR",
+  "NOT_ADMIN",
+] as const;
 
 /** Locale key for an error code, with a generic fallback. */
 export function errorKey(code: string): string {

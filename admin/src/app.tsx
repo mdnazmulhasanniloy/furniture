@@ -1,43 +1,23 @@
-import { useTranslation } from "react-i18next";
+import { useEffect } from "react";
 import { Route, Routes } from "react-router";
-import { Button } from "@/components/ui/button";
-import { setLocale, type Locale } from "@/lib/i18n";
-import { useTheme } from "@/lib/theme";
-
-export function Shell() {
-  const { t, i18n } = useTranslation();
-  const { theme, toggle } = useTheme();
-  const next: Locale = i18n.language === "ar" ? "en" : "ar";
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
-        <h1 className="font-display text-xl font-semibold">{t("app.title")}</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => void setLocale(next)} data-testid="locale-toggle">
-            {t(next === "ar" ? "common.arabic" : "common.english")}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggle}
-            aria-pressed={theme === "dark"}
-            data-testid="theme-toggle"
-          >
-            {t(theme === "dark" ? "theme.switchToLight" : "theme.switchToDark")}
-          </Button>
-        </div>
-      </header>
-      <main className="p-4">
-        <p className="text-muted-foreground">{t("app.subtitle")}</p>
-      </main>
-    </div>
-  );
-}
+import { restoreSession } from "@/lib/auth/flows";
+import { AcceptInvitePage } from "@/routes/accept-invite-page";
+import { LoginPage } from "@/routes/login-page";
+import { PlaceholderPage } from "@/routes/placeholder-page";
+import { RequireAdmin } from "@/routes/shell";
 
 export function App() {
+  // The access token is memory-only: on every page load try the httpOnly refresh cookie once.
+  useEffect(() => {
+    void restoreSession();
+  }, []);
   return (
     <Routes>
-      <Route path="*" element={<Shell />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/accept-invite" element={<AcceptInvitePage />} />
+      <Route element={<RequireAdmin />}>
+        <Route path="*" element={<PlaceholderPage />} />
+      </Route>
     </Routes>
   );
 }

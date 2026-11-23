@@ -113,17 +113,54 @@ async function csrfPost<T>(path: string): Promise<T> {
 
 let inFlightRefresh: Promise<AuthSession> | null = null;
 
+/** Fetch and cache the CSRF token (after login / accept-invite). Failure is non-fatal here. */
+export async function primeCsrf(): Promise<void> {
+  try {
+    await fetchCsrf(true);
+  } catch {
+    /* retried lazily on the next refresh/logout */
+  }
+}
+
+async function doRefresh(): Promise<AuthSession> {
+  let csrfRetried = false;
+  let raceRetried = false;
+  for (;;) {
+    try {
+      const csrf = await fetchCsrf();
+      const session = await rawRequest<AuthSession>("/auth/refresh", {
+        method: "POST",
+        headers: { "X-CSRF-Token": csrf },
+      });
+      authStore.setSession(session);
+      return session;
+    } catch (e) {
+      if (e instanceof ApiError) {
+        // Another tab rotated the cookie < 10 s ago: retry once with the new cookie; never log out (backend T-005).
+        if (e.code === "REFRESH_RACE" && !raceRetried) {
+          raceRetried = true;
+          continue;
+        }
+        if (e.code === "CSRF_INVALID" && !csrfRetried) {
+          csrfRetried = true;
+          authStore.setCsrfToken(null);
+          continue;
+        }
+        // Transient: keep the session state, the caller decides.
+        if (e.code === "REFRESH_RACE" || e.status === 0 || e.status >= 500 || e.status === 429) throw e;
+      }
+      authStore.clear();
+      throw e;
+    }
+  }
+}
+
 /** Single-flight refresh (backend T-005): concurrent callers share one request. */
 export function refreshSession(): Promise<AuthSession> {
   if (!inFlightRefresh) {
-    inFlightRefresh = csrfPost<AuthSession>("/auth/refresh")
-      .then((s) => {
-        authStore.setSession(s);
-        return s;
-      })
-      .finally(() => {
-        inFlightRefresh = null;
-      });
+    inFlightRefresh = doRefresh().finally(() => {
+      inFlightRefresh = null;
+    });
   }
   return inFlightRefresh;
 }

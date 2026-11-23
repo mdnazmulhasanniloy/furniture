@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (admin T-061 Admin auth + shell done)
+- **admin T-061 (AUTH-02, AUTH-06): admin login, accept-invite (`/accept-invite`, email from `?email=`), refresh-cookie session restore, single-flight refresh with REFRESH_RACE retry, route guard and shell (collapsible sidebar mirrored in RTL, top bar search/language/theme/bell/avatar menu with sign out); CUSTOMER login rejected with a localized message; RATE_LIMITED/ACCOUNT_LOCKED show the Retry-After time.** Tests `AUTH-02 ·` / `AUTH-06 ·` (en + ar, dark mode) and `e2e/auth-06.spec.ts`. Assumptions (autopilot) — owner to confirm: CUSTOMER session revoked on rejected login; customer cookie on load only cleared locally; search and bell are placeholders; sidebar state in localStorage `fx_admin_sidebar`; nav links go to placeholder pages; redirect back to the requested path after login.
+
 ## 2026-11-24 (admin T-060 Bootstrap done)
 - **admin T-060 (I18N-01): Vite 6 + React 19 + Tailwind v4 SPA on port 3101, tokens (light + dark) in `src/index.css`, react-i18next (default `ar`, `<html lang dir>` synced, choice remembered), theme provider (dark class, remembered), hand-written shadcn-style Button, API client with in-memory access token and CSRF token fetched via `GET /auth/csrf` before refresh and logout (ADR-011, as web T-031). Tests `I18N-01 · ...` (9 Vitest, 2 Playwright). Assumptions (autopilot) — owner to confirm: no radix/zustand/@fontsource dependencies (system fonts until approved); language/theme stored in localStorage; `@playwright/test` ^1.65.1 to match web; cross-origin API calls with `credentials: include`; placeholder shell only; `npm audit` shows 35 advisories in the pinned tree (not force-fixed).**
 

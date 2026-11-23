@@ -12,6 +12,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import type { Category } from "@/lib/api/public";
 import type { CartConfig } from "@/lib/cart/types";
 import { pick } from "@/lib/pick";
+import { useDialogA11y } from "@/lib/use-dialog-a11y";
 
 type Props = { categories: Category[]; logoUrl?: string | null; cartConfig?: CartConfig };
 
@@ -139,6 +140,8 @@ function MobileNav({ categories }: { categories: Category[] }) {
   const locale = useLocale();
   const [open, setOpen] = useState(false);
   const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(open, panelRef);
 
   useEffect(() => {
     if (!open) return;
@@ -168,6 +171,7 @@ function MobileNav({ categories }: { categories: Category[] }) {
             onClick={() => setOpen(false)}
           />
           <div
+            ref={panelRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}

@@ -62,6 +62,12 @@
   --font-sans: var(--font-body), system-ui, sans-serif;
 }
 
+/* UI-02: visible keyboard focus everywhere (components may refine it). */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
 html[lang="ar"] {
   line-height: 1.7;
 }

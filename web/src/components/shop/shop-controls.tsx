@@ -2,12 +2,13 @@
 
 import { SlidersHorizontal, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useRouter } from "@/i18n/navigation";
 import type { Category } from "@/lib/api/public";
 import { pick } from "@/lib/pick";
+import { useDialogA11y } from "@/lib/use-dialog-a11y";
 import {
   CONDITIONS,
   SORTS,
@@ -46,6 +47,18 @@ function ShopFrameInner({
   const tc = useTranslations("condition");
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const sheetRef = useRef<HTMLElement>(null);
+  // Only a sheet below lg; on desktop the aside is static (focus trap would be wrong).
+  const [sheet, setSheet] = useState(false);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const sync = () => setSheet(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  useDialogA11y(open && sheet, sheetRef);
   const [draft, setDraft] = useState(filters);
   const [min, setMin] = useState(toRiyal(filters.minPrice));
   const [max, setMax] = useState(toRiyal(filters.maxPrice));
@@ -87,6 +100,7 @@ function ShopFrameInner({
   return (
     <div className="mt-6 grid gap-6 lg:grid-cols-[16rem_1fr]">
       <aside
+        ref={sheetRef}
         id="shop-filters"
         aria-label={t("filters")}
         role={open ? "dialog" : undefined}

@@ -2,7 +2,7 @@ import { DirectionProvider } from "@radix-ui/react-direction";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { Providers } from "@/components/providers";
@@ -51,6 +51,7 @@ export default async function LocaleLayout({
   const fonts =
     locale === "ar" ? await import("@/fonts/arabic") : await import("@/fonts/latin");
 
+  const skip = (await getTranslations({ locale, namespace: "nav" }))("skip");
   const [categories, settings] = await Promise.all([getCategories(), getSettings()]);
 
   return (
@@ -63,12 +64,20 @@ export default async function LocaleLayout({
         <NextIntlClientProvider>
           <DirectionProvider dir={dir}>
             <Providers>
+              <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-[60] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+              >
+                {skip}
+              </a>
               <SiteHeader
                 categories={categories}
                 logoUrl={settings?.logo?.url ?? null}
                 cartConfig={cartConfigFrom(settings)}
               />
-              {children}
+              <div id="main-content" tabIndex={-1} className="outline-none">
+                {children}
+              </div>
               <SiteFooter settings={settings} />
             </Providers>
           </DirectionProvider>

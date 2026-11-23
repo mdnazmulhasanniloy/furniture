@@ -10,6 +10,7 @@ import { Link } from "@/i18n/navigation";
 import { useAuthStore } from "@/lib/auth/store";
 import { cartCount, closeDrawer, openDrawer, setCartConfig, useCartStore } from "@/lib/cart/store";
 import type { CartConfig } from "@/lib/cart/types";
+import { useDialogA11y } from "@/lib/use-dialog-a11y";
 
 /** Header cart link (still a real link to /cart) with a count badge; click opens the drawer. */
 export function CartButton({ config }: { config?: CartConfig }) {
@@ -71,6 +72,8 @@ export function CartButton({ config }: { config?: CartConfig }) {
 function Drawer({ onClose }: { onClose: () => void }) {
   const t = useTranslations("cart");
   const closeRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(true, panelRef);
   const onCloseRef = useRef(onClose);
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -91,6 +94,7 @@ function Drawer({ onClose }: { onClose: () => void }) {
         onClick={onClose}
       />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cart-drawer-title"

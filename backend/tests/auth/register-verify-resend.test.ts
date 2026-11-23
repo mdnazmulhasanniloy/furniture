@@ -63,7 +63,14 @@ const sameError = ({ requestId: _id, ...rest }: Record<string, unknown>) => rest
 const wrongCode = (real: string) => (real === '000000' ? '111111' : '000000');
 
 async function wipe() {
-  await Promise.all([prisma.otp.deleteMany(), prisma.refreshToken.deleteMany()]);
+  // rateLimit: the T-019 per-IP limiters (register 20/h, resend 20/h) share one supertest IP
+  // across the whole file; reset them like any other cross-test state. The per-email cooldown
+  // and hourly cap asserted below live in Otp rows, not here, so nothing this file tests is reset.
+  await Promise.all([
+    prisma.otp.deleteMany(),
+    prisma.refreshToken.deleteMany(),
+    prisma.rateLimit.deleteMany(),
+  ]);
   await prisma.user.deleteMany();
 }
 

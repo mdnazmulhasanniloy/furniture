@@ -14,11 +14,14 @@
     // Vercel's function compiler resolves package types with the require condition even in ESM
     // files (mode-less resolveModuleName; replicated by `npm run build:vercel`). helmet is
     // dual-published with DIFFERENT type shapes per condition, so its CJS view breaks the default
-    // import there. Pinning its types to the ESM declarations gives both compilers the view that
-    // matches the runtime (Node resolves the import condition → index.mjs). Types-only: `paths`
-    // never changes the emitted import. Add a line here if build:vercel flags another package.
+    // import there. The pin targets a real shim module (src/types/helmet-pin.mts) that re-exports
+    // helmet's ESM entry: both compilers type it via index.d.mts (the view that matches runtime),
+    // and tsx — which applies `paths` at RUNTIME (dev/seed/p95 scripts) — executes the shim and
+    // gets the real helmet. Neither index.d.mts (empty module under tsx) nor index.mjs (no
+    // declaration lookup for paths targets, TS7016) works as a direct target.
+    // Add a line here if build:vercel flags another package.
     "paths": {
-      "helmet": ["./node_modules/helmet/index.d.mts"]
+      "helmet": ["./src/types/helmet-pin.mts"]
     }
   },
   "include": ["src", "api", "tests", "prisma", "scripts", "vitest.config.ts"]

@@ -31,12 +31,63 @@ const resetIpLimiter = createRateLimiter({
   skipSuccessful: true,
 });
 
-authRouter.post('/register', validate({ body: registerBody }), controller.register);
-authRouter.post('/verify-otp', validate({ body: verifyOtpBody }), controller.verifyOtp);
-authRouter.post('/resend-otp', validate({ body: resendOtpBody }), controller.resendOtp);
+/** T-019 (NFR-01): per-email caps exist, but one IP can flood many different emails (rows + mail). */
+const registerIpLimiter = createRateLimiter({ name: 'register', limit: 20, windowSeconds: 3600 });
+
+/** T-019 (NFR-01): the 5-wrong-code burn is per email; this stops guessing across rotating emails. */
+const verifyOtpIpLimiter = createRateLimiter({
+  name: 'verify-otp',
+  limit: 10,
+  windowSeconds: 900,
+  skipSuccessful: true,
+});
+
+/** T-019 (NFR-01): cooldown and hourly cap are per email; this caps mass mail across many emails. */
+const resendOtpIpLimiter = createRateLimiter({
+  name: 'resend-otp',
+  limit: 20,
+  windowSeconds: 3600,
+});
+
+/** T-019 (NFR-01): same flow as resend-otp, same per-IP cap. */
+const forgotPasswordIpLimiter = createRateLimiter({
+  name: 'forgot-password',
+  limit: 20,
+  windowSeconds: 3600,
+});
+
+/** T-019 (NFR-01): only real failures count — not successes and not the 401 REFRESH_RACE grace case
+ *  (a multi-tab client retrying with the new cookie is not a guessing attempt). */
+const refreshIpLimiter = createRateLimiter({
+  name: 'refresh',
+  limit: 20,
+  windowSeconds: 900,
+  skipSuccessful: true,
+  refundErrorCodes: ['REFRESH_RACE'],
+});
+
+authRouter.post(
+  '/register',
+  registerIpLimiter,
+  validate({ body: registerBody }),
+  controller.register,
+);
+authRouter.post(
+  '/verify-otp',
+  verifyOtpIpLimiter,
+  validate({ body: verifyOtpBody }),
+  controller.verifyOtp,
+);
+authRouter.post(
+  '/resend-otp',
+  resendOtpIpLimiter,
+  validate({ body: resendOtpBody }),
+  controller.resendOtp,
+);
 authRouter.post('/login', loginIpLimiter, validate({ body: loginBody }), controller.login);
 authRouter.post(
   '/forgot-password',
+  forgotPasswordIpLimiter,
   validate({ body: forgotPasswordBody }),
   controller.forgotPassword,
 );
@@ -61,6 +112,6 @@ authRouter.post(
   controller.acceptInvite,
 );
 authRouter.get('/csrf', controller.csrf);
-authRouter.post('/refresh', controller.refresh);
+authRouter.post('/refresh', refreshIpLimiter, controller.refresh);
 authRouter.post('/logout', controller.logout);
 authRouter.get('/me', requireAuth, controller.me);

@@ -44,6 +44,8 @@ export function createErrorHandler(logger: Logger): ErrorRequestHandler {
       res.setHeader('Retry-After', String(Math.max(1, Math.ceil(retryAfter))));
     }
 
+    // Rate limiters with `refundErrorCodes` (T-019) read the rendered code to decide whether to refund.
+    res.locals.errorCode = code;
     res.status(status).json({ code, message, details, requestId: req.id });
   };
 }

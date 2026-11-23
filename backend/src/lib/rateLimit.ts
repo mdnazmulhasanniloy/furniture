@@ -360,6 +360,12 @@ export interface RateLimiterOptions {
   windowSeconds: number;
   /** Do not count responses with status < 400 (e.g. only failed logins count). */
   skipSuccessful?: boolean;
+  /**
+   * Error codes (the `Error` schema `code` of a >= 400 response) that are refunded like successes.
+   * Only meaningful with `skipSuccessful`. T-019: `/auth/refresh` does not count 401 `REFRESH_RACE`
+   * (the multi-tab grace case is not a guessing attempt).
+   */
+  refundErrorCodes?: string[];
 }
 
 /**
@@ -391,7 +397,7 @@ export function createRateLimiter(opts: RateLimiterOptions): RequestHandler {
   return (req, res, next) => {
     let failedOpen = false;
     if (opts.skipSuccessful) {
-      refundSuccessBeforeEnd(req, res, store, opts.name, () => failedOpen);
+      refundSuccessBeforeEnd(req, res, store, opts.name, () => failedOpen, opts.refundErrorCodes);
     }
     inner(req, res, (err?: unknown) => {
       const cause = err instanceof Error ? err : undefined;
@@ -412,19 +418,28 @@ export function createRateLimiter(opts: RateLimiterOptions): RequestHandler {
 type Req = Parameters<RequestHandler>[0];
 type Res = Parameters<RequestHandler>[1];
 
-/** Wrap `res.end` so a successful (< 400) response refunds its hit and the refund completes before the
- *  response actually ends. A refund failure is logged and the response is sent anyway (fail open). */
+/** Wrap `res.end` so a successful (< 400) response — or one whose rendered error code is in
+ *  `refundErrorCodes` — refunds its hit, and the refund completes before the response actually ends.
+ *  A refund failure is logged and the response is sent anyway (fail open). */
 function refundSuccessBeforeEnd(
   req: Req,
   res: Res,
   store: MongoRateLimitStore,
   scope: string,
   skip: () => boolean,
+  refundErrorCodes?: string[],
 ): void {
   const realEnd = res.end.bind(res) as (...args: unknown[]) => Res;
   let refunding = false;
+  const counts = () =>
+    res.statusCode >= 400 &&
+    !(
+      refundErrorCodes &&
+      typeof res.locals.errorCode === 'string' &&
+      refundErrorCodes.includes(res.locals.errorCode)
+    );
   res.end = ((...args: unknown[]) => {
-    if (refunding || skip() || res.statusCode >= 400) return realEnd(...args);
+    if (refunding || skip() || counts()) return realEnd(...args);
     refunding = true;
     store
       .decrement(limitKey(scope, 'ip', req.ip))

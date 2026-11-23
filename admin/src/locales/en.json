@@ -62,7 +62,8 @@
     "FORBIDDEN": "You do not have permission to do this.",
     "UPLOAD_NOT_ALLOWED": "The image could not be used. Upload it again.",
     "STALE_UPDATE": "This was changed by someone else. Reload to see the latest version.",
-    "INVALID_TRANSITION": "This status change is not allowed for the order's current status."
+    "INVALID_TRANSITION": "This status change is not allowed for the order's current status.",
+    "CITY_CODE_IMMUTABLE": "Cities can't be removed; deactivate instead."
   },
   "orders": {
     "newOrderToast": "New order {orderNo} · {count} items",
@@ -585,6 +586,53 @@
       "linkUrl": "Link address",
       "linkApply": "Apply",
       "linkInvalid": "Use an https:// address or a path starting with a single /."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "loading": "Loading settings…",
+    "retry": "Retry",
+    "sections": "Settings sections",
+    "section": {
+      "general": "General",
+      "social": "Social",
+      "seo": "SEO"
+    },
+    "social": {
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp",
+      "tiktok": "TikTok"
+    },
+    "form": {
+      "languages": "Languages",
+      "hasErrors": "has errors",
+      "required": "This field is required.",
+      "tooLong": "This is too long.",
+      "emailInvalid": "Enter a valid email address.",
+      "bothLocales": "Fill in both languages or leave both empty.",
+      "storeNameEn": "Store name (English)",
+      "storeNameAr": "Store name (Arabic)",
+      "addressEn": "Address (English)",
+      "addressAr": "Address (Arabic)",
+      "contactEmail": "Contact email",
+      "contactPhone": "Contact phone",
+      "phoneBlocked": "Read-only for now: the phone format rule is awaiting an owner decision. The current value is kept when you save.",
+      "defaultLocale": "Default language",
+      "defaultLocaleHint": "The language the storefront opens in.",
+      "currency": "Currency",
+      "currencyHint": "Fixed to Saudi riyal; it cannot be changed.",
+      "logo": "Logo",
+      "removeLogo": "Remove logo",
+      "logoAltBoth": "Logo alt text is needed in both languages, or in neither.",
+      "socialBlocked": "Read-only for now: the rules for social links are awaiting an owner decision. The current values are kept when you save.",
+      "seoTitleEn": "SEO title (English)",
+      "seoTitleAr": "SEO title (Arabic)",
+      "seoDescEn": "SEO description (English)",
+      "seoDescAr": "SEO description (Arabic)",
+      "stale": "Settings were changed, reload. Your edits are kept until you reload.",
+      "reload": "Reload",
+      "saved": "Settings saved."
     }
   }
 }

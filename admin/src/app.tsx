@@ -16,6 +16,7 @@ import { ProductEditorPage } from "@/routes/product-editor-page";
 import { ProductsPage } from "@/routes/products-page";
 import { CustomerDetailPage } from "@/routes/customer-detail-page";
 import { CustomersPage } from "@/routes/customers-page";
+import { SettingsPage } from "@/routes/settings-page";
 import { PlaceholderPage } from "@/routes/placeholder-page";
 import { RequireAdmin } from "@/routes/shell";
 
@@ -44,6 +45,7 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/banners" element={<BannersPage />} />
           <Route path="/pages" element={<PagesPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/sections" element={<SectionsPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/orders/:id" element={<OrderDetailPage />} />

@@ -6,11 +6,13 @@ export function Modal({
   onClose,
   children,
   testId,
+  wide = false,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   testId: string;
+  wide?: boolean;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -24,7 +26,7 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         data-testid={testId}
-        className="max-h-full w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-popover p-5 text-popover-foreground shadow-md"
+        className={`max-h-full w-full ${wide ? "max-w-3xl" : "max-w-lg"} overflow-y-auto rounded-lg border border-border bg-popover p-5 text-popover-foreground shadow-md`}
       >
         <h2 className="font-display text-lg font-semibold">{title}</h2>
         {children}

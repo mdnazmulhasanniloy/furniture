@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router";
 import { restoreSession } from "@/lib/auth/flows";
 import { AcceptInvitePage } from "@/routes/accept-invite-page";
+import { BannersPage } from "@/routes/banners-page";
 import { CategoriesPage } from "@/routes/categories-page";
 import { InvoicePage } from "@/routes/invoice-page";
 import { LoginPage } from "@/routes/login-page";
@@ -39,6 +40,7 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
           <Route path="/products/new" element={<ProductEditorPage />} />
           <Route path="/products/:id" element={<ProductEditorPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/banners" element={<BannersPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/orders/:id" element={<OrderDetailPage />} />
           <Route path="/orders/:id/invoice" element={<InvoicePage />} />

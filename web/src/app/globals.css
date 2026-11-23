@@ -1,6 +1,7 @@
 /* Design tokens — source: project-docs/03-design/design-system.md ("Warm Walnut").
    Shared verbatim with admin/src/index.css (light theme). */
 @import "tailwindcss";
+@import "tw-animate-css";
 
 :root {
   --background: #fbf8f3;
@@ -55,13 +56,13 @@
   --radius-md: var(--radius);
   --radius-lg: 16px;
   --radius-xl: 24px;
-  --font-display: var(--font-fraunces), var(--font-noto-kufi), serif;
-  --font-sans: var(--font-manrope), var(--font-plex-arabic), system-ui, sans-serif;
+  /* --font-heading / --font-body are set per locale by next/font on <html>
+     (src/fonts/latin.ts for en, src/fonts/arabic.ts for ar). */
+  --font-display: var(--font-heading), serif;
+  --font-sans: var(--font-body), system-ui, sans-serif;
 }
 
 html[lang="ar"] {
-  --font-display: var(--font-noto-kufi), serif;
-  --font-sans: var(--font-plex-arabic), system-ui, sans-serif;
   line-height: 1.7;
 }
 

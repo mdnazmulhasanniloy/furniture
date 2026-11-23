@@ -2,13 +2,15 @@
 
 Done = linked acceptance criteria covered by passing tests (Vitest + Testing Library for components, Playwright for flows) **in both `en` and `ar`**.
 
-### T-030 Bootstrap Next.js + design tokens + i18n/RTL · todo
+### T-030 Bootstrap Next.js + design tokens + i18n/RTL · review
 - Req: I18N-01, UI-01 · Depends: — · Docs: `03-design/design-system.md`, `adr/ADR-002`, `adr/ADR-004`
 - Done: dev port 3100 (`next dev -p 3100`, `STOREFRONT_URL`); `images.remotePatterns` allows the `R2_PUBLIC_BASE_URL` host; Next.js 15 App Router, Tailwind v4 tokens from design system, shadcn init, fonts (Fraunces/Manrope/Noto Kufi Arabic/IBM Plex Sans Arabic), `next-intl` with `/en` `/ar`, `<html dir>` correct (Playwright check), `messages/en.json` + `ar.json` key parity script.
 - Note (backend T-011): the `/api/revalidate` route receives `{tags}` with `x-revalidate-secret` (must equal backend `REVALIDATE_SECRET`). Tag pages that show prices, VAT or delivery info with the `settings` tag as well as their own tag — a settings change revalidates `settings`, `home` and `products` (owner 2026-11-22).
+- Note (2026-11-23, T-030): built on **Next 16** (`proxy.ts`, ESLint CLI — ADR-002 amendment). next/font's preload manifest is **per route entry** and `[locale]` is one entry, so `preload: true` would inject BOTH locales' font files on every page (verified in `.next/server/next-font-manifest.json`); fonts therefore use `preload: false` with per-locale `@font-face` scoping (dynamic import in the locale layout), and the `UI-01` e2e asserts at the **network level** that each locale downloads only its own fonts. e2e runs against a production build (`next build && next start`; dev emits no font links); `E2E_PORT` overrides the port and `reuseExistingServer` is always false so a foreign server on the port fails fast instead of being tested.
 
 ### T-031 API client + auth state + token refresh · todo
 - Req: AUTH-05 · Depends: T-030, backend T-005
+- Note (T-030, 2026-11-23): the storefront proxies `/api/:path*` → `${API_ORIGIN}/api/:path*` (next.config rewrite, ADR-011), so the backend's host-only refresh cookie is first-party on the storefront domain. The client base path is `NEXT_PUBLIC_API_URL=/api/v1` (relative, same-origin) — do not call the backend origin directly from the browser.
 - Note (backend T-005): refresh must be single-flight (one in-flight refresh shared by all requests); on 401 `REFRESH_RACE` retry once with the new cookie (do not log out); the CSRF token from `GET /auth/csrf` is bound to the session and survives rotations (fetch it after login, cache it); show a localized message for `INVALID_CREDENTIALS`.
 - Done: fetch wrapper with `Accept-Language`, 401 → single refresh retry; TanStack Query provider; auth store; RATE_LIMITED and ACCOUNT_LOCKED errors show a localized en/ar message using the Retry-After value (for example 'Try again in 12 minutes').
 
@@ -49,6 +51,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 ### T-040 Live notifications · todo
 - Req: NOTIF-01, NOTIF-03 · Depends: T-039, backend T-016
+- Note (T-030, 2026-11-23): do **not** route the socket through the storefront's `/api/:path*` rewrite — a websocket upgrade does not survive a Next rewrite. Connect to the backend origin directly: `io(NEXT_PUBLIC_SOCKET_URL, { path: '/api/socket-io', … })`.
 - Done: socket client per ADR-012 (`path: '/api/socket-io'`, `addTrailingSlash: false` — Vercel routes only the exact function path, 2026-11-23 — `transports: ['websocket']`, backoff reconnect; **`auth` MUST be a function** — `auth: (cb) => cb({ token: getFreshToken() })` — so EVERY reconnect attempt sends the current access token, refreshing first when it expires within 60 s (2026-11-23, T-026 --long); on `disconnect` with reason `io server disconnect` (the server kicks the socket when the token expires) socket.io-client does **not** auto-reconnect — refresh the token and call `socket.connect()` manually; every other reason reconnects automatically); after every `connect` re-fetch `GET /notifications`; toast + bell badge; notifications page; tests: `NOTIF-01` unit test with a mocked socket — a notification created while disconnected is shown after reconnect (bell count, list, grouped toast); Playwright: admin status change → customer toast < 2 s while connected; forced disconnect then reconnect shows the missed notification.
 
 ### T-041 Static pages + SEO + revalidate route · todo

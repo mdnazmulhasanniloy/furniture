@@ -1,4 +1,6 @@
 {
+  "home": { "brand": "Furnixa", "tagline": "Warm, crafted furniture — new and pre-owned.", "intro": "A well-lit showroom of natural wood, linen and clay. Shop new pieces or give quality furniture a second life." },
+  "lang": { "label": "Language", "en": "English", "ar": "العربية" },
   "nav": { "shop": "Shop", "new": "New", "resale": "Pre-owned", "categories": "Categories", "search": "Search furniture…", "cart": "Cart", "account": "Account", "notifications": "Notifications" },
   "badge": { "new": "New", "preowned": "Pre-owned · {grade}", "featured": "Featured", "soldOut": "Sold out" },
   "condition": { "NEW": "New", "LIKE_NEW": "Like new", "GOOD": "Good", "FAIR": "Fair" },

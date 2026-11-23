@@ -24,7 +24,13 @@ export async function startSocketServer(env: Env): Promise<TestSocketServer> {
 export function connectClient(
   port: number,
   token?: string,
-  opts: { extraHeaders?: Record<string, string> } = {},
+  opts: {
+    extraHeaders?: Record<string, string>;
+    reconnection?: boolean;
+    reconnectionDelay?: number;
+    reconnectionDelayMax?: number;
+    randomizationFactor?: number;
+  } = {},
 ): ClientSocket {
   return clientIo(`http://127.0.0.1:${port}`, {
     path: SOCKET_PATH,

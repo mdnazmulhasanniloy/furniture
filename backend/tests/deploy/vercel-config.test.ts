@@ -16,6 +16,7 @@ vi.hoisted(() => {
 });
 
 import request from 'supertest';
+import type { Socket as ServerSocket } from 'socket.io';
 import type { Socket as ClientSocket } from 'socket.io-client';
 import apiEntry from '../../api/index.js';
 import socketServer, { io } from '../../api/socket-io.js';
@@ -26,7 +27,7 @@ import { closeMongoClient } from '../../src/lib/mongo.js';
 import { prisma } from '../../src/lib/prisma.js';
 import { SOCKET_PATH } from '../../src/lib/socketServer.js';
 import { signAccessToken } from '../../src/lib/tokens.js';
-import { connectClient, connected, waitForEvent } from '../helpers/socket.js';
+import { connectClient, connected, waitForDisconnect, waitForEvent } from '../helpers/socket.js';
 
 const backendRoot = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -51,6 +52,7 @@ afterAll(async () => {
   // io.close() also closes the exported http server and the adapter's change stream.
   await new Promise<void>((resolve) => io.close(() => resolve()));
   await closeMongoClient();
+  await prisma.notification.deleteMany();
   await prisma.user.deleteMany();
   await prisma.$disconnect();
 });
@@ -205,6 +207,66 @@ describe('Vercel configuration (T-026)', () => {
       setTimeout(() => finish(buffer), 8000).unref();
     });
     expect(head.startsWith('HTTP/1.1 101')).toBe(true);
+  });
+
+  it('NOTIF-01 · after a transport close the client auto-reconnects within seconds and the gap notification is fetched after reconnect (ADR-012 §3)', async () => {
+    const user = await prisma.user.create({
+      data: {
+        firstName: 'Gap',
+        lastName: 'Reconnect',
+        email: `${randomUUID()}@example.com`,
+        passwordHash: 'x',
+        isVerified: true,
+      },
+    });
+    const token = signAccessToken(user);
+    const serverSide = new Promise<ServerSocket>((resolve) => io.once('connection', resolve));
+    const socket = connectClient(port, token, {
+      reconnection: true,
+      reconnectionDelay: 200,
+      reconnectionDelayMax: 200,
+      randomizationFactor: 0,
+    });
+    clients.push(socket);
+    await connected(socket);
+    const serverSocket = await serverSide;
+
+    // Arm both watchers BEFORE the close (a waiter attached after an await can miss a fast
+    // reconnect — the --long failure mode), then close the underlying engine connection the way
+    // the platform's duration limit does: no namespace DISCONNECT packet, so the client sees
+    // reason 'transport close' and reconnects by itself ('io server disconnect' would not).
+    const disconnected = waitForDisconnect(socket);
+    const reconnected = connected(socket, 5000);
+    serverSocket.conn.close();
+    expect(await disconnected).toBe('transport close');
+
+    // During the gap: the notification row is created while the client is offline. The live emit
+    // for it is lost by design — the row is the source of truth (ADR-012 §2) and the client
+    // re-fetches GET /notifications on every connect (ADR-012 §3).
+    const gap = await prisma.notification.create({
+      data: {
+        userId: user.id,
+        type: 'ORDER_STATUS',
+        title: { en: 'Order update', ar: 'تحديث الطلب' },
+        body: { en: 'created during the gap', ar: 'أُنشئ أثناء الانقطاع' },
+        link: null,
+        data: { orderId: 'gap-check' },
+        readAt: null,
+      },
+    });
+
+    await reconnected; // automatic — the test never calls socket.connect()
+
+    const res = await request(apiEntry)
+      .get('/api/v1/notifications')
+      .set('authorization', `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    const items = res.body.items as { id: string }[];
+    expect(items.map((n) => n.id)).toContain(gap.id);
+
+    // Live delivery works again on the reconnected socket.
+    socketEmitter.toUser(user.id).emit('notification:new', { id: 'after-reconnect' });
+    expect(await waitForEvent(socket, 'notification:new')).toEqual({ id: 'after-reconnect' });
   });
 
   it('NFR-08 · the Prisma client is generated for the Vercel runtime (binaryTargets + build script)', () => {

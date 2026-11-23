@@ -88,24 +88,95 @@ async function login(email: string, password: string, who: string) {
   return { token, role: String(user.role), id: String(user.id) };
 }
 
-function connectSocket(token: string, reconnection: boolean): ClientSocket {
-  return clientIo(base, {
+/** Decodes the JWT `exp` claim without verifying (the server is the authority; this only times refreshes). */
+function tokenExpSeconds(token: string): number {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(token.split('.')[1] ?? '', 'base64url').toString('utf8'),
+    ) as { exp?: number };
+    return typeof payload.exp === 'number' ? payload.exp : 0;
+  } catch {
+    return 0;
+  }
+}
+
+interface TokenSupplier {
+  /** The current access token; re-logs-in first when it expires within 60 s (ADR-012 §3). */
+  current(): Promise<string>;
+}
+
+function tokenSupplier(email: string, password: string, who: string, seed?: string): TokenSupplier {
+  let token = seed;
+  return {
+    async current(): Promise<string> {
+      if (!token || tokenExpSeconds(token) - Date.now() / 1000 < 60) {
+        console.log(`  ${who}: access token missing or expires within 60 s — logging in again`);
+        token = (await login(email, password, who)).token;
+      }
+      return token;
+    },
+  };
+}
+
+function connectSocket(
+  getToken: () => Promise<string>,
+  reconnection: boolean,
+  label: string,
+): ClientSocket {
+  const socket = clientIo(base, {
     path: SOCKET_PATH,
     // Vercel routes only the exact function path; requests must be /api/socket-io?EIO=…
     addTrailingSlash: false,
     transports: ['websocket'],
+    // A dedicated Manager per check socket. path/addTrailingSlash/transports/extraHeaders are
+    // Manager(engine) options and ride along on EVERY reconnect attempt; `auth` is socket-level
+    // and, being a function, is re-evaluated before every attempt.
     forceNew: true,
     reconnection,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 15_000,
     randomizationFactor: 0.5,
-    // ADR-012 §3 contract: auth is a callback, evaluated before every (re)connect.
-    auth: (cb) => cb({ token }),
+    // ADR-012 §3 contract: auth is a FUNCTION so every (re)connect attempt sends a CURRENT
+    // access token, refreshed first when it is near expiry.
+    auth: (cb) => {
+      getToken().then(
+        (token) => cb({ token }),
+        (err: unknown) => {
+          log(
+            label,
+            `token refresh failed (${err instanceof Error ? err.message : String(err)}) — attempting without auth`,
+          );
+          cb({});
+        },
+      );
+    },
     ...(bypass ? { extraHeaders: { 'x-vercel-protection-bypass': bypass } } : {}),
   });
+  // Instrumentation: every lifecycle event, timestamped, so a failed --long run shows WHY.
+  // Nothing secret is printed (connect_error data is the server's public error payload).
+  socket.io.on('reconnect_attempt', (attempt) => log(label, `reconnect_attempt #${attempt}`));
+  socket.io.on('reconnect_error', (err) => log(label, `reconnect_error: ${err.message}`));
+  socket.io.on('reconnect_failed', () => log(label, 'reconnect_failed (all attempts exhausted)'));
+  socket.on('connect', () => log(label, `connect (socket id ${socket.id ?? '?'})`));
+  socket.on('connect_error', (err) => log(label, `connect_error: ${describeSocketError(err)}`));
+  socket.on('disconnect', (reason) => log(label, `disconnect (reason: ${reason})`));
+  return socket;
 }
 
-function waitFor<T = unknown>(socket: ClientSocket, event: string, ms: number): Promise<T> {
+const log = (label: string, msg: string) =>
+  console.log(`  [${label} ${new Date().toISOString()}] ${msg}`);
+
+function describeSocketError(err: Error): string {
+  const data = (err as Error & { data?: unknown }).data;
+  return `${err.message}${data === undefined ? '' : ` data=${JSON.stringify(data)}`}`;
+}
+
+function waitFor<T = unknown>(
+  socket: ClientSocket,
+  event: string,
+  ms: number,
+  opts: { rejectOnConnectError?: boolean } = {},
+): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const t = setTimeout(
       () => reject(new Error(`timed out after ${ms} ms waiting for ${event}`)),
@@ -115,10 +186,12 @@ function waitFor<T = unknown>(socket: ClientSocket, event: string, ms: number): 
       clearTimeout(t);
       resolve(payload);
     });
-    if (event !== 'connect_error') {
+    // While a reconnecting socket retries, transient connect_errors are expected and logged by the
+    // instrumentation — pass rejectOnConnectError: false to keep waiting through them.
+    if (event !== 'connect_error' && (opts.rejectOnConnectError ?? true)) {
       socket.once('connect_error', (err) => {
         clearTimeout(t);
-        reject(new Error(`connect_error: ${err.message}`));
+        reject(new Error(`connect_error: ${describeSocketError(err)}`));
       });
     }
   });
@@ -133,15 +206,17 @@ async function longRun(admin: { token: string }): Promise<void> {
   }
   const customer = await login(email, password, 'customer');
   if (customer.role !== 'CUSTOMER') throw new Error('PREVIEW_CUSTOMER_EMAIL is not a CUSTOMER');
+  const customerToken = tokenSupplier(email, password, 'customer', customer.token);
 
   // An address in an active city (created once, reused on later runs).
-  const addresses = (await api('GET', '/api/v1/me/addresses', { token: customer.token })).body as
-    Record<string, unknown>[] | null;
+  const addresses = (
+    await api('GET', '/api/v1/me/addresses', { token: await customerToken.current() })
+  ).body as Record<string, unknown>[] | null;
   let addressId = Array.isArray(addresses) ? (addresses[0]?.id as string | undefined) : undefined;
   if (!addressId) {
     const created = expectOk(
       await api('POST', '/api/v1/me/addresses', {
-        token: customer.token,
+        token: await customerToken.current(),
         body: {
           label: 'Preview check',
           fullName: 'Preview Check',
@@ -171,18 +246,20 @@ async function longRun(admin: { token: string }): Promise<void> {
   // Cart with exactly this one line, priced for the chosen address.
   expectOk(
     await api('PUT', '/api/v1/cart/items', {
-      token: customer.token,
+      token: await customerToken.current(),
       body: { productId: String(product.id), qty: 1 },
     }),
     'put cart item',
   );
   const cart = expectOk(
-    await api('GET', `/api/v1/cart?addressId=${addressId}`, { token: customer.token }),
+    await api('GET', `/api/v1/cart?addressId=${addressId}`, {
+      token: await customerToken.current(),
+    }),
     'price cart',
   );
   const order = expectOk(
     await api('POST', '/api/v1/orders', {
-      token: customer.token,
+      token: await customerToken.current(),
       headers: { 'idempotency-key': randomUUID() },
       body: { addressId, expectedTotal: cart.total, customerNote: 'preview-check --long (T-026)' },
     }),
@@ -192,7 +269,7 @@ async function longRun(admin: { token: string }): Promise<void> {
   const orderId = String(order.id);
   console.log(`  --long: placed order ${String(order.orderNo)} (PENDING)`);
 
-  const socket = connectSocket(customer.token, true);
+  const socket = connectSocket(() => customerToken.current(), true, 'long-socket');
   try {
     await waitFor(socket, 'connect', CONNECT_TIMEOUT_MS);
     const connectedAt = Date.now();
@@ -204,7 +281,19 @@ async function longRun(admin: { token: string }): Promise<void> {
       `  --long: disconnected after ${disconnectSeconds} s (reason: ${reason}) — record this in infra-deployment.md`,
     );
 
-    // During the gap: the admin confirms the order -> a customer notification is created while offline.
+    // Arm the reconnect watcher BEFORE anything else happens: the first automatic reconnect
+    // attempt fires ~0.5–1.5 s after the disconnect and can finish before an HTTP round trip —
+    // a waiter attached after the admin call misses the 'connect' event entirely (the failure
+    // mode of the first --long run: "timed out waiting for connect" with no connect_error).
+    let reconnectedAtMs = 0;
+    socket.once('connect', () => {
+      reconnectedAtMs = Date.now();
+    });
+    const reconnected = waitFor(socket, 'connect', 60_000, { rejectOnConnectError: false });
+    void reconnected.catch(() => undefined); // awaited below; keeps an admin-call throw from leaving it unhandled
+
+    // During the gap (possibly racing the reconnect — the re-fetch assertion holds either way):
+    // the admin confirms the order, creating the customer's notification row while offline.
     expectOk(
       await api('PATCH', `/api/v1/admin/orders/${orderId}/status`, {
         token: admin.token,
@@ -212,11 +301,17 @@ async function longRun(admin: { token: string }): Promise<void> {
       }),
       'admin confirm during the gap',
     );
+    const confirmDoneAtMs = Date.now();
 
-    await waitFor(socket, 'connect', 60_000); // automatic reconnect (no manual connect call)
-    const reconnectSeconds = Math.round((Date.now() - connectedAt) / 1000) - disconnectSeconds;
+    await reconnected; // automatic reconnect — the script never calls socket.connect()
+    const reconnectSeconds = Math.round((reconnectedAtMs - connectedAt) / 1000) - disconnectSeconds;
+    if (reconnectedAtMs <= confirmDoneAtMs) {
+      console.log(
+        '  --long: note — the reconnect finished before the admin confirm; the notification may also have been delivered live (the re-fetch assertion below is the contract)',
+      );
+    }
     const notifications = expectOk(
-      await api('GET', '/api/v1/notifications', { token: customer.token }),
+      await api('GET', '/api/v1/notifications', { token: await customerToken.current() }),
       'fetch notifications after reconnect',
     );
     const items = notifications.items as Record<string, unknown>[];
@@ -288,7 +383,8 @@ async function main(): Promise<void> {
 
   // Step 3: websocket connect.
   if (session) {
-    const socket = connectSocket(session.token, false);
+    const sessionToken = session.token;
+    const socket = connectSocket(() => Promise.resolve(sessionToken), false, 'step3-socket');
     try {
       await waitFor(socket, 'connect', CONNECT_TIMEOUT_MS);
       pass(3, `websocket connected on ${SOCKET_PATH}`);

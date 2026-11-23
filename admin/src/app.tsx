@@ -11,6 +11,8 @@ import { OrdersPage } from "@/routes/orders-page";
 import { OverviewPage } from "@/routes/overview-page";
 import { ProductEditorPage } from "@/routes/product-editor-page";
 import { ProductsPage } from "@/routes/products-page";
+import { CustomerDetailPage } from "@/routes/customer-detail-page";
+import { CustomersPage } from "@/routes/customers-page";
 import { PlaceholderPage } from "@/routes/placeholder-page";
 import { RequireAdmin } from "@/routes/shell";
 
@@ -40,6 +42,8 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/orders/:id" element={<OrderDetailPage />} />
           <Route path="/orders/:id/invoice" element={<InvoicePage />} />
+          <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="*" element={<PlaceholderPage />} />
         </Route>
       </Routes>

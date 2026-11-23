@@ -385,5 +385,43 @@
       "max": "You can add up to {max} images.",
       "failed": "The upload failed. Remove it and try again."
     }
+  },
+  "customers": {
+    "title": "Customers",
+    "search": "Search customers",
+    "searchPlaceholder": "Name, email or phone",
+    "searchButton": "Search",
+    "loading": "Loading customers…",
+    "retry": "Retry",
+    "empty": "No customers found.",
+    "count": "{n} customers",
+    "prev": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}",
+    "active": "Active",
+    "blocked": "Blocked",
+    "back": "Back to customers",
+    "phone": "Phone",
+    "verified": "Email verified",
+    "yes": "Yes",
+    "no": "No",
+    "locale": "Preferred language",
+    "ordersTitle": "Orders",
+    "noOrders": "This customer has no orders yet.",
+    "block": "Block customer",
+    "unblock": "Unblock customer",
+    "col": {
+      "name": "Name",
+      "email": "Email",
+      "orders": "Orders",
+      "status": "Status",
+      "joined": "Joined"
+    },
+    "blockDialog": {
+      "title": "Block this customer?",
+      "body": "They will be signed out immediately and cannot sign in until unblocked. Their orders are not changed.",
+      "cancel": "Keep active",
+      "confirm": "Block"
+    }
   }
 }

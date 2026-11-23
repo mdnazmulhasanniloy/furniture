@@ -1,12 +1,97 @@
 {
-  "home": { "brand": "Furnixa", "tagline": "Warm, crafted furniture — new and pre-owned.", "intro": "A well-lit showroom of natural wood, linen and clay. Shop new pieces or give quality furniture a second life." },
-  "lang": { "label": "Language", "en": "English", "ar": "العربية" },
-  "nav": { "shop": "Shop", "new": "New", "resale": "Pre-owned", "categories": "Categories", "search": "Search furniture…", "cart": "Cart", "account": "Account", "notifications": "Notifications" },
-  "badge": { "new": "New", "preowned": "Pre-owned · {grade}", "featured": "Featured", "soldOut": "Sold out" },
-  "condition": { "NEW": "New", "LIKE_NEW": "Like new", "GOOD": "Good", "FAIR": "Fair" },
-  "cart": { "addToCart": "Add to cart", "subtotal": "Subtotal", "delivery": "Delivery", "total": "Total", "checkout": "Checkout", "freeDeliveryIn": "Add {amount} more for free delivery" },
-  "checkout": { "payment": "Payment", "cod": "Cash on Delivery", "codInfo": "Pay in cash when your furniture arrives.", "placeOrder": "Place order" },
-  "auth": { "login": "Log in", "register": "Create account", "verifyTitle": "Verify your email", "otpSent": "We sent a 6-digit code to {email}", "resendIn": "Resend in {seconds}s", "resend": "Resend code", "forgot": "Forgot password?" },
-  "errors": {"generic": "Something went wrong. Please try again.", "NETWORK_ERROR": "Can't reach the server. Check your connection and try again.", "INVALID_CREDENTIALS": "Incorrect email or password.", "RATE_LIMITED": "Too many attempts.", "ACCOUNT_LOCKED": "This account is temporarily locked.", "ACCOUNT_BLOCKED": "This account has been blocked. Please contact support.", "EMAIL_NOT_VERIFIED": "Please verify your email first.", "UNAUTHORIZED": "Please log in to continue.", "REFRESH_RACE": "Your session is being updated. Please try again.", "CSRF_INVALID": "Your session could not be verified. Please reload the page.", "retrySeconds": "Try again in {seconds, plural, one {# second} other {# seconds}}.", "retryMinutes": "Try again in {minutes, plural, one {# minute} other {# minutes}}."},
-  "orderStatus": { "PENDING": "Pending", "CONFIRMED": "Confirmed", "PROCESSING": "Processing", "OUT_FOR_DELIVERY": "Out for delivery", "DELIVERED": "Delivered", "CANCELLED": "Cancelled" }
+  "home": {
+    "brand": "Furnixa",
+    "tagline": "Warm, crafted furniture — new and pre-owned.",
+    "intro": "A well-lit showroom of natural wood, linen and clay. Shop new pieces or give quality furniture a second life."
+  },
+  "lang": {
+    "label": "Language",
+    "en": "English",
+    "ar": "العربية"
+  },
+  "nav": {
+    "shop": "Shop",
+    "new": "New",
+    "resale": "Pre-owned",
+    "categories": "Categories",
+    "search": "Search furniture…",
+    "cart": "Cart",
+    "account": "Account",
+    "notifications": "Notifications",
+    "login": "Log in",
+    "logout": "Log out",
+    "menu": "Menu",
+    "close": "Close",
+    "main": "Main navigation",
+    "searchLabel": "Search"
+  },
+  "badge": {
+    "new": "New",
+    "preowned": "Pre-owned · {grade}",
+    "featured": "Featured",
+    "soldOut": "Sold out"
+  },
+  "condition": {
+    "NEW": "New",
+    "LIKE_NEW": "Like new",
+    "GOOD": "Good",
+    "FAIR": "Fair"
+  },
+  "cart": {
+    "addToCart": "Add to cart",
+    "subtotal": "Subtotal",
+    "delivery": "Delivery",
+    "total": "Total",
+    "checkout": "Checkout",
+    "freeDeliveryIn": "Add {amount} more for free delivery"
+  },
+  "checkout": {
+    "payment": "Payment",
+    "cod": "Cash on Delivery",
+    "codInfo": "Pay in cash when your furniture arrives.",
+    "placeOrder": "Place order"
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Create account",
+    "verifyTitle": "Verify your email",
+    "otpSent": "We sent a 6-digit code to {email}",
+    "resendIn": "Resend in {seconds}s",
+    "resend": "Resend code",
+    "forgot": "Forgot password?"
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "NETWORK_ERROR": "Can't reach the server. Check your connection and try again.",
+    "INVALID_CREDENTIALS": "Incorrect email or password.",
+    "RATE_LIMITED": "Too many attempts.",
+    "ACCOUNT_LOCKED": "This account is temporarily locked.",
+    "ACCOUNT_BLOCKED": "This account has been blocked. Please contact support.",
+    "EMAIL_NOT_VERIFIED": "Please verify your email first.",
+    "UNAUTHORIZED": "Please log in to continue.",
+    "REFRESH_RACE": "Your session is being updated. Please try again.",
+    "CSRF_INVALID": "Your session could not be verified. Please reload the page.",
+    "retrySeconds": "Try again in {seconds, plural, one {# second} other {# seconds}}.",
+    "retryMinutes": "Try again in {minutes, plural, one {# minute} other {# minutes}}."
+  },
+  "orderStatus": {
+    "PENDING": "Pending",
+    "CONFIRMED": "Confirmed",
+    "PROCESSING": "Processing",
+    "OUT_FOR_DELIVERY": "Out for delivery",
+    "DELIVERED": "Delivered",
+    "CANCELLED": "Cancelled"
+  },
+  "footer": {
+    "about": "Warm, crafted furniture — new and pre-owned.",
+    "contact": "Contact",
+    "social": "Social media",
+    "explore": "Explore",
+    "socials": {
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp",
+      "tiktok": "TikTok"
+    }
+  }
 }

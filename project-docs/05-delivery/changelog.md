@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (web T-032 Layout shell done)
+- **web T-032 (I18N-01, UI-02): header (nav, categories mega-menu, search, language switch, cart, bell + account when logged in), mobile nav sheet, footer from `/cms/settings`; mirrors in RTL.** Vitest 41/41, e2e 19/19. Assumptions (autopilot) — owner to confirm: hand-built mobile sheet (no `@radix-ui/react-dialog` dependency); links to not-yet-built routes (`/shop?type|category|q`, `/cart`, `/login`, `/account`, `/account/notifications`); no cart-count or unread badge yet (T-036/T-040); footer pages links omitted (no list-pages endpoint in the API); footer socials only for https URLs; header language switcher hidden below 640 px; empty shell when the API is unreachable.
+
 ## 2026-11-24 (web T-031 API client + auth state + token refresh done)
 - **web T-031 (AUTH-05): same-origin fetch wrapper (`/api/v1`, `Accept-Language`, Bearer), 401 -> single-flight refresh -> one retry, `REFRESH_RACE` retried once without logout, CSRF token cached after login, in-memory zustand auth store, TanStack Query provider, localized `errors.*` (en/ar) incl. Retry-After wait for `RATE_LIMITED`/`ACCOUNT_LOCKED`.** Vitest 26/26, e2e 14/14. Assumptions (autopilot) — owner to confirm: refresh attempted once on app start (anonymous visitors see one 401 on `/auth/csrf`); `Accept-Language` read from `<html lang>`; Retry-After under 60 s shown in seconds else minutes (rounded up); `@` alias added to `vitest.config.mts`.
 

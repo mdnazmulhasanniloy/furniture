@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { SiteHeader } from "@/components/layout/site-header";
 import { Providers } from "@/components/providers";
+import { getCategories, getSettings } from "@/lib/api/public";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
@@ -33,6 +36,8 @@ export default async function LocaleLayout({
   const fonts =
     locale === "ar" ? await import("@/fonts/arabic") : await import("@/fonts/latin");
 
+  const [categories, settings] = await Promise.all([getCategories(), getSettings()]);
+
   return (
     <html
       lang={locale}
@@ -42,7 +47,11 @@ export default async function LocaleLayout({
       <body>
         <NextIntlClientProvider>
           <DirectionProvider dir={dir}>
-            <Providers>{children}</Providers>
+            <Providers>
+              <SiteHeader categories={categories} logoUrl={settings?.logo?.url ?? null} />
+              {children}
+              <SiteFooter settings={settings} />
+            </Providers>
           </DirectionProvider>
         </NextIntlClientProvider>
       </body>

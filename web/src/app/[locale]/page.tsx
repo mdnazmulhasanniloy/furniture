@@ -1,5 +1,4 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
 
 export default async function HomePage({
@@ -11,12 +10,6 @@ export default async function HomePage({
 
   return (
     <div className="mx-auto max-w-7xl px-4">
-      <header className="flex items-center justify-between py-6">
-        <span className="font-display text-2xl font-semibold text-primary">
-          {t("home.brand")}
-        </span>
-        <LanguageSwitcher />
-      </header>
       <main className="py-14">
         <h1 className="font-display max-w-3xl text-4xl font-semibold leading-tight">
           {t("home.tagline")}

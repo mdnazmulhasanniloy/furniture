@@ -29,7 +29,15 @@ export type SiteSettings = {
     tiktok?: string | null;
   } | null;
   freeDeliveryThreshold?: number | null;
-  deliveryCities?: { code: string; deliveryFee?: number | null }[] | null;
+  deliveryCities?:
+    | {
+        code: string;
+        name?: LocalizedText | null;
+        isActive?: boolean;
+        sortOrder?: number;
+        deliveryFee?: number | null;
+      }[]
+    | null;
   vat?: { vatRate: number; applyToDelivery?: boolean; pricesIncludeVat: boolean } | null;
 };
 

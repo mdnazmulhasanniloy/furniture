@@ -159,10 +159,13 @@ function guestSet(product: CartProductLite, qty: number) {
 
 // ---------------- server cart ----------------
 
-export async function loadCart(): Promise<void> {
+/** `addressId` (checkout): fee uses that address's city and the response carries `address.isDeliverable`. */
+export async function loadCart(addressId?: string): Promise<void> {
   set({ loading: true, error: null });
   try {
-    const cart = await apiRequest<ServerCart>("/cart");
+    const cart = await apiRequest<ServerCart>(
+      addressId ? `/cart?addressId=${encodeURIComponent(addressId)}` : "/cart",
+    );
     set({ cart, loading: false });
   } catch (e) {
     set({ loading: false, error: codeOf(e) });

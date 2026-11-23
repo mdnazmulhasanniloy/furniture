@@ -102,10 +102,63 @@
     }
   },
   "checkout": {
+    "title": "Checkout",
     "payment": "Payment",
     "cod": "Cash on Delivery",
     "codInfo": "Pay in cash when your furniture arrives.",
-    "placeOrder": "Place order"
+    "placeOrder": "Place order",
+    "placing": "Placing your order...",
+    "stepAddress": "1. Delivery address",
+    "stepReview": "2. Review your items",
+    "stepPayment": "3. Payment",
+    "addAddress": "Add a new address",
+    "newAddress": "New address",
+    "noAddress": "Add a delivery address to continue.",
+    "addressList": "Delivery addresses",
+    "notDeliverableBadge": "Not deliverable",
+    "notDeliverableHint": "Edit this address and pick an active city to use it.",
+    "defaultBadge": "Default",
+    "cityPlaceholder": "Select a city",
+    "phonePrefix": "+966",
+    "form": {
+      "label": "Label (e.g. Home)",
+      "fullName": "Full name",
+      "phone": "Mobile number",
+      "city": "City",
+      "area": "Area",
+      "street": "Street",
+      "notes": "Notes (optional)",
+      "save": "Save address",
+      "saving": "Saving...",
+      "cancel": "Cancel"
+    },
+    "validation": {
+      "required": "This field is required.",
+      "phone": "Enter a valid Saudi mobile number (05XXXXXXXX).",
+      "tooLong": "This is too long."
+    },
+    "totalsUpdated": "Totals were updated. Please review them before placing your order.",
+    "lineOnlyLeft": "Only {stock} left in stock",
+    "lineOutOfStock": "Out of stock",
+    "reviewIssue": "Remove or fix the highlighted items in your cart to continue.",
+    "loading": "Loading checkout...",
+    "loadError": "We could not load checkout.",
+    "retry": "Try again",
+    "emptyCart": "Your cart is empty.",
+    "backToCart": "Back to cart",
+    "continueShopping": "Continue shopping",
+    "adminNotice": "Checkout is for customer accounts.",
+    "success": {
+      "title": "Thank you, your order is placed",
+      "orderNo": "Order number",
+      "intro": "We will contact you to arrange delivery. You pay in cash when your order arrives.",
+      "items": "Items",
+      "deliverTo": "Delivering to",
+      "payment": "Payment",
+      "loadError": "We could not load your order details.",
+      "qty": "Qty {qty}"
+    },
+    "rateLimited": "You can place at most 3 orders per hour."
   },
   "auth": {
     "login": "Log in",
@@ -174,7 +227,15 @@
     "OUT_OF_STOCK": "Not enough stock for that quantity.",
     "CART_LIMIT_REACHED": "Your cart has reached the maximum number of different items.",
     "CART_CONFLICT": "Your cart changed in another window. Please try again.",
-    "NOT_FOUND": "This product is no longer available."
+    "NOT_FOUND": "This product is no longer available.",
+    "PRICE_CHANGED": "Prices or totals changed. Please review the updated totals.",
+    "OUT_OF_DELIVERY_AREA": "We don't deliver to this address's city. Please choose another address.",
+    "CART_EMPTY": "Your cart is empty.",
+    "TOO_MANY_PENDING_ORDERS": "You already have 3 pending orders. Please wait for one to be processed.",
+    "IDEMPOTENCY_MISMATCH": "Your order details changed. Please review and try again.",
+    "CONFLICT": "Stock was updated while placing your order. Please try again.",
+    "VALIDATION_ERROR": "Some details are invalid. Please check and try again.",
+    "ADDRESS_LIMIT_REACHED": "You have reached the maximum of 10 saved addresses."
   },
   "orderStatus": {
     "PENDING": "Pending",

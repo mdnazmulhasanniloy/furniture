@@ -37,8 +37,15 @@ async function toApiError(res: Response): Promise<ApiError> {
   let code = "INTERNAL_ERROR";
   let message: string | undefined;
   let requestId: string | undefined;
+  let details: unknown;
   try {
-    const body = (await res.json()) as { code?: string; message?: string; requestId?: string };
+    const body = (await res.json()) as {
+      code?: string;
+      message?: string;
+      requestId?: string;
+      details?: unknown;
+    };
+    details = body.details;
     if (typeof body.code === "string") code = body.code;
     message = body.message;
     requestId = body.requestId;
@@ -50,6 +57,7 @@ async function toApiError(res: Response): Promise<ApiError> {
     code,
     message,
     requestId,
+    details,
     retryAfterSeconds: parseRetryAfter(res.headers.get("Retry-After")),
   });
 }

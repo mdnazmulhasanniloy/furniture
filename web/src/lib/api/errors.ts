@@ -7,6 +7,8 @@ export class ApiError extends Error {
   readonly requestId?: string;
   /** Seconds from the `Retry-After` header (RATE_LIMITED / ACCOUNT_LOCKED). */
   readonly retryAfterSeconds?: number;
+  /** Raw `details` of the error body (e.g. OUT_OF_STOCK `{items: [{productId, stock}]}`). */
+  readonly details?: unknown;
 
   constructor(init: {
     status: number;
@@ -14,6 +16,7 @@ export class ApiError extends Error {
     message?: string;
     requestId?: string;
     retryAfterSeconds?: number;
+    details?: unknown;
   }) {
     super(init.message ?? init.code);
     this.name = "ApiError";
@@ -21,6 +24,7 @@ export class ApiError extends Error {
     this.code = init.code;
     this.requestId = init.requestId;
     this.retryAfterSeconds = init.retryAfterSeconds;
+    this.details = init.details;
   }
 }
 
@@ -42,6 +46,14 @@ export const KNOWN_ERROR_CODES = [
   "CART_LIMIT_REACHED",
   "CART_CONFLICT",
   "NOT_FOUND",
+  "PRICE_CHANGED",
+  "OUT_OF_DELIVERY_AREA",
+  "CART_EMPTY",
+  "TOO_MANY_PENDING_ORDERS",
+  "IDEMPOTENCY_MISMATCH",
+  "CONFLICT",
+  "VALIDATION_ERROR",
+  "ADDRESS_LIMIT_REACHED",
 ] as const;
 
 export function errorMessageKey(code: string): string {

@@ -38,6 +38,10 @@ export const KNOWN_ERROR_CODES = [
   "OTP_INVALID",
   "OTP_EXPIRED",
   "EMAIL_IN_USE",
+  "OUT_OF_STOCK",
+  "CART_LIMIT_REACHED",
+  "CART_CONFLICT",
+  "NOT_FOUND",
 ] as const;
 
 export function errorMessageKey(code: string): string {

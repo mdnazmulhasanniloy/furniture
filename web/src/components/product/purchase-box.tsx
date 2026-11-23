@@ -64,6 +64,7 @@ export function PurchaseBox({
       ) : null}
       <button
         type="button"
+        data-testid="add-to-cart"
         disabled={soldOut || !onAdd}
         onClick={() => onAdd?.(qty)}
         aria-describedby={!soldOut && !onAdd ? "cart-soon" : undefined}

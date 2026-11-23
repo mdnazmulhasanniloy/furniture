@@ -1,17 +1,19 @@
 "use client";
 
-import { ChevronDown, Menu, Search, ShoppingBag, X } from "lucide-react";
+import { ChevronDown, Menu, Search, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { CartButton } from "@/components/cart/cart-button";
 import { AccountActions } from "@/components/layout/account-menu";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
 import { Link, useRouter } from "@/i18n/navigation";
 import type { Category } from "@/lib/api/public";
+import type { CartConfig } from "@/lib/cart/types";
 import { pick } from "@/lib/pick";
 
-type Props = { categories: Category[]; logoUrl?: string | null };
+type Props = { categories: Category[]; logoUrl?: string | null; cartConfig?: CartConfig };
 
 const NAV = [
   { key: "shop", href: "/shop" },
@@ -225,7 +227,7 @@ function MobileNav({ categories }: { categories: Category[] }) {
   );
 }
 
-export function SiteHeader({ categories, logoUrl }: Props) {
+export function SiteHeader({ categories, logoUrl, cartConfig }: Props) {
   const t = useTranslations();
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
@@ -256,11 +258,7 @@ export function SiteHeader({ categories, logoUrl }: Props) {
           <div className="hidden sm:block">
             <LanguageSwitcher />
           </div>
-          <Button asChild variant="ghost" size="icon" data-testid="cart-link">
-            <Link href="/cart" aria-label={t("nav.cart")}>
-              <ShoppingBag aria-hidden />
-            </Link>
-          </Button>
+          <CartButton config={cartConfig} />
           <AccountActions />
         </div>
       </div>

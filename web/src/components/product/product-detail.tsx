@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Price } from "@/components/format";
 import { ProductCard } from "@/components/home/product-card";
 import { Gallery } from "@/components/product/gallery";
-import { PurchaseBox } from "@/components/product/purchase-box";
+import { AddToCartBox } from "@/components/product/add-to-cart-box";
 import type { Locale } from "@/i18n/routing";
 import type { HomeProduct, ProductDetail, SiteSettings } from "@/lib/api/public";
 import { formatNumber } from "@/lib/format";
@@ -89,7 +89,7 @@ export async function ProductDetailView({
                 : t("product.stock.in")}
           </p>
 
-          <PurchaseBox stock={product.stock} locale={locale} />
+          <AddToCartBox product={product} locale={locale} />
 
           {resale ? (
             <section aria-labelledby="cond-h" className="rounded-lg border border-border p-4">

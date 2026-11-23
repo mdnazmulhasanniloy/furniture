@@ -28,6 +28,8 @@ export type SiteSettings = {
     whatsapp?: string | null;
     tiktok?: string | null;
   } | null;
+  freeDeliveryThreshold?: number | null;
+  deliveryCities?: { code: string; deliveryFee?: number | null }[] | null;
   vat?: { vatRate: number; applyToDelivery?: boolean; pricesIncludeVat: boolean } | null;
 };
 

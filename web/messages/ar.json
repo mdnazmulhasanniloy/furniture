@@ -71,7 +71,35 @@
     "delivery": "التوصيل",
     "total": "الإجمالي",
     "checkout": "إتمام الطلب",
-    "freeDeliveryIn": "أضف {amount} للحصول على توصيل مجاني"
+    "freeDeliveryIn": "أضف {amount} للحصول على توصيل مجاني",
+    "title": "سلتك",
+    "empty": "سلتك فارغة.",
+    "continueShopping": "متابعة التسوق",
+    "viewCart": "عرض السلة",
+    "close": "إغلاق السلة",
+    "loading": "جارٍ تحميل سلتك...",
+    "loadError": "تعذر تحميل سلتك.",
+    "retry": "حاول مرة أخرى",
+    "mergeError": "تعذر نقل سلتك إلى حسابك حاليًا. منتجاتك محفوظة على هذا الجهاز.",
+    "itemsCount": "{count, plural, one {# منتج} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}",
+    "badgeLabel": "السلة، {count, plural, one {# منتج} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}",
+    "remove": "إزالة {title}",
+    "lineTotal": "إجمالي المنتج",
+    "added": "تمت الإضافة إلى السلة",
+    "freeDelivery": "توصيل مجاني",
+    "deliveryNote": "يتم تأكيد رسوم التوصيل عند إتمام الطلب",
+    "guestNote": "تظهر رسوم التوصيل وضريبة القيمة المضافة بعد تسجيل الدخول.",
+    "vatIncluded": "شامل ضريبة القيمة المضافة ({rate}%)",
+    "vatAdded": "ضريبة القيمة المضافة ({rate}%)",
+    "freeDeliveryReached": "حصلت على توصيل مجاني",
+    "loginToCheckout": "سجّل الدخول لإتمام الطلب",
+    "notDeliverable": "لا نوصّل إلى هذه المدينة",
+    "issue": {
+      "UNAVAILABLE": "لم يعد متوفرًا",
+      "OUT_OF_STOCK": "نفد من المخزون",
+      "QTY_REDUCED": "تم تقليل الكمية إلى المخزون المتاح",
+      "PRICE_CHANGED": "تغيّر السعر من {oldPrice} إلى {newPrice}"
+    }
   },
   "checkout": {
     "payment": "الدفع",
@@ -142,7 +170,11 @@
     "retryMinutes": "حاول مرة أخرى بعد {minutes, plural, one {دقيقة واحدة} two {دقيقتين} few {# دقائق} many {# دقيقة} other {# دقيقة}}.",
     "OTP_INVALID": "الرمز غير صالح أو منتهي الصلاحية.",
     "OTP_EXPIRED": "انتهت صلاحية هذا الرمز.",
-    "EMAIL_IN_USE": "هذا البريد الإلكتروني مستخدم بالفعل."
+    "EMAIL_IN_USE": "هذا البريد الإلكتروني مستخدم بالفعل.",
+    "OUT_OF_STOCK": "لا يوجد مخزون كافٍ لهذه الكمية.",
+    "CART_LIMIT_REACHED": "وصلت سلتك إلى الحد الأقصى لعدد المنتجات المختلفة.",
+    "CART_CONFLICT": "تغيّرت سلتك في نافذة أخرى. حاول مرة أخرى.",
+    "NOT_FOUND": "هذا المنتج لم يعد متوفرًا."
   },
   "orderStatus": {
     "PENDING": "قيد الانتظار",

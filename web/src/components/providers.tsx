@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
+import { CartSync } from "@/components/cart/cart-sync";
 import { restoreSession } from "@/lib/auth/session";
 
 export function Providers({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -15,5 +16,8 @@ export function Providers({ children }: Readonly<{ children: React.ReactNode }>)
   useEffect(() => {
     void restoreSession();
   }, []);
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return <QueryClientProvider client={client}>
+      <CartSync />
+      {children}
+    </QueryClientProvider>;
 }

@@ -6,6 +6,7 @@ import { setRequestLocale } from "next-intl/server";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { Providers } from "@/components/providers";
+import { cartConfigFrom } from "@/lib/cart/config";
 import { getCategories, getSettings } from "@/lib/api/public";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
@@ -48,7 +49,11 @@ export default async function LocaleLayout({
         <NextIntlClientProvider>
           <DirectionProvider dir={dir}>
             <Providers>
-              <SiteHeader categories={categories} logoUrl={settings?.logo?.url ?? null} />
+              <SiteHeader
+                categories={categories}
+                logoUrl={settings?.logo?.url ?? null}
+                cartConfig={cartConfigFrom(settings)}
+              />
               {children}
               <SiteFooter settings={settings} />
             </Providers>

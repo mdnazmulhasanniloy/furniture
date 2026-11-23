@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { Hero } from "@/components/home/hero";
@@ -6,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import { getHome } from "@/lib/api/public";
+import { alternatesFor } from "@/lib/seo";
+
+export async function generateMetadata({
+  params,
+}: Readonly<{ params: Promise<{ locale: string }> }>): Promise<Metadata> {
+  const { locale } = await params;
+  return { alternates: alternatesFor(locale, "/") };
+}
 
 export default async function HomePage({
   params,

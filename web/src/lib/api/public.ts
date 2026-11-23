@@ -38,6 +38,7 @@ export type SiteSettings = {
         deliveryFee?: number | null;
       }[]
     | null;
+  seo?: { title?: LocalizedText | null; description?: LocalizedText | null } | null;
   vat?: { vatRate: number; applyToDelivery?: boolean; pricesIncludeVat: boolean } | null;
 };
 
@@ -200,6 +201,41 @@ export async function getProduct(slug: string): Promise<ProductDetailResult> {
       product: data.product,
       related: Array.isArray(data.related) ? data.related : [],
     };
+  } catch {
+    return { status: "error" };
+  }
+}
+
+// ---- Static pages (T-041, ADM-08) ----
+
+export type StaticPage = {
+  id?: string;
+  slug: string;
+  title: LocalizedText;
+  /** HTML, sanitised by the backend on every write (ADR-013); rendered without further processing. */
+  content: LocalizedText;
+  metaTitle?: LocalizedText | null;
+  metaDescription?: LocalizedText | null;
+  updatedAt?: string;
+};
+
+export type StaticPageResult =
+  | { status: "ok"; page: StaticPage }
+  | { status: "not-found" }
+  | { status: "error" };
+
+/** `GET /cms/pages/{slug}` (published only). Tag `page:{slug}` is revalidated on admin page writes. */
+export async function getPage(slug: string): Promise<StaticPageResult> {
+  try {
+    const res = await fetch(`${API_ORIGIN}/api/v1/cms/pages/${encodeURIComponent(slug)}`, {
+      headers: { Accept: "application/json" },
+      next: { revalidate: 60, tags: [`page:${slug}`] },
+    });
+    if (res.status === 404) return { status: "not-found" };
+    if (!res.ok) return { status: "error" };
+    const page = (await res.json()) as StaticPage;
+    if (!page || typeof page !== "object" || !page.title) return { status: "error" };
+    return { status: "ok", page };
   } catch {
     return { status: "error" };
   }

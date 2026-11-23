@@ -6,6 +6,7 @@ import { ActiveChips, Pagination, ProductGrid } from "@/components/shop/shop-res
 import type { Locale } from "@/i18n/routing";
 import { getCategories, getProducts } from "@/lib/api/public";
 import { formatNumber } from "@/lib/format";
+import { alternatesFor } from "@/lib/seo";
 import { parseFilters, toApiQuery, type RawParams } from "@/lib/shop";
 
 export async function generateMetadata({
@@ -13,7 +14,7 @@ export async function generateMetadata({
 }: Readonly<{ params: Promise<{ locale: string }> }>): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "shop" });
-  return { title: `${t("title")} | Furnixa` };
+  return { title: `${t("title")} | Furnixa`, alternates: alternatesFor(locale, "/shop") };
 }
 
 export default async function ShopPage({

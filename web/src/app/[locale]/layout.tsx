@@ -9,11 +9,25 @@ import { Providers } from "@/components/providers";
 import { cartConfigFrom } from "@/lib/cart/config";
 import { getCategories, getSettings } from "@/lib/api/public";
 import { routing } from "@/i18n/routing";
+import { pick } from "@/lib/pick";
+import { siteUrl } from "@/lib/seo";
 import "../globals.css";
 
-export const metadata: Metadata = {
-  title: "Furnixa",
-};
+// NFR-03: site-wide title/description from admin SEO settings (fallback "Furnixa"), absolute URLs.
+export async function generateMetadata({
+  params,
+}: Readonly<{ params: Promise<{ locale: string }> }>): Promise<Metadata> {
+  const { locale } = await params;
+  const settings = await getSettings();
+  const title = pick(settings?.seo?.title, locale) || "Furnixa";
+  const description = pick(settings?.seo?.description, locale);
+  return {
+    metadataBase: new URL(siteUrl()),
+    title,
+    description: description || undefined,
+    openGraph: { siteName: "Furnixa", locale },
+  };
+}
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

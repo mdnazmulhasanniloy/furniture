@@ -419,5 +419,8 @@
     "pageOf": "Page {page} of {total}",
     "grouped": "{count} new notifications",
     "dismiss": "Dismiss"
+  },
+  "pages": {
+    "loadError": "We couldn't load this page. Please try again shortly."
   }
 }

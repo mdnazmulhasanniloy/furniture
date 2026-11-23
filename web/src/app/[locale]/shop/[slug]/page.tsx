@@ -6,6 +6,7 @@ import { ProductDetailView } from "@/components/product/product-detail";
 import type { Locale } from "@/i18n/routing";
 import { getProduct, getSettings } from "@/lib/api/public";
 import { pick } from "@/lib/pick";
+import { alternatesFor } from "@/lib/seo";
 
 type Props = Readonly<{ params: Promise<{ locale: string; slug: string }> }>;
 
@@ -20,6 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${title} | Furnixa`,
     description: description || undefined,
+    alternates: alternatesFor(locale, `/shop/${slug}`),
     openGraph: { title, description: description || undefined, images: image ? [image] : undefined },
   };
 }

@@ -61,7 +61,8 @@
     "NOT_FOUND": "This item no longer exists. The list was refreshed.",
     "FORBIDDEN": "You do not have permission to do this.",
     "UPLOAD_NOT_ALLOWED": "The image could not be used. Upload it again.",
-    "STALE_UPDATE": "This was changed by someone else. Reload to see the latest version."
+    "STALE_UPDATE": "This was changed by someone else. Reload to see the latest version.",
+    "INVALID_TRANSITION": "This status change is not allowed for the order's current status."
   },
   "orders": {
     "newOrderToast": "New order {orderNo} · {count} items",
@@ -73,6 +74,88 @@
       "OUT_FOR_DELIVERY": "Out for delivery",
       "DELIVERED": "Delivered",
       "CANCELLED": "Cancelled"
+    },
+    "title": "Orders",
+    "all": "All",
+    "filterStatus": "Filter by status",
+    "search": "Search",
+    "searchPlaceholder": "Order no., email or phone",
+    "from": "From",
+    "to": "To",
+    "searchButton": "Search",
+    "loading": "Loading orders…",
+    "retry": "Retry",
+    "empty": "No orders found.",
+    "count": "{n} orders",
+    "prev": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}",
+    "col": {
+      "order": "Order",
+      "customer": "Customer",
+      "status": "Status",
+      "payment": "Payment",
+      "total": "Total",
+      "placed": "Placed",
+      "item": "Item",
+      "unitPrice": "Unit price",
+      "qty": "Qty",
+      "lineTotal": "Line total"
+    },
+    "payment": {
+      "label": "Payment",
+      "COD": "Cash on delivery",
+      "UNPAID": "Unpaid",
+      "PAID": "Paid"
+    },
+    "back": "Back to orders",
+    "backToOrder": "Back to the order",
+    "detailTitle": "Order",
+    "stepper": "Status",
+    "terminal": "This order is closed; no further status changes.",
+    "action": {
+      "CONFIRMED": "Confirm order",
+      "PROCESSING": "Start processing",
+      "OUT_FOR_DELIVERY": "Send out for delivery",
+      "DELIVERED": "Mark as delivered",
+      "CANCELLED": "Cancel order"
+    },
+    "invalidTransition": "This status change is no longer allowed. The order was reloaded.",
+    "cancel": {
+      "title": "Cancel this order?",
+      "body": "The stock of the items is returned and the customer is notified.",
+      "reason": "Cancellation reason (internal)",
+      "hint": "3 to 500 characters. Never shown to the customer.",
+      "tooShort": "Enter a reason of at least 3 characters.",
+      "tooLong": "The reason is at most 500 characters.",
+      "keep": "Keep order",
+      "confirm": "Cancel order"
+    },
+    "adminNote": {
+      "title": "Internal note",
+      "hint": "Only admins see this note.",
+      "save": "Save note",
+      "saved": "Note saved."
+    },
+    "customer": "Customer",
+    "address": "Delivery address",
+    "customerNote": "Customer note",
+    "items": "Items",
+    "subtotal": "Subtotal",
+    "deliveryFee": "Delivery fee",
+    "freeDelivery": "Free delivery",
+    "vat": "VAT ({rate}%)",
+    "totalLabel": "Total",
+    "invoice": {
+      "title": "Simplified tax invoice",
+      "number": "Invoice no.",
+      "date": "Date",
+      "vatReg": "VAT registration no.",
+      "language": "Invoice language",
+      "print": "Print",
+      "pricesIncludeVat": "Prices include VAT.",
+      "pricesExcludeVat": "Prices exclude VAT; VAT is added to the total.",
+      "vatOnDelivery": "VAT applies to the delivery fee."
     }
   },
   "auth": {

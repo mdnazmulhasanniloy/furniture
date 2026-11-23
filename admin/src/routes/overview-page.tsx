@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import {
   CartesianGrid,
   Line,
@@ -14,7 +15,6 @@ import { errorMessage } from "@/lib/api/messages";
 import {
   useDashboardSummary,
   type DashboardSummary,
-  type OrderStatus,
 } from "@/lib/dashboard";
 import {
   formatDateTime,
@@ -23,17 +23,8 @@ import {
   formatPrice,
   toLocale,
 } from "@/lib/format";
+import { STATUS_CLASS } from "@/lib/orders";
 import { cn } from "@/lib/utils";
-
-// Status colours per design-system §1 (tokens only).
-const STATUS_CLASS: Record<OrderStatus, string> = {
-  PENDING: "bg-warning/15 text-warning",
-  CONFIRMED: "bg-primary/15 text-primary",
-  PROCESSING: "bg-gold/20 text-foreground",
-  OUT_FOR_DELIVERY: "bg-secondary/15 text-secondary",
-  DELIVERED: "bg-success/15 text-success",
-  CANCELLED: "bg-destructive/15 text-destructive",
-};
 
 function Kpi({
   label,
@@ -196,7 +187,13 @@ function LatestOrders({
                   data-testid="latest-order-row"
                 >
                   <td className="px-2 py-2 text-start font-medium">
-                    <bdi dir="ltr">{o.orderNo}</bdi>
+                    <Link
+                      to={`/orders/${encodeURIComponent(o.id)}`}
+                      className="text-primary underline-offset-2 hover:underline"
+                      data-testid="latest-order-link"
+                    >
+                      <bdi dir="ltr">{o.orderNo}</bdi>
+                    </Link>
                   </td>
                   <td className="px-2 py-2 text-start">
                     {o.user ? `${o.user.firstName} ${o.user.lastName}` : "—"}

@@ -94,3 +94,26 @@ body {
   --input: #3a312a;
   --ring: #c08a62;
 }
+
+/* Print invoice (ADM-04): paper is always light, only the invoice sheet prints. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  .invoice-sheet {
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+  .invoice-sheet * {
+    color: #000 !important;
+    border-color: #999 !important;
+  }
+}

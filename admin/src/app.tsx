@@ -4,7 +4,10 @@ import { Route, Routes } from "react-router";
 import { restoreSession } from "@/lib/auth/flows";
 import { AcceptInvitePage } from "@/routes/accept-invite-page";
 import { CategoriesPage } from "@/routes/categories-page";
+import { InvoicePage } from "@/routes/invoice-page";
 import { LoginPage } from "@/routes/login-page";
+import { OrderDetailPage } from "@/routes/order-detail-page";
+import { OrdersPage } from "@/routes/orders-page";
 import { OverviewPage } from "@/routes/overview-page";
 import { ProductEditorPage } from "@/routes/product-editor-page";
 import { ProductsPage } from "@/routes/products-page";
@@ -34,6 +37,9 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
           <Route path="/products/new" element={<ProductEditorPage />} />
           <Route path="/products/:id" element={<ProductEditorPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders/:id" element={<OrderDetailPage />} />
+          <Route path="/orders/:id/invoice" element={<InvoicePage />} />
           <Route path="*" element={<PlaceholderPage />} />
         </Route>
       </Routes>

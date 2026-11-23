@@ -160,6 +160,14 @@ describe.each([
     expect(screen.getByTestId("orders-chart").getAttribute("dir")).toBe("ltr");
   });
 
+  it("ADM-04 · latest-order rows link to the order detail", async () => {
+    stubApi(() => json(summary));
+    mount();
+    await screen.findByTestId("kpi-today");
+    const links = screen.getAllByTestId("latest-order-link");
+    expect(links[0].getAttribute("href")).toBe(`/orders/${summary.latestOrders[0].id}`);
+  });
+
   it("ADM-01 · latest orders table: order number, customer, localized status, exact total, newest first", async () => {
     stubApi(() => json(summary));
     mount();

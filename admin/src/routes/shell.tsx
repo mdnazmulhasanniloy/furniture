@@ -150,7 +150,7 @@ export function Shell() {
         data-testid="sidebar"
         data-collapsed={collapsed}
         className={cn(
-          "flex shrink-0 flex-col border-e border-border bg-card transition-[width]",
+          "no-print flex shrink-0 flex-col border-e border-border bg-card transition-[width]",
           collapsed ? "w-16" : "w-60",
         )}
       >
@@ -189,7 +189,7 @@ export function Shell() {
         </nav>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center gap-3 border-b border-border bg-card px-4">
+        <header className="no-print flex h-14 items-center gap-3 border-b border-border bg-card px-4">
           <Input
             type="search"
             className="max-w-xs"

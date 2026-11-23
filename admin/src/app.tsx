@@ -6,6 +6,8 @@ import { AcceptInvitePage } from "@/routes/accept-invite-page";
 import { CategoriesPage } from "@/routes/categories-page";
 import { LoginPage } from "@/routes/login-page";
 import { OverviewPage } from "@/routes/overview-page";
+import { ProductEditorPage } from "@/routes/product-editor-page";
+import { ProductsPage } from "@/routes/products-page";
 import { PlaceholderPage } from "@/routes/placeholder-page";
 import { RequireAdmin } from "@/routes/shell";
 
@@ -28,6 +30,9 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
         <Route path="/accept-invite" element={<AcceptInvitePage />} />
         <Route element={<RequireAdmin />}>
           <Route index element={<OverviewPage />} />
+          <Route path="/products" element={<ProductsPage />} />
+          <Route path="/products/new" element={<ProductEditorPage />} />
+          <Route path="/products/:id" element={<ProductEditorPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="*" element={<PlaceholderPage />} />
         </Route>

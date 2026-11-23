@@ -44,6 +44,7 @@ export const KNOWN_ERROR_CODES = [
   "NOT_FOUND",
   "FORBIDDEN",
   "UPLOAD_NOT_ALLOWED",
+  "STALE_UPDATE",
 ] as const;
 
 /** Locale key for an error code, with a generic fallback. */

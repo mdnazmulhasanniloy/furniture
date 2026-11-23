@@ -1,8 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useForm, type FieldErrors } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { ImageUploader, isUploading, storedImage, type UploaderImage } from "@/components/image-uploader";
+import { Field, Modal } from "@/components/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/api/messages";
@@ -18,64 +20,6 @@ import {
 import { formatNumber, toLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-function Modal({
-  title,
-  onClose,
-  children,
-  testId,
-}: {
-  title: string;
-  onClose: () => void;
-  children: ReactNode;
-  testId: string;
-}) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-  return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center bg-foreground/40 p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        data-testid={testId}
-        className="max-h-full w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-popover p-5 text-popover-foreground shadow-md"
-      >
-        <h2 className="font-display text-lg font-semibold">{title}</h2>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-  htmlFor,
-}: {
-  label: string;
-  error?: string;
-  children: ReactNode;
-  htmlFor: string;
-}) {
-  return (
-    <div className="mt-3">
-      <label htmlFor={htmlFor} className="mb-1 block text-sm font-medium">
-        {label}
-      </label>
-      {children}
-      {error && (
-        <p role="alert" className="mt-1 text-xs text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
 function CategoryForm({
   category,
   all,
@@ -89,7 +33,8 @@ function CategoryForm({
   const locale = toLocale(i18n.language);
   const save = useSaveCategory();
   const [tab, setTab] = useState<"en" | "ar">("en");
-  const [removeImage, setRemoveImage] = useState(false);
+  // Image field (ADR-010 uploader): the stored image is kept unless replaced or removed.
+  const [images, setImages] = useState<UploaderImage[]>(() => (category?.image ? [storedImage(category.image as Parameters<typeof storedImage>[0])] : []));
   const [slugTouched, setSlugTouched] = useState(!!category);
   const [formError, setFormError] = useState<string | null>(null);
   const hasChildren = !!category && all.some((c) => c.parentId === category.id);
@@ -115,14 +60,25 @@ function CategoryForm({
 
   const onValid = async (v: CategoryFormValues) => {
     setFormError(null);
+    if (isUploading(images)) {
+      setFormError(t("products.editor.uploadingWait"));
+      return;
+    }
+    const picked = images.find((i) => i.status === "done" && i.key);
+    const imageChange = !picked
+      ? category?.image
+        ? { image: null }
+        : {}
+      : picked.key !== category?.image?.key
+        ? { image: { key: picked.key as string } }
+        : {};
     const body = {
       name: { en: v.nameEn, ar: v.nameAr },
       slug: v.slug,
       parentId: v.parentId || null,
       sortOrder: Number(v.sortOrder),
       isActive: v.isActive,
-      // An existing image is kept unless removed; uploading arrives with the T-064 uploader.
-      ...(removeImage ? { image: null } : {}),
+      ...imageChange,
     };
     try {
       await save.mutateAsync({ id: category?.id, body });
@@ -153,7 +109,6 @@ function CategoryForm({
       {hasErr && <span className="sr-only"> ({t("categories.form.hasErrors")})</span>}
     </button>
   );
-  const image = category?.image && !removeImage ? category.image : null;
   return (
     <Modal title={category ? t("categories.edit") : t("categories.new")} onClose={onClose} testId="category-dialog">
       <form onSubmit={handleSubmit(onValid, onInvalid)} noValidate>
@@ -206,18 +161,13 @@ function CategoryForm({
         </div>
         <div className="mt-3">
           <p className="mb-1 text-sm font-medium">{t("categories.form.image")}</p>
-          {image ? (
-            <div className="flex items-center gap-3" data-testid="category-image">
-              <img src={image.url} alt="" className="size-14 rounded-md border border-border object-cover" />
-              <Button variant="outline" size="sm" onClick={() => setRemoveImage(true)}>
-                {t("categories.form.removeImage")}
-              </Button>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground" data-testid="category-no-image">
-              {removeImage ? t("categories.form.imageRemoved") : t("categories.form.noImage")}
-            </p>
-          )}
+          <ImageUploader
+            images={images}
+            onChange={(fn) => setImages(fn)}
+            max={1}
+            testId="category-image"
+            removeLabel={t("categories.form.removeImage")}
+          />
         </div>
         {formError && (
           <p role="alert" className="mt-3 text-sm text-destructive" data-testid="category-form-error">

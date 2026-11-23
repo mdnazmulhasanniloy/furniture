@@ -22,7 +22,8 @@ export type CategoryWrite = {
   parentId?: string | null;
   sortOrder?: number;
   isActive?: boolean;
-  image?: null;
+  /** `{key}` from the presign uploader (ADR-010), or null to remove. */
+  image?: { key: string; alt?: { en: string; ar: string } } | null;
 };
 
 const KEY = ["admin", "categories"] as const;

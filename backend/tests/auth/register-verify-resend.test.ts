@@ -12,6 +12,7 @@ vi.hoisted(() => {
 });
 
 import { getEnv } from '../../src/config/env.js';
+import { email as emailSchema } from '../../src/modules/auth/schema.js';
 import { setTransport } from '../../src/emails/mailer.js';
 import { verifyPassword } from '../../src/lib/password.js';
 import { prisma } from '../../src/lib/prisma.js';
@@ -542,5 +543,40 @@ describe('POST /auth/resend-otp (AUTH-04)', () => {
 
   it('AUTH-04 · an invalid purpose → 422', async () => {
     expect((await resend(EMAIL, 'LOGIN')).status).toBe(422);
+  });
+});
+
+/**
+ * T-029 (nodemailer 6→10): nodemailer's addressparser had advisories where a crafted recipient
+ * could smuggle extra addresses or SMTP headers. Our defense is upstream of the mailer: every
+ * user-supplied address must fail the zod `email` schema (422) before `sendMail` is ever reached.
+ */
+describe('NFR-01 · recipient address injection is rejected before any mail is sent (T-029)', () => {
+  const INJECTIONS: [name: string, value: string][] = [
+    ['CRLF header injection', 'victim@example.com\r\nBcc: attacker@evil.test'],
+    ['bare-LF header injection', 'victim@example.com\nbcc: attacker@evil.test'],
+    ['comma-smuggled second address', 'victim@example.com,attacker@evil.test'],
+    ['comma smuggled inside a quoted local part', '"victim@example.com,attacker"@evil.test'],
+    ['display-name address list', 'Victim <victim@example.com>, attacker@evil.test'],
+  ];
+
+  it.each(INJECTIONS)('NFR-01 · %s fails the zod email schema', (_name, value) => {
+    expect(emailSchema.safeParse(value).success).toBe(false);
+  });
+
+  it.each(INJECTIONS)(
+    'NFR-01 · register with %s → 422 and sendMail is never called',
+    async (_name, value) => {
+      const res = await register({ email: value });
+      expect(res.status).toBe(422);
+      expect(res.body.code).toBe('VALIDATION_ERROR');
+      expect(sendMail).not.toHaveBeenCalled();
+    },
+  );
+
+  it('NFR-01 · resend-otp with a comma-smuggled address → 422 and sendMail is never called', async () => {
+    const res = await resend('victim@example.com,attacker@evil.test');
+    expect(res.status).toBe(422);
+    expect(sendMail).not.toHaveBeenCalled();
   });
 });

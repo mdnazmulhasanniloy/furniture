@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (admin T-062 Overview done)
+- **admin T-062 (ADM-01): Overview screen** at `/`: four KPI cards, 30-day orders line chart (Recharts, with accessible data table), latest orders table; money shown as returned (halalas via `formatPrice`), en/ar, RTL, dark mode; 11 tests `ADM-01` (suite 56/56), typecheck, lint, build, i18n:check (95 keys), e2e 5/5 clean. `/review-task T-062` PASS. Assumptions (autopilot) — owner to confirm: low-stock card is count only (API has no list); no count-up animation; chart LTR in Arabic; order times in Asia/Riyadh; latest-order rows not linked until T-065; QueryClientProvider moved into `App`; jsdom `ResizeObserver` stub in test setup.
+
 ## 2026-11-24 (admin T-061 Admin auth + shell done)
 - **admin T-061 (AUTH-02, AUTH-06): admin login, accept-invite (`/accept-invite`, email from `?email=`), refresh-cookie session restore, single-flight refresh with REFRESH_RACE retry, route guard and shell (collapsible sidebar mirrored in RTL, top bar search/language/theme/bell/avatar menu with sign out); CUSTOMER login rejected with a localized message; RATE_LIMITED/ACCOUNT_LOCKED show the Retry-After time.** Tests `AUTH-02 ·` / `AUTH-06 ·` (en + ar, dark mode) and `e2e/auth-06.spec.ts`. Assumptions (autopilot) — owner to confirm: CUSTOMER session revoked on rejected login; customer cookie on load only cleared locally; search and bell are placeholders; sidebar state in localStorage `fx_admin_sidebar`; nav links go to placeholder pages; redirect back to the requested path after login.
 

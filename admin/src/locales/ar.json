@@ -58,7 +58,15 @@
   },
   "orders": {
     "newOrderToast": "طلب جديد {orderNo} · {count} منتجات",
-    "printInvoice": "طباعة الفاتورة"
+    "printInvoice": "طباعة الفاتورة",
+    "status": {
+      "PENDING": "قيد الانتظار",
+      "CONFIRMED": "مؤكد",
+      "PROCESSING": "قيد التجهيز",
+      "OUT_FOR_DELIVERY": "خرج للتوصيل",
+      "DELIVERED": "تم التسليم",
+      "CANCELLED": "ملغي"
+    }
   },
   "auth": {
     "loginTitle": "تسجيل الدخول",
@@ -85,5 +93,35 @@
     "logout": "تسجيل الخروج",
     "notFound": "الصفحة غير موجودة",
     "notFoundHint": "هذه الصفحة غير موجودة."
+  },
+  "overview": {
+    "title": "نظرة عامة",
+    "loading": "جارٍ تحميل النظرة العامة…",
+    "retry": "حاول مرة أخرى",
+    "kpi": {
+      "todayOrders": "طلبات اليوم",
+      "pendingOrders": "الطلبات قيد الانتظار",
+      "monthRevenue": "إيرادات هذا الشهر",
+      "monthRevenueHint": "الطلبات المسلّمة",
+      "lowStock": "مخزون منخفض",
+      "lowStockHint": "منتجات منشورة متبقٍّ منها 2 أو أقل"
+    },
+    "chart": {
+      "title": "الطلبات يوميًا",
+      "subtitle": "آخر 30 يومًا",
+      "summary": "مخطط خطي للطلبات يوميًا خلال آخر 30 يومًا",
+      "tableCaption": "الطلبات يوميًا",
+      "date": "التاريخ",
+      "orders": "الطلبات"
+    },
+    "latest": {
+      "title": "أحدث الطلبات",
+      "empty": "لا توجد طلبات بعد.",
+      "order": "الطلب",
+      "customer": "العميل",
+      "status": "الحالة",
+      "total": "الإجمالي",
+      "placed": "تاريخ الطلب"
+    }
   }
 }

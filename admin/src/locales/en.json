@@ -58,7 +58,15 @@
   },
   "orders": {
     "newOrderToast": "New order {orderNo} · {count} items",
-    "printInvoice": "Print invoice"
+    "printInvoice": "Print invoice",
+    "status": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "PROCESSING": "Processing",
+      "OUT_FOR_DELIVERY": "Out for delivery",
+      "DELIVERED": "Delivered",
+      "CANCELLED": "Cancelled"
+    }
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -85,5 +93,35 @@
     "logout": "Sign out",
     "notFound": "Page not found",
     "notFoundHint": "This page does not exist."
+  },
+  "overview": {
+    "title": "Overview",
+    "loading": "Loading the overview…",
+    "retry": "Try again",
+    "kpi": {
+      "todayOrders": "Today's orders",
+      "pendingOrders": "Pending orders",
+      "monthRevenue": "Revenue this month",
+      "monthRevenueHint": "Delivered orders",
+      "lowStock": "Low stock",
+      "lowStockHint": "Published products with 2 or fewer in stock"
+    },
+    "chart": {
+      "title": "Orders per day",
+      "subtitle": "Last 30 days",
+      "summary": "Line chart of orders per day over the last 30 days",
+      "tableCaption": "Orders per day",
+      "date": "Date",
+      "orders": "Orders"
+    },
+    "latest": {
+      "title": "Latest orders",
+      "empty": "No orders yet.",
+      "order": "Order",
+      "customer": "Customer",
+      "status": "Status",
+      "total": "Total",
+      "placed": "Placed"
+    }
   }
 }

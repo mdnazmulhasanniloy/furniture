@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (web T-034 Shop + category listing done)
+- **web T-034 (PROD-01, CAT-01): `/[locale]/shop` from `GET /products` — every filter (search, category incl. sub-categories, type, condition, price range, material, in-stock) and sort/page live in the URL; removable chips, filter sidebar (mobile full-screen sheet), New / Pre-owned badges, empty state with Clear filters, numbered pagination (24 per page), API failure shows an error state.** Assumptions (autopilot) — owner to confirm: hand-built mobile sheet (no Radix Dialog); Apply button for filters; price inputs in SAR converted to halalas; free-text material; no featured toggle; no category images in the filter; placeholder block for products without images (B-022).
+
 ## 2026-11-24 (web T-033 Home page done)
 - **web T-033 (ADM-06, ADM-07, UI-01): home from `GET /cms/home` — hero carousel (GSAP stagger + parallax), sections in API order (product grids, category bento, promo banner, testimonials marquee), pinned "How resale works", empty sections hidden, reduced motion respected, en/ar + RTL.** Vitest 113/113, e2e 29/29, build, typecheck, lint, i18n 127 keys green. Assumptions (autopilot) — owner to confirm: how-resale static, placed before testimonials; tagline fallback hero when no banners; product links `/shop/{slug}`; Magic UI pieces hand-built in CSS (no new dependency); 6 s auto-advance paused on hover/focus/reduced motion; pin on md+ only; new en/ar copy for hero and how-resale; unsafe CTA hrefs dropped; e2e runs without backend.
 

@@ -163,5 +163,50 @@
       "whatsapp": "واتساب",
       "tiktok": "تيك توك"
     }
+  },
+  "shop": {
+    "title": "المتجر",
+    "filters": "التصفية",
+    "close": "إغلاق",
+    "apply": "تطبيق التصفية",
+    "clearFilters": "مسح التصفية",
+    "category": "الفئة",
+    "allCategories": "كل الفئات",
+    "condition": "الحالة",
+    "priceRange": "نطاق السعر (ر.س)",
+    "minPrice": "الأدنى",
+    "maxPrice": "الأقصى",
+    "material": "الخامة",
+    "inStock": "المتوفر فقط",
+    "type": {
+      "label": "النوع",
+      "all": "الكل",
+      "new": "جديد",
+      "resale": "مستعمل"
+    },
+    "sort": {
+      "label": "ترتيب حسب",
+      "newest": "الأحدث",
+      "price_asc": "السعر: من الأقل إلى الأعلى",
+      "price_desc": "السعر: من الأعلى إلى الأقل",
+      "featured": "المميز"
+    },
+    "count": "{count, plural, =0 {لا توجد منتجات} one {منتج واحد} two {منتجان} few {{formatted} منتجات} many {{formatted} منتجًا} other {{formatted} منتج}}",
+    "activeFilters": "عوامل التصفية النشطة",
+    "removeFilter": "إزالة التصفية",
+    "chip": {
+      "q": "بحث: {q}",
+      "min": "من",
+      "max": "حتى"
+    },
+    "empty": {
+      "title": "لم يتم العثور على منتجات",
+      "body": "جرّب تغيير عوامل التصفية أو مسحها."
+    },
+    "loadError": "تعذر تحميل المنتجات الآن. يرجى المحاولة بعد قليل.",
+    "pagination": "ترقيم الصفحات",
+    "prevPage": "الصفحة السابقة",
+    "nextPage": "الصفحة التالية",
+    "goToPage": "الانتقال إلى الصفحة {n}"
   }
 }

@@ -163,5 +163,50 @@
       "whatsapp": "WhatsApp",
       "tiktok": "TikTok"
     }
+  },
+  "shop": {
+    "title": "Shop",
+    "filters": "Filters",
+    "close": "Close",
+    "apply": "Apply filters",
+    "clearFilters": "Clear filters",
+    "category": "Category",
+    "allCategories": "All categories",
+    "condition": "Condition",
+    "priceRange": "Price range (SAR)",
+    "minPrice": "Min",
+    "maxPrice": "Max",
+    "material": "Material",
+    "inStock": "In stock only",
+    "type": {
+      "label": "Type",
+      "all": "All",
+      "new": "New",
+      "resale": "Pre-owned"
+    },
+    "sort": {
+      "label": "Sort by",
+      "newest": "Newest",
+      "price_asc": "Price: low to high",
+      "price_desc": "Price: high to low",
+      "featured": "Featured"
+    },
+    "count": "{count, plural, =0 {No products} one {1 product} other {{formatted} products}}",
+    "activeFilters": "Active filters",
+    "removeFilter": "Remove filter",
+    "chip": {
+      "q": "Search: {q}",
+      "min": "From",
+      "max": "Up to"
+    },
+    "empty": {
+      "title": "No products found",
+      "body": "Try changing or clearing your filters."
+    },
+    "loadError": "We could not load products right now. Please try again shortly.",
+    "pagination": "Pagination",
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "goToPage": "Go to page {n}"
   }
 }

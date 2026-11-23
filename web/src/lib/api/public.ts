@@ -122,3 +122,28 @@ export async function getHome(): Promise<HomeContent> {
     sections: Array.isArray(data?.sections) ? data.sections : [],
   };
 }
+
+// ---- Shop listing (T-034, PROD-01 / CAT-01) ----
+
+export type ProductPageMeta = { page: number; limit: number; total: number; totalPages: number };
+
+/** `GET /products`; null when the API is unreachable (the page shows an error, not "empty"). */
+export async function getProducts(
+  query: string,
+): Promise<{ items: HomeProduct[]; meta: ProductPageMeta } | null> {
+  const data = await getJson<{ items?: HomeProduct[]; meta?: Partial<ProductPageMeta> }>(
+    `/products?${query}`,
+    ["products"],
+  );
+  if (!data || !Array.isArray(data.items)) return null;
+  const total = data.meta?.total ?? data.items.length;
+  return {
+    items: data.items,
+    meta: {
+      page: data.meta?.page ?? 1,
+      limit: data.meta?.limit ?? data.items.length,
+      total,
+      totalPages: data.meta?.totalPages ?? 1,
+    },
+  };
+}

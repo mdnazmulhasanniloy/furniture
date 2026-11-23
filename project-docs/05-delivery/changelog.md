@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (admin T-073 Settings Delivery done)
+- **admin T-073 (ADM-13, ADM-14): Settings → Delivery.** New Delivery tab on `/settings`: base delivery fee and optional free-delivery threshold entered in SAR (max 2 decimals, more rejected, negatives rejected, stored as halalas), delivery cities list (ar/en names, read-only code, fee override empty = base fee, active switch with the last active city locked, drag and button reorder, Add city dialog, no delete), saved through the full-replace PUT with `expectedUpdatedAt`; General, SEO, VAT, phone and socials are unchanged by a save. Tests `ADM-13` / `ADM-14` (en + ar, RTL, dark). Assumptions (autopilot) — owner to confirm: 2-decimal limit instead of rounding; threshold 0 allowed; city edits saved with the shared Save bar; new city code = slug of the English name (-2, -3 if taken); new cities active; inline rename; Add disabled at 100 cities; wording mine. ADM-09 test fixture city field corrected to `deliveryFee`.
+
 ## 2026-11-24 (admin T-072 Admin users done)
 - **admin T-072 (ADM-11): Admin users.** `/admins` page: list with active / invite pending / blocked state and who invited whom, invite dialog (names, email, preferred locale, no password), resend invite on pending rows, block (confirmed) / unblock, localized `EMAIL_IN_USE`, `SELF_BLOCK`, `LAST_ADMIN`, `ALREADY_VERIFIED`. Tests `ADM-11 · ...` (en + ar, RTL, dark). Assumptions (autopilot) — owner to confirm: block shown on every row with the API guards producing the localized errors; inviter name resolved from the list (dash otherwise); confirm on block only; no pagination/search; no extra actions beyond the spec.
 

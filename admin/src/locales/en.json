@@ -599,6 +599,7 @@
     "sections": "Settings sections",
     "section": {
       "general": "General",
+      "delivery": "Delivery",
       "social": "Social",
       "seo": "SEO"
     },
@@ -637,6 +638,37 @@
       "stale": "Settings were changed, reload. Your edits are kept until you reload.",
       "reload": "Reload",
       "saved": "Settings saved."
+    },
+    "delivery": {
+      "baseFee": "Base delivery fee (SAR)",
+      "baseFeeHint": "Entered in SAR, up to 2 decimals; stored as halalas. 0 means free delivery.",
+      "threshold": "Free-delivery threshold (SAR)",
+      "thresholdHint": "Optional. Delivery is free when the subtotal reaches this amount; leave empty for no threshold.",
+      "invalidAmount": "Enter an amount in SAR with at most 2 decimals, for example 15 or 15.50.",
+      "negative": "The amount cannot be negative.",
+      "cities": "Delivery cities",
+      "citiesHint": "Customers can only choose active cities. Cities cannot be deleted; deactivate them instead. A fee override left empty uses the base fee.",
+      "addCity": "Add city",
+      "nameEn": "City name (English)",
+      "nameAr": "City name (Arabic)",
+      "codeHint": "A unique code is created from the English name and cannot be changed later.",
+      "codeNeedsLatin": "Use letters or digits in the English name so a code can be created.",
+      "lastActive": "At least one city must stay active, so the last active city cannot be turned off.",
+      "noActive": "At least one city must be active.",
+      "baseFeePlaceholder": "Base fee",
+      "dragHandle": "Drag to reorder: {name}",
+      "moveUp": "Move up: {name}",
+      "moveDown": "Move down: {name}",
+      "cityNameEn": "English name: {name}",
+      "cityNameAr": "Arabic name: {name}",
+      "cityCode": "Code: {name}",
+      "cityFee": "Fee override in SAR: {name}",
+      "toggleActive": "Active: {name}",
+      "cityError": {
+        "name": "Both city names are required.",
+        "negative": "The fee cannot be negative.",
+        "invalid": "Enter an amount in SAR with at most 2 decimals."
+      }
     }
   },
   "notifications": {

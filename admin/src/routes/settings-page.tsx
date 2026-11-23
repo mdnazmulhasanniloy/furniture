@@ -19,13 +19,16 @@ import {
   type SettingsFormValues,
   type SiteSettings,
 } from "@/lib/settings";
+import { activeCount, cityErrors, rowsToCities, toRows, type CityRow } from "@/lib/delivery";
+import { DeliveryPanel } from "@/routes/settings-delivery";
 import { cn } from "@/lib/utils";
 
-type Section = "general" | "social" | "seo";
+type Section = "general" | "delivery" | "social" | "seo";
 type Lang = "ar" | "en";
 const SOCIALS = ["facebook", "instagram", "whatsapp", "tiktok"] as const;
 
 const GENERAL_FIELDS = ["storeNameEn", "storeNameAr", "addressEn", "addressAr", "contactEmail", "defaultLocale"] as const;
+const DELIVERY_FIELDS = ["deliveryFee", "freeThreshold"] as const;
 const SEO_FIELDS = ["seoTitleEn", "seoTitleAr", "seoDescEn", "seoDescAr"] as const;
 
 function LangTabs({
@@ -75,6 +78,8 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
   const [formError, setFormError] = useState<string | null>(null);
   const [stale, setStale] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [rows, setRows] = useState<CityRow[]>(() => toRows(settings.deliveryCities));
+  const [tried, setTried] = useState(false);
   const { register, handleSubmit, formState } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: settingsDefaults(settings),
@@ -103,8 +108,17 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
         ? { key: l.key as string, alt: { en: l.alt.en.trim(), ar: l.alt.ar.trim() } }
         : { key: l.key as string }
       : null;
+    if (cityErrors(rows).some(Boolean)) {
+      setSection("delivery");
+      return;
+    }
+    if (activeCount(rows) < 1) {
+      setSection("delivery");
+      setFormError(t("settings.delivery.noActive"));
+      return;
+    }
     try {
-      await save.mutateAsync(buildSettingsBody(settings, formToEdit(v, logoWrite)));
+      await save.mutateAsync(buildSettingsBody(settings, formToEdit(v, logoWrite, rowsToCities(rows))));
       setSaved(true);
     } catch (e) {
       if (e instanceof ApiError && e.code === "STALE_UPDATE") setStale(true);
@@ -113,6 +127,7 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
   };
   const onInvalid = (e: FieldErrors<SettingsFormValues>) => {
     if (GENERAL_FIELDS.some((f) => e[f])) setSection("general");
+    else if (DELIVERY_FIELDS.some((f) => e[f])) setSection("delivery");
     else if (SEO_FIELDS.some((f) => e[f])) setSection("seo");
     const pool = [...GENERAL_FIELDS, ...SEO_FIELDS].filter((f) => e[f]);
     if (pool.some((f) => f.endsWith("Ar"))) setLang("ar");
@@ -166,7 +181,11 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
     ));
 
   return (
-    <form onSubmit={handleSubmit(onValid, onInvalid)} noValidate data-testid="settings-form">
+    <form
+      onSubmit={(e) => {
+        setTried(true);
+        return handleSubmit(onValid, onInvalid)(e);
+      }} noValidate data-testid="settings-form">
       {stale && (
         <div
           role="alert"
@@ -181,6 +200,7 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
       )}
       <div role="tablist" aria-label={t("settings.sections")} className="mt-4 flex border-b border-border">
         {sectionBtn("general", GENERAL_FIELDS)}
+        {sectionBtn("delivery", DELIVERY_FIELDS)}
         {sectionBtn("social", [])}
         {sectionBtn("seo", SEO_FIELDS)}
       </div>
@@ -221,6 +241,10 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
             removeLabel={t("settings.form.removeLogo")}
           />
         </div>
+      </div>
+
+      <div role="tabpanel" id="set-panel-delivery" aria-labelledby="set-tab-delivery" hidden={section !== "delivery"}>
+        <DeliveryPanel register={register} errs={errs} rows={rows} setRows={setRows} showErrors={tried} />
       </div>
 
       <div role="tabpanel" id="set-panel-social" aria-labelledby="set-tab-social" hidden={section !== "social"}>

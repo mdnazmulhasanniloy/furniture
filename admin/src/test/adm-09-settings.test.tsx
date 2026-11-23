@@ -43,8 +43,8 @@ const base = (): SiteSettings => ({
   vat: { vatRate: 15, applyToDelivery: true, pricesIncludeVat: false, registrationNumber: "300000000000003" },
   currency: "SAR",
   deliveryCities: [
-    { code: "riyadh", name: { en: "Riyadh", ar: "الرياض" }, isActive: true, sortOrder: 0, feeOverride: 2500 },
-    { code: "jeddah", name: { en: "Jeddah", ar: "جدة" }, isActive: false, sortOrder: 1, feeOverride: null },
+    { code: "riyadh", name: { en: "Riyadh", ar: "الرياض" }, isActive: true, sortOrder: 0, deliveryFee: 2500 },
+    { code: "jeddah", name: { en: "Jeddah", ar: "جدة" }, isActive: false, sortOrder: 1, deliveryFee: null },
   ],
   defaultLocale: "ar",
   seo: { title: { en: "Furnixa", ar: "فرنيكسا" }, description: { en: "Furniture", ar: "أثاث" } },

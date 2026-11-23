@@ -90,9 +90,9 @@ describe('env', () => {
     expect(parseEnv({ ...dev, TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true);
   });
 
-  it('NFR-01 · defaults: port 4100, OTP_TTL_SECONDS 600, adapter collection and TTL', () => {
+  it('NFR-01 · defaults: port 1000, OTP_TTL_SECONDS 600, adapter collection and TTL', () => {
     const env = parseEnv({ ...dev, PORT: '', OTP_TTL_SECONDS: '', SOCKET_ADAPTER_COLLECTION: '' });
-    expect(env.PORT).toBe(4100);
+    expect(env.PORT).toBe(1000);
     expect(env.OTP_TTL_SECONDS).toBe(600);
     expect(env.SOCKET_ADAPTER_COLLECTION).toBe('socket.io-adapter-events');
     expect(env.SOCKET_ADAPTER_TTL_SECONDS).toBe(3600);

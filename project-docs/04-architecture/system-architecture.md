@@ -32,7 +32,7 @@
 | ADR-006 | Localized fields stored as embedded `{ en, ar }` composite types; default locale `ar`. |
 | ADR-007 | ~~Cloudinary~~ — superseded by ADR-010. |
 | ADR-010 | Images on **Cloudflare R2**, uploaded by the admin browser with presigned PUT URLs. |
-| ADR-011 | Auth hardening, Sentry, ports (API 4100, web 3100, admin 3101) and the backend env keys. |
+| ADR-011 | Auth hardening, Sentry, ports (API 1000, web 3100, admin 3101; API port amended 2026-11-24) and the backend env keys. |
 | ADR-008 | Saudi market: **SAR** (integer halalas), admin-managed delivery cities, `+966` phones. |
 | ADR-009 | Delivery fee (base + optional per-city override) and **VAT** are admin-managed settings (default 0), snapshotted on each order. |
 

@@ -8,7 +8,7 @@ const intWithDefault = (def: number) =>
 
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: intWithDefault(4100),
+  PORT: intWithDefault(1000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   TRUST_PROXY: optStr,
   DATABASE_URL: z.string().default(''),

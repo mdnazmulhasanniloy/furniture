@@ -3,7 +3,7 @@
 | Component | Dev | Production |
 |---|---|---|
 | MongoDB | MongoDB Atlas (a dev cluster or database; Docker no longer required, SRC-007.4) | MongoDB Atlas (M10+ recommended; M0 for demos) |
-| Backend | `npm run dev` (tsx watch) :4100, one Node process mounting REST and Socket.IO | Vercel project `furnixa-api`: `api/index.ts` (Express) + `api/socket-io.ts` (Socket.IO), `backend/vercel.json`, Vercel Cron |
+| Backend | `npm run dev` (tsx watch) :1000, one Node process mounting REST and Socket.IO | Vercel project `furnixa-api`: `api/index.ts` (Express) + `api/socket-io.ts` (Socket.IO), `backend/vercel.json`, Vercel Cron |
 | Web | `next dev` :3100 | Vercel project `furnixa-web` |
 | Admin | `vite` :3101 | Vercel project `furnixa-admin` (static, SPA rewrite) |
 | Mail | Gmail SMTP (`smtp.gmail.com:587`, app password) | Gmail SMTP for the MVP; move to a transactional provider before launch volume |

@@ -42,7 +42,7 @@ describe('sentry', () => {
       message: 'boom',
       request: {
         method: 'POST',
-        url: 'http://localhost:4100/api/v1/auth/login',
+        url: 'http://localhost:1000/api/v1/auth/login',
         headers: { authorization: 'Bearer eyJ.full.jwt', cookie: 'fx_rt=RAW', 'x-csrf-token': 'c' },
         cookies: { fx_rt: 'RAW' },
         data: { email: 'a@b.com', password: 'Sup3rSecret' },
@@ -52,7 +52,7 @@ describe('sentry', () => {
 
     expect(out.request).toEqual({
       method: 'POST',
-      url: 'http://localhost:4100/api/v1/auth/login',
+      url: 'http://localhost:1000/api/v1/auth/login',
     });
     expect(JSON.stringify(out)).not.toMatch(/eyJ\.full\.jwt|RAW|Sup3rSecret/);
     // an event without a request is returned unchanged

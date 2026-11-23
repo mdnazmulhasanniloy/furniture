@@ -9,7 +9,7 @@ info:
     All error responses use the Error schema. Locale for emails/messages via `Accept-Language: ar|en` (default `ar`).
     Prices are integer halalas (1 SAR = 100 halalas). Phone numbers are Saudi mobile numbers, returned as E.164 `+9665XXXXXXXX`.
 servers:
-  - url: http://localhost:4100/api/v1
+  - url: http://localhost:1000/api/v1
 tags:
   - name: Auth
   - name: Me
@@ -31,7 +31,7 @@ paths:
       tags: [System]
       summary: Liveness check (served at the host root, not under /api/v1)
       servers:
-        - url: http://localhost:4100
+        - url: http://localhost:1000
       security: []
       responses:
         '200':
@@ -796,7 +796,7 @@ paths:
 
   # ---------------- INTERNAL (Vercel Cron, ADR-012) ----------------
   /internal/cron/cleanup:
-    servers: [{ url: 'http://localhost:4100' }]   # not under /api/v1
+    servers: [{ url: 'http://localhost:1000' }]   # not under /api/v1
     get:
       tags: [Internal]
       summary: Cleanup job called by Vercel Cron (daily). Also accepts POST for manual runs.

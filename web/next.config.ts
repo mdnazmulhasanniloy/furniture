@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
   // Socket.IO is NOT proxied — the socket client connects to the backend origin
   // directly at path /api/socket-io (ADR-012, web T-040).
   async rewrites() {
-    const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:4100";
+    const apiOrigin = process.env.API_ORIGIN ?? "http://localhost:1000";
     return [
       {
         source: "/api/:path*",

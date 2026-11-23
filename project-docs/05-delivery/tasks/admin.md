@@ -3,7 +3,7 @@
 Done = linked acceptance criteria covered by passing tests (Vitest + Testing Library, Playwright for flows), UI works in en (LTR) and ar (RTL).
 
 ### T-060 Bootstrap Vite + shadcn + theme + i18n/RTL + dark mode · todo
-- Req: I18N-01 · Depends: — · Docs: `design-system.md`, `adr/ADR-002`, `adr/ADR-004` · Done: dev port 3101 (`ADMIN_URL`), API base from `VITE_API_URL` (:4100); CSRF token fetched before refresh/logout (ADR-011).
+- Req: I18N-01 · Depends: — · Docs: `design-system.md`, `adr/ADR-002`, `adr/ADR-004` · Done: dev port 3101 (`ADMIN_URL`), API base from `VITE_API_URL` (:1000); CSRF token fetched before refresh/logout (ADR-011).
 
 ### T-061 Admin auth + protected routes + shell · todo
 - Req: AUTH-02, AUTH-06 · Depends: T-060, backend T-005 · Docs: `screen-specs.md#A-06`

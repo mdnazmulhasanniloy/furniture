@@ -25,7 +25,7 @@ cd web && cp .env.example .env.local && npm i && npm run dev
 cd admin && cp .env.example .env && npm i && npm run dev
 ```
 Needs a MongoDB Atlas dev database (`DATABASE_URL`) and Gmail SMTP app password in `backend/.env`.
-Ports: API http://localhost:4100 · web http://localhost:3100 · admin http://localhost:3101
+Ports: API http://localhost:1000 · web http://localhost:3100 · admin http://localhost:3101
 
 ## Checks
 `node scripts/traceability.mjs` — every requirement has a task · `npm run i18n:check` in web/admin — en/ar key parity.

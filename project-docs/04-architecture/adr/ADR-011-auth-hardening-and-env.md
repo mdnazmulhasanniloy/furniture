@@ -10,7 +10,7 @@ Status: **Accepted 2026-11-20** (team decision, SRC-006.2; assumptions confirmed
 - **CSRF:** cookie-authenticated endpoints (`POST /auth/refresh`, `POST /auth/logout`) require header `X-CSRF-Token`. The token is issued by `GET /auth/csrf` (HMAC with `CSRF_SECRET`, bound to the session cookie) and missing/invalid tokens get 403 `CSRF_INVALID`. Requests authenticated only by the `Authorization: Bearer` header are exempt. (Exact scheme is an implementation detail of T-005; this ADR fixes the contract.)
 - **Cookie settings from env:** `AUTH_COOKIE_DOMAIN` (empty = host-only), `AUTH_COOKIE_SECURE` (empty = true in production, false elsewhere), `AUTH_COOKIE_SAME_SITE` (`lax` default). Cookie name stays `fx_rt`. In production `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_PEPPER` and `CSRF_SECRET` (≥ 32 chars) are required; outside production, empty values are generated randomly at start-up, which ends sessions on restart.
 - **Origins:** `CORS_ALLOWED_ORIGINS` (comma-separated, with credentials; required in production), `STOREFRONT_URL`, `ADMIN_URL`. These replace `WEB_ORIGIN` / `ADMIN_ORIGIN` / `WEB_URL` in older docs.
-- **Ports:** API **4100**, web **3100**, admin **3101** (were 4000 / 3000 / 5173).
+- **Ports:** API **1000**, web **3100**, admin **3101** (were 4000 / 3000 / 5173; API amended 4100 → **1000**, owner decision 2026-11-24).
 - **Sentry:** `SENTRY_DSN` / `SENTRY_ENVIRONMENT`; Sentry is disabled when `SENTRY_DSN` is empty. Errors reported with the request id; no PII or secrets in events.
 - **Admin seed:** `ADMIN_EMAIL`, `ADMIN_PASSWORD` (12–128 chars), `ADMIN_FIRST_NAME`, `ADMIN_LAST_NAME`, read only by the seed script. `User` has `firstName` and `lastName` (B-020, SRC-007.3).
 

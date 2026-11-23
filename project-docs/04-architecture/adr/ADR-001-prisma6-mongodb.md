@@ -12,3 +12,6 @@ Client requires Prisma + MongoDB. Prisma ORM 7 ships without a MongoDB connector
 
 ## Consequences
 + Meets client stack. − No Prisma 7 features; re-evaluate when Prisma ships stable MongoDB support (Prisma Next).
+
+## Amendment 2026-11-24 (T-029: prisma CLI audit advisories accepted as risk)
+`npm audit` flags the `prisma` CLI devDependency chain with 4 high advisories, all via `@prisma/config`: `deepmerge-ts` <8.0.0 stack exhaustion (GHSA-ggr8-5vv4-36mx) and `effect` ≤3.22.0 ReDoS (GHSA-7589-6fvf-x4pw). npm's only proposed fix is `prisma@7.10.1`, which this ADR forbids (v7 has no MongoDB connector). **Decision: accept the risk.** The chain is build-time only (`prisma generate` / `db push`); `@prisma/client` (the runtime dependency) is not flagged. Do not take the suggested fix and never run `npm audit fix --force`; re-check `npm audit` for a 6.x backport at every dependency bump (blocker B-027). Lifting the v6 pin remains its own future decision, not a security chore.

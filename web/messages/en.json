@@ -51,7 +51,8 @@
     "menu": "Menu",
     "close": "Close",
     "main": "Main navigation",
-    "searchLabel": "Search"
+    "searchLabel": "Search",
+    "notificationsBadge": "Notifications, {count, plural, one {# unread} other {# unread}}"
   },
   "badge": {
     "new": "New",
@@ -361,7 +362,8 @@
     "tabs": {
       "profile": "Profile",
       "addresses": "Addresses",
-      "orders": "Orders"
+      "orders": "Orders",
+      "notifications": "Notifications"
     },
     "profile": {
       "title": "Profile",
@@ -404,5 +406,18 @@
       "viewOrder": "View order",
       "viewOrders": "My orders"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "You have no notifications yet.",
+    "unread": "Unread",
+    "loadError": "We could not load your notifications.",
+    "actionError": "We could not update your notifications. Please try again.",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}",
+    "grouped": "{count} new notifications",
+    "dismiss": "Dismiss"
   }
 }

@@ -51,7 +51,8 @@
     "menu": "القائمة",
     "close": "إغلاق",
     "main": "التنقل الرئيسي",
-    "searchLabel": "بحث"
+    "searchLabel": "بحث",
+    "notificationsBadge": "الإشعارات، {count, plural, one {# غير مقروء} two {# غير مقروءين} few {# غير مقروءة} many {# غير مقروء} other {# غير مقروء}}"
   },
   "badge": {
     "new": "جديد",
@@ -361,7 +362,8 @@
     "tabs": {
       "profile": "الملف الشخصي",
       "addresses": "العناوين",
-      "orders": "الطلبات"
+      "orders": "الطلبات",
+      "notifications": "الإشعارات"
     },
     "profile": {
       "title": "الملف الشخصي",
@@ -404,5 +406,18 @@
       "viewOrder": "عرض الطلب",
       "viewOrders": "طلباتي"
     }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "markAllRead": "تعليم الكل كمقروء",
+    "empty": "لا توجد إشعارات حتى الآن.",
+    "unread": "غير مقروء",
+    "loadError": "تعذر تحميل إشعاراتك.",
+    "actionError": "تعذر تحديث إشعاراتك. حاول مرة أخرى.",
+    "previous": "السابق",
+    "next": "التالي",
+    "pageOf": "صفحة {page} من {total}",
+    "grouped": "{count} إشعارات جديدة",
+    "dismiss": "إغلاق"
   }
 }

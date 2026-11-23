@@ -11,6 +11,7 @@ const TABS = [
   { key: "profile", href: "/account" },
   { key: "addresses", href: "/account/addresses" },
   { key: "orders", href: "/account/orders" },
+  { key: "notifications", href: "/account/notifications" },
 ] as const;
 
 /** W-07 shell: tabs + auth guard. Guests go to /login; admins see a notice (customer-only area). */

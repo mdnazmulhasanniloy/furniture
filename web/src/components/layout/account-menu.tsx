@@ -13,6 +13,7 @@ import {
 import { Link, useRouter } from "@/i18n/navigation";
 import { logout } from "@/lib/auth/session";
 import { useAuthStore } from "@/lib/auth/store";
+import { useNotificationStore } from "@/lib/notifications/store";
 
 /** Bell (logged in only) + account entry (W-01). Links to T-037/T-039/T-040 routes. */
 export function AccountActions() {
@@ -20,6 +21,7 @@ export function AccountActions() {
   const status = useAuthStore((s) => s.status);
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
+  const unread = useNotificationStore((s) => s.unread);
 
   if (status !== "authenticated" || !user) {
     return (
@@ -33,9 +35,21 @@ export function AccountActions() {
 
   return (
     <>
-      <Button asChild variant="ghost" size="icon" data-testid="notifications-bell">
-        <Link href="/account/notifications" aria-label={t("notifications")}>
+      <Button asChild variant="ghost" size="icon" data-testid="notifications-bell" className="relative">
+        <Link
+          href="/account/notifications"
+          aria-label={unread > 0 ? t("notificationsBadge", { count: unread }) : t("notifications")}
+        >
           <Bell aria-hidden />
+          {unread > 0 ? (
+            <span
+              data-testid="notifications-count"
+              aria-hidden
+              className="absolute -end-1 -top-1 min-w-4 rounded-full bg-accent px-1 text-center text-[10px] font-semibold leading-4 text-accent-foreground"
+            >
+              {unread > 99 ? "99+" : unread}
+            </span>
+          ) : null}
         </Link>
       </Button>
       <DropdownMenu>

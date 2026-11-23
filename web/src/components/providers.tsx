@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { CartSync } from "@/components/cart/cart-sync";
+import { NotificationsSync } from "@/components/notifications/sync";
+import { NotificationToaster } from "@/components/notifications/toaster";
 import { restoreSession } from "@/lib/auth/session";
 
 export function Providers({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -18,6 +20,8 @@ export function Providers({ children }: Readonly<{ children: React.ReactNode }>)
   }, []);
   return <QueryClientProvider client={client}>
       <CartSync />
+      <NotificationsSync />
       {children}
+      <NotificationToaster />
     </QueryClientProvider>;
 }

@@ -54,7 +54,8 @@ paths:
         The OTP email is sent in the locale of `Accept-Language` (`ar`|`en`), else `preferredLocale`, else `ar`.
         Registering an email that already has an **unverified** account never changes that account: the submitted
         data (password hash, names, locale) is stored on the new OTP row and applied only when *that* OTP is verified
-        (prevents pre-account takeover). Subject to the 60 s cooldown and the 5-per-hour OTP cap (429 `RATE_LIMITED`).
+        (prevents pre-account takeover). Subject to the 60 s cooldown and the 5-per-hour OTP cap (429 `RATE_LIMITED`),
+        and to a per-IP cap of 20 register requests per hour (T-019, NFR-01; all requests count).
       requestBody:
         required: true
         content:
@@ -72,7 +73,7 @@ paths:
         '201': { $ref: '#/components/responses/Message' }
         '409': { $ref: '#/components/responses/Error', description: "`EMAIL_IN_USE` - the email belongs to a verified account" }
         '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` - cooldown or hourly OTP cap" }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` - cooldown, hourly OTP cap, or the per-IP cap (20/hour)" }
   /auth/verify-otp:
     post:
       tags: [Auth]
@@ -84,6 +85,8 @@ paths:
         access token plus the `fx_rt` cookie. Wrong codes are counted per email across all its VERIFY_EMAIL OTPs; the
         5th wrong code invalidates all of them. Errors (400): `OTP_INVALID` wrong code; `OTP_EXPIRED` expired,
         invalidated, already used, or no OTP.
+        **IP limit** (T-019, NFR-01): 10 failed attempts per 15 min per IP (successful verifications are not
+        counted), so codes cannot be guessed by rotating across emails -> 429 `RATE_LIMITED` with `Retry-After`.
       requestBody:
         required: true
         content:
@@ -99,6 +102,7 @@ paths:
         '400': { $ref: '#/components/responses/Error', description: "`OTP_INVALID` or `OTP_EXPIRED`" }
         '403': { $ref: '#/components/responses/Error', description: "`ACCOUNT_BLOCKED`" }
         '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (per-IP limit on failed attempts)" }
   /auth/resend-otp:
     post:
       tags: [Auth]
@@ -107,7 +111,8 @@ paths:
       description: |
         Always answers the same 200 message for known and unknown emails (no email is sent for unknown ones or for
         a purpose that does not apply to the account). The 60 s cooldown and the 5-per-hour cap apply per email and
-        purpose, also for unknown emails, so 429 does not reveal whether an account exists.
+        purpose, also for unknown emails, so 429 does not reveal whether an account exists. A per-IP cap of
+        20 requests per hour (T-019, NFR-01; all requests count) stops mass mail across many different emails.
 
         **VERIFY_EMAIL requires `password`** (AUTH-01, closes the resend race). The server looks for the unexpired
         VERIFY_EMAIL OTP row of the email (also one burnt by the 5-wrong-codes lockout) whose `pendingRegistration.passwordHash` matches the password
@@ -130,7 +135,7 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Message' }
         '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED`" }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (OTP cooldown, hourly cap, or the per-IP cap)" }
   /auth/login:
     post:
       tags: [Auth]
@@ -175,12 +180,17 @@ paths:
       tags: [Auth]
       security: []
       summary: Rotate refresh cookie, return new access token (AUTH-05). Requires X-CSRF-Token; a present `Origin` header must be in CORS_ALLOWED_ORIGINS (else 403 `CSRF_INVALID`).
+      description: |
+        **IP limit** (T-019, NFR-01): 20 failed attempts per 15 min per IP -> 429 `RATE_LIMITED` with `Retry-After`.
+        Successful refreshes are not counted, and neither is 401 `REFRESH_RACE` (the multi-tab grace case is not a
+        guessing attempt); only real failures (401 `UNAUTHORIZED`, 403 `CSRF_INVALID`) count.
       parameters:
         - { $ref: '#/components/parameters/CsrfToken' }
       responses:
         '200': { $ref: '#/components/responses/AuthSession' }
         '401': { $ref: '#/components/responses/Error', description: "`UNAUTHORIZED` (missing, unknown, expired or revoked token, reuse after the grace window: the session family is revoked) or `REFRESH_RACE` (token rotated less than 10 s ago: retry with the new cookie, nothing revoked)" }
         '403': { description: CSRF_INVALID, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (per-IP limit on failed attempts; `REFRESH_RACE` responses are not counted)" }
   /auth/logout:
     post:
       tags: [Auth]
@@ -201,6 +211,7 @@ paths:
         Same flow and limits as `POST /auth/resend-otp` with purpose `RESET_PASSWORD`: the identical 200 message for
         known and unknown emails (and for blocked or unverified accounts, which get no mail); the 60 s cooldown and
         the 5-per-hour cap apply per email, also for unknown emails, so a 429 does not reveal whether an account exists.
+        A per-IP cap of 20 requests per hour (T-019, NFR-01; all requests count) stops mass mail across many emails.
       requestBody:
         required: true
         content:
@@ -213,7 +224,7 @@ paths:
       responses:
         '200': { $ref: '#/components/responses/Message' }
         '422': { $ref: '#/components/responses/Error' }
-        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (OTP cooldown or hourly cap)" }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (OTP cooldown, hourly cap, or the per-IP cap)" }
   /auth/reset-password:
     post:
       tags: [Auth]
@@ -435,7 +446,7 @@ paths:
           description: NOT_FOUND — missing, malformed id, or owned by another user
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
         '422':
-          description: OUT_OF_DELIVERY_AREA — cityCode is unknown or inactive (ADR-008); VALIDATION_ERROR for an invalid Saudi phone, unknown field or `isDefault: false` on the default
+          description: "OUT_OF_DELIVERY_AREA — cityCode is unknown or inactive (ADR-008); VALIDATION_ERROR for an invalid Saudi phone, unknown field or `isDefault: false` on the default"
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
     delete:
       tags: [Me]
@@ -707,7 +718,7 @@ paths:
                 expectedTotal: { type: integer, minimum: 0, description: Required. Total (halalas) the customer saw; if it differs from the server-computed total the order is rejected with 409 PRICE_CHANGED (ADR-009) }
       responses:
         '201':
-          description: Created. `statusHistory` starts with `{status: PENDING, at, byUserId: <the customer>}`.
+          description: "Created. `statusHistory` starts with `{status: PENDING, at, byUserId: <the customer>}`."
           content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
         '200':
           description: Idempotent replay — this user already created an order with this `Idempotency-Key`; the body is identical to the original 201.
@@ -1651,9 +1662,10 @@ components:
       properties:
         key: { type: string, description: R2 object key, examples: ['furnixa/production/2026/11/3f2b8c1e-0c4d-4a52-9d7e-1b2a3c4d5e6f.webp'] }
         url: { type: string, format: uri }
-        alt: { $ref: '#/components/schemas/LocalizedText' }
-        width: { type: integer }
-        height: { type: integer }
+        # alt/width/height are optional composite fields; writers store explicit null (rule 8), so responses carry null, not absence (T-019).
+        alt: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        width: { type: [integer, 'null'] }
+        height: { type: [integer, 'null'] }
     ImageAssetInput:
       type: object
       additionalProperties: false
@@ -1933,7 +1945,7 @@ components:
         status: { $ref: '#/components/schemas/OrderStatus' }
         at: { type: string, format: date-time }
         byUserId: { $ref: '#/components/schemas/ObjectId' }
-        note: { type: string }
+        note: { type: [string, 'null'], description: "null when the transition carried no note (writers store explicit null, rule 8; T-019)" }
     OrderAddress:
       type: object
       description: Immutable snapshot of the delivery address at placement — canonical E.164 phone, `city` name copied from the DeliveryCity. Editing or deleting the Address later never changes it.
@@ -2090,9 +2102,11 @@ components:
               quote: { $ref: '#/components/schemas/LocalizedText', description: '<= 500 chars per locale' }
     HomeSectionInput:
       type: object
-      additionalProperties: false
       required: [type, title]
-      description: '`title` needs both locales non-empty (<= 120 chars); subtitle <= 200 per locale.'
+      description: >-
+        `title` needs both locales non-empty (<= 120 chars); subtitle <= 200 per locale. Unknown fields
+        are rejected (422, zod strict) — not expressed as `additionalProperties: false` here because this
+        schema is composed into the HomeSection response schema (T-019).
       properties:
         type: { $ref: '#/components/schemas/SectionType' }
         title: { $ref: '#/components/schemas/LocalizedText' }
@@ -2115,23 +2129,28 @@ components:
         sortOrder: { type: integer, minimum: 0 }
         isVisible: { type: boolean }
     HomeSection:
-      allOf:
-        - $ref: '#/components/schemas/HomeSectionInput'
-        - type: object
-          required: [id, updatedAt]
-          properties:
-            id: { $ref: '#/components/schemas/ObjectId' }
-            config: { oneOf: [{ $ref: '#/components/schemas/HomeSectionConfig' }, { type: 'null' }], description: null when the section was created without a config }
-            updatedAt: { type: string, format: date-time, description: Send back as `expectedUpdatedAt` on PATCH }
+      type: object
+      required: [id, type, title, subtitle, config, sortOrder, isVisible, updatedAt]
+      description: Response shape — every field is always present; subtitle/config are null when unset (T-019).
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        type: { $ref: '#/components/schemas/SectionType' }
+        title: { $ref: '#/components/schemas/LocalizedText' }
+        subtitle: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
+        config: { oneOf: [{ $ref: '#/components/schemas/HomeSectionConfig' }, { type: 'null' }], description: null when the section was created without a config }
+        sortOrder: { type: integer, minimum: 0 }
+        isVisible: { type: boolean }
+        updatedAt: { type: string, format: date-time, description: Send back as `expectedUpdatedAt` on PATCH }
     PageInput:
       type: object
-      additionalProperties: false
       required: [slug, title, content]
       description: >-
         `content` is HTML, sanitised server-side on every write (allowlist of Tiptap tags; img only from
         R2_PUBLIC_BASE_URL; links https or same-site; ADR-013). Title <= 120, content <= 50000, metaTitle <= 120,
         metaDescription <= 300 chars per locale. Publish gate (I18N-02): `isPublished` true requires title and
-        content non-empty in both locales; false requires at least one.
+        content non-empty in both locales; false requires at least one. Unknown fields are rejected (422,
+        zod strict) — not expressed as `additionalProperties: false` here because this schema is composed
+        into the Page response schema (T-019).
       properties:
         slug: { type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$', maxLength: 60, description: Unique -> 409 SLUG_TAKEN }
         title: { $ref: '#/components/schemas/LocalizedText' }
@@ -2202,17 +2221,18 @@ components:
       type: object
       properties:
         storeName: { $ref: '#/components/schemas/LocalizedText' }
-        logo: { $ref: '#/components/schemas/ImageAsset' }
+        # logo/address/socials/seo are optional; writers store explicit null (rule 8), so responses carry null, not absence (T-019).
+        logo: { oneOf: [{ $ref: '#/components/schemas/ImageAsset' }, { type: 'null' }] }
         contactEmail: { type: string, format: email }
         contactPhone: { type: string, description: Free text; the store may list a landline }
-        address: { $ref: '#/components/schemas/LocalizedText' }
+        address: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
         socials:
-          type: object
+          type: [object, 'null']
           properties:
-            facebook: { type: string }
-            instagram: { type: string }
-            whatsapp: { type: string }
-            tiktok: { type: string }
+            facebook: { type: [string, 'null'] }
+            instagram: { type: [string, 'null'] }
+            whatsapp: { type: [string, 'null'] }
+            tiktok: { type: [string, 'null'] }
         deliveryFee: { type: integer, minimum: 0, default: 0, description: Base delivery fee in halalas; 0 = free delivery (ADR-009) }
         freeDeliveryThreshold: { type: [integer, 'null'], minimum: 0, default: null, description: Optional. Subtotal (halalas) at or above which delivery is free; null = no threshold }
         vat: { $ref: '#/components/schemas/VatSetting' }
@@ -2223,7 +2243,7 @@ components:
           items: { $ref: '#/components/schemas/DeliveryCity' }
         defaultLocale: { $ref: '#/components/schemas/Locale' }
         seo:
-          type: object
+          type: [object, 'null']
           properties:
             title: { $ref: '#/components/schemas/LocalizedText' }
             description: { $ref: '#/components/schemas/LocalizedText' }

@@ -40,7 +40,7 @@ Seed the preview database once with `npm run seed` (run locally with `DATABASE_U
 - `TRUST_PROXY=1` in production. One `PrismaClient` per instance (`globalThis` singleton) and one native `mongodb` client for the Socket.IO adapter/emitter (`maxPoolSize` 2).
 - Atlas URL options: `maxPoolSize=5&minPoolSize=0&maxIdleTimeMS=60000&serverSelectionTimeoutMS=5000&retryWrites=true&w=majority`. Connection budget = instances × (Prisma pool + 2). Atlas M0 500, M10 1 500 connections; watch the Atlas connections chart after launch.
 - Atlas network access (T-026): Atlas Network Access **must allow `0.0.0.0/0`**, because Vercel has no fixed egress IPs on our plan. Compensating controls: a long random password per DB user, and a **separate DB user per environment with `readWrite` only on its own database** (see "Databases per environment"). Vercel static IPs / private link remain an option on a higher plan.
-- Realtime: WebSocket functions close at the duration limit (about 5 min); clients reconnect and re-fetch (ADR-012 section 3).
+- Realtime: WebSocket functions close at the duration limit (about 5 min; **measured 314 s** on the preview, 2026-11-23, client reason `transport close`); clients reconnect and re-fetch (ADR-012 section 3) — **measured: automatic reconnect 3 s after the close**, and the notification created during the gap was fetched after the reconnect (preview `--long`, 2026-11-23).
 - Cron: daily `0 3 * * *` (valid on every plan). Hourly needs Vercel Pro. **Vercel Cron fires only on the production deployment** of a project — on a preview the cleanup route is exercised manually (preview check step 4) and the cron registration is confirmed in the dashboard (Settings → Cron Jobs).
 
 ## Environments & secrets
@@ -66,13 +66,35 @@ Steps (each prints `PASS step N — …` / `FAIL step N — …`, final line `PR
 4. `GET /internal/cron/cleanup` with `Authorization: Bearer <CRON_SECRET>` → 200 with the five counts (manual stand-in for the scheduled cron, which fires only on production).
 5. `--long` (ADR-012 §3, NFR-08): the customer places a real order (demo product + a check address), holds a socket open until the platform closes it at the duration limit (measured and reported), the admin confirms the order **during the gap**, the socket reconnects automatically, and `GET /notifications` after the reconnect must contain the notification created while disconnected. The order is cancelled afterwards (stock restored).
 
+## p95 performance gate (T-019, NFR-02)
+
+`npm run p95` (from `backend/`) seeds 1000 products / 200 orders / 300 customers and measures 8 list endpoints (25 warmup + 200 samples each); PASS only if every endpoint's p95 is under **300 ms**. In-memory MongoDB is the default; Atlas mode runs via `P95_DATABASE_URL` against a dedicated database that **must be named `furniture_p95`** (seeded, dropped at the end; a concurrent run is refused via a `p95_lock` document).
+
+Owner runs, 2026-11-23 — **both PASS**:
+
+- **In-memory** (owner's machine): every endpoint p95 **17–24 ms**.
+- **Atlas** (`furniture_p95`; measured from Dhaka, so every number includes Dhaka→Atlas intercontinental network latency — production, with Vercel functions in the same region as the Atlas cluster, will be lower):
+
+| Endpoint | p95 |
+|---|---|
+| `GET /products` | 103.8 ms |
+| `GET /products` (search) | 111.8 ms |
+| `GET /products` (by category) | 180.6 ms |
+| `GET /categories` | 54.6 ms |
+| `GET /cms/home` | 145.2 ms |
+| `GET /admin/products` | 138.1 ms |
+| `GET /admin/orders` | 137.4 ms |
+| `GET /admin/customers` | 151.7 ms |
+
+An earlier Atlas attempt failed with a transient network timeout that resolved itself on retry (no code change involved).
+
 ## Vercel plan (record after the preview run — T-026)
 
 To fill in from the owner's preview run (keep the history):
 
 | Date | Deployment | Plan | Fluid Compute | Max duration (API / socket) | Measured socket disconnect (`--long`) | Notes |
 |---|---|---|---|---|---|---|
-| _pending_ | | | | | | |
+| 2026-11-23 | preview | _owner to confirm (B-026)_ | **on** (owner-confirmed; websockets connect) | 30 s / 300 s (vercel.json) | **314 s**, reason `transport close`; auto-reconnect **3 s** later (`reconnect_attempt #1`) | **PREVIEW PASS incl. `--long`**: steps 1–4 PASS, gap `ORDER_STATUS` notification fetched after reconnect. (An earlier `--long` run failed only because the script's reconnect wait raced the automatic reconnect — fixed.) |
 
 **Plan licence note:** the Vercel **Hobby plan is for personal, non-commercial use only** — the client's production store must run on a paid plan (Pro or higher). Owner to confirm the hosting cost with the client: **blocker B-026**.
 

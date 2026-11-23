@@ -208,5 +208,54 @@
     "prevPage": "الصفحة السابقة",
     "nextPage": "الصفحة التالية",
     "goToPage": "الانتقال إلى الصفحة {n}"
+  },
+  "product": {
+    "loadError": "تعذر تحميل هذا المنتج الآن. يرجى المحاولة بعد قليل.",
+    "gallery": {
+      "label": "صور المنتج",
+      "noImage": "لا توجد صورة",
+      "prev": "الصورة السابقة",
+      "next": "الصورة التالية",
+      "thumbs": "اختر صورة",
+      "thumb": "عرض الصورة {n} من {total}",
+      "zoomIn": "تكبير",
+      "zoomOut": "تصغير"
+    },
+    "saving": "توفّر {amount}",
+    "vatIncl": "شامل الضريبة",
+    "vatExcl": "+ الضريبة",
+    "stock": {
+      "in": "متوفر",
+      "only": "{count, plural, one {بقيت قطعة واحدة فقط} two {بقيت قطعتان فقط} few {بقيت {formatted} قطع فقط} many {بقيت {formatted} قطعة فقط} other {بقيت {formatted} قطعة فقط}}"
+    },
+    "quantity": "الكمية",
+    "decrease": "تقليل الكمية",
+    "increase": "زيادة الكمية",
+    "cartSoon": "الإضافة إلى السلة ستتوفر قريبًا.",
+    "condition": {
+      "title": "الحالة",
+      "grade": "الدرجة",
+      "notes": "ملاحظات الحالة"
+    },
+    "specs": {
+      "title": "المواصفات",
+      "sku": "رمز المنتج",
+      "category": "الفئة",
+      "material": "الخامة",
+      "color": "اللون",
+      "dimensions": "الأبعاد (العرض × العمق × الارتفاع)",
+      "dimensionsValue": "{w} × {d} × {h} سم",
+      "weight": "الوزن",
+      "weightValue": "{value} كجم"
+    },
+    "description": "الوصف",
+    "delivery": {
+      "title": "التوصيل",
+      "body": "التوصيل إلى مدن سعودية محددة.",
+      "cod": "الدفع نقدًا عند الاستلام."
+    },
+    "related": "قد يعجبك أيضًا",
+    "relatedLabel": "منتجات ذات صلة",
+    "breadcrumb": "مسار التنقل"
   }
 }

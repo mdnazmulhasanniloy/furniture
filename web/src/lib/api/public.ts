@@ -28,6 +28,7 @@ export type SiteSettings = {
     whatsapp?: string | null;
     tiktok?: string | null;
   } | null;
+  vat?: { vatRate: number; applyToDelivery?: boolean; pricesIncludeVat: boolean } | null;
 };
 
 async function getJson<T>(path: string, tags: string[]): Promise<T | null> {
@@ -146,4 +147,50 @@ export async function getProducts(
       totalPages: data.meta?.totalPages ?? 1,
     },
   };
+}
+
+// ---- Product detail (T-035, PROD-02) ----
+
+export type ProductDetail = HomeProduct & {
+  description: LocalizedText;
+  conditionNotes?: LocalizedText | null;
+  sku?: string | null;
+  category?: Category | null;
+  dimensions?: {
+    widthCm?: number | null;
+    depthCm?: number | null;
+    heightCm?: number | null;
+    weightKg?: number | null;
+  } | null;
+  material?: string | null;
+  color?: string | null;
+};
+
+export type ProductDetailResult =
+  | { status: "ok"; product: ProductDetail; related: HomeProduct[] }
+  | { status: "not-found" }
+  | { status: "error" };
+
+/**
+ * `GET /products/{slug}`. Tags `product:{slug}`, `products` and `settings` (VAT and delivery
+ * display change with admin settings; backend T-011). 404 is distinct from an outage.
+ */
+export async function getProduct(slug: string): Promise<ProductDetailResult> {
+  try {
+    const res = await fetch(`${API_ORIGIN}/api/v1/products/${encodeURIComponent(slug)}`, {
+      headers: { Accept: "application/json" },
+      next: { revalidate: 60, tags: [`product:${slug}`, "products", "settings"] },
+    });
+    if (res.status === 404) return { status: "not-found" };
+    if (!res.ok) return { status: "error" };
+    const data = (await res.json()) as { product?: ProductDetail; related?: HomeProduct[] };
+    if (!data.product) return { status: "error" };
+    return {
+      status: "ok",
+      product: data.product,
+      related: Array.isArray(data.related) ? data.related : [],
+    };
+  } catch {
+    return { status: "error" };
+  }
 }

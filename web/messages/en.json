@@ -208,5 +208,54 @@
     "prevPage": "Previous page",
     "nextPage": "Next page",
     "goToPage": "Go to page {n}"
+  },
+  "product": {
+    "loadError": "We could not load this product right now. Please try again shortly.",
+    "gallery": {
+      "label": "Product images",
+      "noImage": "No image available",
+      "prev": "Previous image",
+      "next": "Next image",
+      "thumbs": "Choose image",
+      "thumb": "Show image {n} of {total}",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out"
+    },
+    "saving": "You save {amount}",
+    "vatIncl": "Incl. VAT",
+    "vatExcl": "+ VAT",
+    "stock": {
+      "in": "In stock",
+      "only": "{count, plural, one {Only 1 left} other {Only {formatted} left}}"
+    },
+    "quantity": "Quantity",
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity",
+    "cartSoon": "Adding to cart is coming soon.",
+    "condition": {
+      "title": "Condition",
+      "grade": "Grade",
+      "notes": "Condition notes"
+    },
+    "specs": {
+      "title": "Specifications",
+      "sku": "SKU",
+      "category": "Category",
+      "material": "Material",
+      "color": "Colour",
+      "dimensions": "Dimensions (W × D × H)",
+      "dimensionsValue": "{w} × {d} × {h} cm",
+      "weight": "Weight",
+      "weightValue": "{value} kg"
+    },
+    "description": "Description",
+    "delivery": {
+      "title": "Delivery",
+      "body": "Delivery to selected Saudi cities.",
+      "cod": "Pay with cash on delivery."
+    },
+    "related": "You may also like",
+    "relatedLabel": "Related products",
+    "breadcrumb": "Breadcrumb"
   }
 }

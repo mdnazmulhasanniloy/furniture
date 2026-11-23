@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Locale } from "@/i18n/routing";
 import { apiErrorMessage } from "@/lib/api/errors";
+import { updateAddress } from "@/lib/account/api";
 import { createAddress, type Address } from "@/lib/checkout/api";
 import { normalizeSaudiPhone } from "@/lib/format/phone";
 import { pick, type LocalizedText } from "@/lib/pick";
@@ -20,16 +21,33 @@ export function AddressForm({
   cities,
   onCreated,
   onCancel,
+  address,
+  showDefault = false,
 }: {
   cities: CityOption[];
+  /** Called with the saved address (created or edited). */
   onCreated: (a: Address) => void;
   onCancel?: () => void;
+  /** Edit mode (PROF-02 account area): PATCH /me/addresses/{id}. A city that is no longer active is not preselected. */
+  address?: Address;
+  /** Show the "Set as default" checkbox (account area). */
+  showDefault?: boolean;
 }) {
   const t = useTranslations("checkout");
   const te = useTranslations("errors");
   const locale = useLocale() as Locale;
   const uid = useId();
-  const [v, setV] = useState({ label: "", fullName: "", phone: "", cityCode: "", area: "", street: "", notes: "" });
+  const [v, setV] = useState(() => ({
+    label: address?.label ?? "",
+    fullName: address?.fullName ?? "",
+    phone: address ? address.phone.replace(/^\+966/, "") : "",
+    // An address in a deactivated city must get an active city picked (PROF-02).
+    cityCode: address && cities.some((c) => c.code === address.cityCode) ? address.cityCode : "",
+    area: address?.area ?? "",
+    street: address?.street ?? "",
+    notes: address?.notes ?? "",
+  }));
+  const [makeDefault, setMakeDefault] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [apiError, setApiError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
@@ -57,16 +75,23 @@ export function AddressForm({
     setBusy(true);
     setApiError(null);
     try {
-      const created = await createAddress({
+      const body = {
         label: v.label.trim(),
         fullName: v.fullName.trim(),
         phone,
         cityCode: v.cityCode,
         area: v.area.trim(),
         street: v.street.trim(),
-        ...(v.notes.trim() ? { notes: v.notes.trim() } : {}),
-      });
-      onCreated(created);
+      };
+      const wantDefault = showDefault && makeDefault && !address?.isDefault;
+      const saved = address
+        ? await updateAddress(address.id, { ...body, notes: v.notes.trim(), ...(wantDefault ? { isDefault: true } : {}) })
+        : await createAddress({
+            ...body,
+            ...(v.notes.trim() ? { notes: v.notes.trim() } : {}),
+            ...(wantDefault ? { isDefault: true } : {}),
+          });
+      onCreated(saved);
     } catch (err) {
       setApiError(err);
     } finally {
@@ -86,7 +111,7 @@ export function AddressForm({
   });
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-3 rounded-lg border border-border bg-card p-4" data-testid="address-form" aria-label={t("newAddress")}>
+    <form onSubmit={submit} noValidate className="space-y-3 rounded-lg border border-border bg-card p-4" data-testid="address-form" aria-label={address ? t("editAddress") : t("newAddress")}>
       {apiError ? (
         <p role="alert" className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">
           {apiErrorMessage(te as unknown as Parameters<typeof apiErrorMessage>[0], apiError)}
@@ -145,6 +170,12 @@ export function AddressForm({
         <Input id={`${uid}-notes`} value={v.notes} onChange={set("notes")} maxLength={300} {...aria("notes")} />
         {err("notes")}
       </div>
+      {showDefault && !address?.isDefault ? (
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={makeDefault} onChange={(e) => setMakeDefault(e.target.checked)} className="size-4 accent-primary" />
+          {t("form.makeDefault")}
+        </label>
+      ) : null}
       <div className="flex gap-2">
         <Button type="submit" disabled={busy}>{busy ? t("form.saving") : t("form.save")}</Button>
         {onCancel ? <Button type="button" variant="outline" onClick={onCancel}>{t("form.cancel")}</Button> : null}

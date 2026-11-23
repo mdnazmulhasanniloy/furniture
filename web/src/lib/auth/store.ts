@@ -28,6 +28,7 @@ type AuthState = {
   csrfToken: string | null;
   user: AuthUser | null;
   setSession: (session: AuthSession) => void;
+  setUser: (user: AuthUser) => void;
   setCsrfToken: (token: string | null) => void;
   clear: () => void;
 };
@@ -39,6 +40,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   setSession: (session) =>
     set({ status: "authenticated", accessToken: session.accessToken, user: session.user }),
+  setUser: (user) => set({ user }),
   setCsrfToken: (csrfToken) => set({ csrfToken }),
   clear: () => set({ status: "anonymous", accessToken: null, csrfToken: null, user: null }),
 }));

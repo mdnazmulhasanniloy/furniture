@@ -25,6 +25,7 @@ export type AddressInput = {
   area: string;
   street: string;
   notes?: string;
+  isDefault?: boolean;
 };
 
 export type Order = {

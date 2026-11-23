@@ -15,6 +15,7 @@ import { pick } from "@/lib/pick";
 export function SuccessPage({ orderId }: { orderId: string | null }) {
   const t = useTranslations("checkout");
   const tc = useTranslations("cart");
+  const ta = useTranslations("account.orders");
   const locale = useLocale() as Locale;
   const router = useRouter();
   const status = useAuthStore((s) => s.status);
@@ -93,9 +94,15 @@ export function SuccessPage({ orderId }: { orderId: string | null }) {
           </section>
         </div>
       )}
-      <Link href="/shop" className="mt-8 inline-block text-sm font-medium text-primary underline">
-        {t("continueShopping")}
-      </Link>
+      <div className="mt-8 flex flex-wrap gap-4 text-sm font-medium">
+        {orderId ? (
+          <Link href={`/account/orders/${orderId}`} className="text-primary underline" data-testid="view-order">
+            {ta("viewOrder")}
+          </Link>
+        ) : null}
+        <Link href="/account/orders" className="text-primary underline">{ta("viewOrders")}</Link>
+        <Link href="/shop" className="text-primary underline">{t("continueShopping")}</Link>
+      </div>
     </main>
   );
 }

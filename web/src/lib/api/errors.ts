@@ -54,6 +54,7 @@ export const KNOWN_ERROR_CODES = [
   "CONFLICT",
   "VALIDATION_ERROR",
   "ADDRESS_LIMIT_REACHED",
+  "INVALID_TRANSITION",
 ] as const;
 
 export function errorMessageKey(code: string): string {

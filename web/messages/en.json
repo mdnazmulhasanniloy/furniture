@@ -130,7 +130,8 @@
       "notes": "Notes (optional)",
       "save": "Save address",
       "saving": "Saving...",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "makeDefault": "Set as default address"
     },
     "validation": {
       "required": "This field is required.",
@@ -158,7 +159,8 @@
       "loadError": "We could not load your order details.",
       "qty": "Qty {qty}"
     },
-    "rateLimited": "You can place at most 3 orders per hour."
+    "rateLimited": "You can place at most 3 orders per hour.",
+    "editAddress": "Edit address"
   },
   "auth": {
     "login": "Log in",
@@ -235,7 +237,8 @@
     "IDEMPOTENCY_MISMATCH": "Your order details changed. Please review and try again.",
     "CONFLICT": "Stock was updated while placing your order. Please try again.",
     "VALIDATION_ERROR": "Some details are invalid. Please check and try again.",
-    "ADDRESS_LIMIT_REACHED": "You have reached the maximum of 10 saved addresses."
+    "ADDRESS_LIMIT_REACHED": "You have reached the maximum of 10 saved addresses.",
+    "INVALID_TRANSITION": "This order can no longer be cancelled because it is already being processed."
   },
   "orderStatus": {
     "PENDING": "Pending",
@@ -350,5 +353,56 @@
     "related": "You may also like",
     "relatedLabel": "Related products",
     "breadcrumb": "Breadcrumb"
+  },
+  "account": {
+    "title": "My account",
+    "loading": "Loading your account...",
+    "adminNotice": "The account area is for customer accounts.",
+    "tabs": {
+      "profile": "Profile",
+      "addresses": "Addresses",
+      "orders": "Orders"
+    },
+    "profile": {
+      "title": "Profile",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "emailHint": "Email cannot be changed here.",
+      "phone": "Mobile number",
+      "language": "Preferred language",
+      "languageAr": "العربية",
+      "languageEn": "English",
+      "save": "Save changes",
+      "saved": "Your profile was saved."
+    },
+    "addresses": {
+      "title": "Address book",
+      "empty": "You have no saved addresses yet.",
+      "edit": "Edit",
+      "delete": "Delete",
+      "confirmDelete": "Yes, delete",
+      "makeDefault": "Make default",
+      "loadError": "We could not load your addresses."
+    },
+    "orders": {
+      "title": "My orders",
+      "empty": "You have not placed any orders yet.",
+      "itemsCount": "{count, plural, one {# item} other {# items}}",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {total}",
+      "loadError": "We could not load your orders.",
+      "notFound": "We could not find this order.",
+      "back": "Back to my orders",
+      "orderNo": "Order",
+      "timeline": "Order status",
+      "cancel": "Cancel order",
+      "cancelConfirm": "Cancel this order? This cannot be undone.",
+      "cancelYes": "Yes, cancel order",
+      "cancelNo": "Keep order",
+      "viewOrder": "View order",
+      "viewOrders": "My orders"
+    }
   }
 }

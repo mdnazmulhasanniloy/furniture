@@ -3,11 +3,12 @@ import { z } from "zod";
 import { api } from "@/lib/api/client";
 import { halalasToSar, parseSar } from "@/lib/delivery";
 import type { LocalizedText, StoredImage } from "@/lib/products";
+import { bpToRate, isRegistrationNumber, parseRate, rateToText, readVat, type VatSetting } from "@/lib/vat";
 
 // api-spec.yaml /admin/settings (ADM-09). PUT is a FULL REPLACE with `expectedUpdatedAt` (409
-// STALE_UPDATE, owner 2026-11-22). Fields owned by other tasks (VAT: T-074) and the fields whose rules
+// STALE_UPDATE, owner 2026-11-22). The fields whose rules
 // are still blocked (contact phone B-033, social links B-034) are sent back exactly as received. Delivery
-// fee, threshold and cities (T-073, ADM-13/ADM-14) are edited on the Delivery tab.
+// fee, threshold and cities (T-073) are edited on the Delivery tab, VAT (T-074) on the VAT tab.
 
 export type DeliveryCity = {
   code: string;
@@ -50,6 +51,8 @@ export type SettingsEdit = {
   seo: { title?: LocalizedText; description?: LocalizedText } | null;
   /** Delivery tab values; when absent the loaded fee, threshold and cities are sent back untouched. */
   delivery?: DeliveryEdit;
+  /** VAT tab values; when absent the loaded `vat` object is sent back untouched. */
+  vat?: VatSetting;
 };
 
 const KEY = ["admin", "settings"] as const;
@@ -74,7 +77,7 @@ export function buildSettingsBody(base: SiteSettings, edit: SettingsEdit): Recor
     contactPhone: base.contactPhone,
     address: edit.address,
     deliveryFee: edit.delivery ? edit.delivery.deliveryFee : base.deliveryFee,
-    vat: base.vat,
+    vat: edit.vat ?? base.vat,
     deliveryCities: edit.delivery ? edit.delivery.deliveryCities : base.deliveryCities,
     defaultLocale: edit.defaultLocale,
   };
@@ -124,6 +127,13 @@ export const settingsSchema = z
     seoDescAr: z.string().trim().max(300, "settings.form.tooLong"),
     deliveryFee: z.string().superRefine(sarRule(false)),
     freeThreshold: z.string().superRefine(sarRule(true)),
+    vatRate: z.string().superRefine((v, ctx) => {
+      const p = parseRate(v);
+      if (!p.ok) ctx.addIssue({ code: "custom", message: p.reason === "range" ? "settings.vat.rateRange" : "settings.vat.rateInvalid" });
+    }),
+    vatApplyDelivery: z.boolean(),
+    vatInclusive: z.boolean(),
+    vatNumber: z.string().trim().refine((v) => v === "" || isRegistrationNumber(v), "settings.vat.numberInvalid"),
   })
   .superRefine((v, ctx) => {
     const both = (a: keyof typeof v, b: keyof typeof v) => {
@@ -150,6 +160,10 @@ export function settingsDefaults(s: SiteSettings): SettingsFormValues {
     seoDescAr: s.seo?.description?.ar ?? "",
     deliveryFee: halalasToSar(s.deliveryFee ?? 0),
     freeThreshold: s.freeDeliveryThreshold == null ? "" : halalasToSar(s.freeDeliveryThreshold),
+    vatRate: rateToText(readVat(s.vat).vatRate),
+    vatApplyDelivery: readVat(s.vat).applyToDelivery,
+    vatInclusive: readVat(s.vat).pricesIncludeVat,
+    vatNumber: readVat(s.vat).registrationNumber ?? "",
   };
 }
 
@@ -157,6 +171,7 @@ export function formToEdit(
   v: SettingsFormValues,
   logo: SettingsEdit["logo"],
   deliveryCities?: DeliveryCity[],
+  base?: SiteSettings,
 ): SettingsEdit {
   const pair = (en: string, ar: string) => (en && ar ? { en, ar } : null);
   const title = pair(v.seoTitleEn, v.seoTitleAr);
@@ -171,6 +186,14 @@ export function formToEdit(
       deliveryFee: (parseSar(v.deliveryFee) as { halalas: number }).halalas,
       freeDeliveryThreshold: v.freeThreshold.trim() === "" ? null : (parseSar(v.freeThreshold) as { halalas: number }).halalas,
       deliveryCities,
+    },
+    // Keep any other loaded `vat` keys (spread) and overwrite only what the VAT tab owns.
+    vat: base && {
+      ...readVat(base.vat),
+      vatRate: bpToRate((parseRate(v.vatRate) as { bp: number }).bp),
+      applyToDelivery: v.vatApplyDelivery,
+      pricesIncludeVat: v.vatInclusive,
+      registrationNumber: v.vatNumber.trim() === "" ? null : v.vatNumber.trim(),
     },
     seo: title || description ? { ...(title ? { title } : {}), ...(description ? { description } : {}) } : null,
   };

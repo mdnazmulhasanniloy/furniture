@@ -600,6 +600,7 @@
     "section": {
       "general": "General",
       "delivery": "Delivery",
+      "vat": "VAT",
       "social": "Social",
       "seo": "SEO"
     },
@@ -669,6 +670,25 @@
         "negative": "The fee cannot be negative.",
         "invalid": "Enter an amount in SAR with at most 2 decimals."
       }
+    },
+    "vat": {
+      "intro": "VAT is off until you set a rate. At 0% no VAT line appears on the cart, checkout, orders or invoices.",
+      "rate": "VAT rate (%)",
+      "rateHint": "A percentage from 0 to 50 with up to 2 decimals, for example 15.",
+      "rateInvalid": "Enter a percentage with at most 2 decimals, for example 15 or 7.5.",
+      "rateRange": "The VAT rate must be between 0 and 50.",
+      "applyDelivery": "Apply VAT to delivery fee",
+      "applyDeliveryHint": "Includes the delivery fee in the amount VAT is calculated on.",
+      "applyDeliveryDisabled": "Only takes effect when the VAT rate is above 0.",
+      "pricesInclude": "Prices include VAT",
+      "pricesIncludeHint": "On: totals do not change and VAT is shown as a breakdown. Off: VAT is added to the total.",
+      "number": "VAT registration number",
+      "numberHint": "Optional. 15 digits, starting and ending with 3. Printed on invoices.",
+      "numberInvalid": "Enter 15 digits that start and end with 3, or leave it empty.",
+      "exampleNone": "Example: with a 0% rate no VAT is charged or shown.",
+      "exampleIncl": "Example: {price} (VAT included) contains {vat} VAT.",
+      "exampleExcl": "Example: {price} + {vat} VAT is added to the total.",
+      "existingOrders": "Changes apply to new carts and orders. Existing orders keep the VAT they were placed with."
     }
   },
   "notifications": {

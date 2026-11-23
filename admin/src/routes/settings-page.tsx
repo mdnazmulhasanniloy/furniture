@@ -21,14 +21,16 @@ import {
 } from "@/lib/settings";
 import { activeCount, cityErrors, rowsToCities, toRows, type CityRow } from "@/lib/delivery";
 import { DeliveryPanel } from "@/routes/settings-delivery";
+import { VatPanel } from "@/routes/settings-vat";
 import { cn } from "@/lib/utils";
 
-type Section = "general" | "delivery" | "social" | "seo";
+type Section = "general" | "delivery" | "vat" | "social" | "seo";
 type Lang = "ar" | "en";
 const SOCIALS = ["facebook", "instagram", "whatsapp", "tiktok"] as const;
 
 const GENERAL_FIELDS = ["storeNameEn", "storeNameAr", "addressEn", "addressAr", "contactEmail", "defaultLocale"] as const;
 const DELIVERY_FIELDS = ["deliveryFee", "freeThreshold"] as const;
+const VAT_FIELDS = ["vatRate", "vatNumber"] as const;
 const SEO_FIELDS = ["seoTitleEn", "seoTitleAr", "seoDescEn", "seoDescAr"] as const;
 
 function LangTabs({
@@ -80,7 +82,7 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
   const [saved, setSaved] = useState(false);
   const [rows, setRows] = useState<CityRow[]>(() => toRows(settings.deliveryCities));
   const [tried, setTried] = useState(false);
-  const { register, handleSubmit, formState } = useForm<SettingsFormValues>({
+  const { register, handleSubmit, formState, watch, setValue } = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: settingsDefaults(settings),
   });
@@ -118,7 +120,7 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
       return;
     }
     try {
-      await save.mutateAsync(buildSettingsBody(settings, formToEdit(v, logoWrite, rowsToCities(rows))));
+      await save.mutateAsync(buildSettingsBody(settings, formToEdit(v, logoWrite, rowsToCities(rows), settings)));
       setSaved(true);
     } catch (e) {
       if (e instanceof ApiError && e.code === "STALE_UPDATE") setStale(true);
@@ -128,6 +130,7 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
   const onInvalid = (e: FieldErrors<SettingsFormValues>) => {
     if (GENERAL_FIELDS.some((f) => e[f])) setSection("general");
     else if (DELIVERY_FIELDS.some((f) => e[f])) setSection("delivery");
+    else if (VAT_FIELDS.some((f) => e[f])) setSection("vat");
     else if (SEO_FIELDS.some((f) => e[f])) setSection("seo");
     const pool = [...GENERAL_FIELDS, ...SEO_FIELDS].filter((f) => e[f]);
     if (pool.some((f) => f.endsWith("Ar"))) setLang("ar");
@@ -201,6 +204,7 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
       <div role="tablist" aria-label={t("settings.sections")} className="mt-4 flex border-b border-border">
         {sectionBtn("general", GENERAL_FIELDS)}
         {sectionBtn("delivery", DELIVERY_FIELDS)}
+        {sectionBtn("vat", VAT_FIELDS)}
         {sectionBtn("social", [])}
         {sectionBtn("seo", SEO_FIELDS)}
       </div>
@@ -245,6 +249,10 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
 
       <div role="tabpanel" id="set-panel-delivery" aria-labelledby="set-tab-delivery" hidden={section !== "delivery"}>
         <DeliveryPanel register={register} errs={errs} rows={rows} setRows={setRows} showErrors={tried} />
+      </div>
+
+      <div role="tabpanel" id="set-panel-vat" aria-labelledby="set-tab-vat" hidden={section !== "vat"}>
+        <VatPanel register={register} errs={errs} watch={watch} setValue={setValue} />
       </div>
 
       <div role="tabpanel" id="set-panel-social" aria-labelledby="set-tab-social" hidden={section !== "social"}>

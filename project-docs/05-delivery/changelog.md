@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (web T-033 Home page done)
+- **web T-033 (ADM-06, ADM-07, UI-01): home from `GET /cms/home` — hero carousel (GSAP stagger + parallax), sections in API order (product grids, category bento, promo banner, testimonials marquee), pinned "How resale works", empty sections hidden, reduced motion respected, en/ar + RTL.** Vitest 113/113, e2e 29/29, build, typecheck, lint, i18n 127 keys green. Assumptions (autopilot) — owner to confirm: how-resale static, placed before testimonials; tagline fallback hero when no banners; product links `/shop/{slug}`; Magic UI pieces hand-built in CSS (no new dependency); 6 s auto-advance paused on hover/focus/reduced motion; pin on md+ only; new en/ar copy for hero and how-resale; unsafe CTA hrefs dropped; e2e runs without backend.
+
 ## 2026-11-24 (web T-043 Saudi formatting + default locale done)
 - **web T-043 (I18N-01, NFR-06, NFR-07): `formatPrice` (SAR, halalas, whole riyals without decimals), number/percent/date helpers pinned to Western digits + Gregorian, `Price` (`<bdi>`), Saudi phone normaliser/validator/display helper, `/` redirects to `/ar` (proxy, ignores Accept-Language unless `NEXT_LOCALE` set).** Vitest 94/94, e2e 25/25, build, typecheck, lint, i18n 111 keys green. Assumptions (autopilot) — owner to confirm: digits/dates follow the open B-015 draft; `Price` always uses `<bdi>`; phone pattern copied from backend and checked against `x-canonical-pattern` by a test.
 

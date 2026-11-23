@@ -1,0 +1,211 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import ar from "../../messages/ar.json";
+import en from "../../messages/en.json";
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ href, children, ...rest }: { href: string; children: React.ReactNode }) => (
+    <a href={href} {...rest}>{children}</a>
+  ),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  usePathname: () => "/",
+}));
+vi.mock("next/image", () => ({
+  // eslint-disable-next-line @next/next/no-img-element
+  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+}));
+
+import { Hero } from "@/components/home/hero";
+import { HomeSections } from "@/components/home/home-sections";
+import type { Banner, HomeSection } from "@/lib/api/public";
+import { safeHref, sectionHasContent } from "@/lib/home";
+
+const messages = { en, ar } as const;
+type L = "en" | "ar";
+
+const img = { url: "https://cdn.example.com/a.webp" };
+const banner = (id: string, en_: string, ar_: string, extra: Partial<Banner> = {}): Banner => ({
+  id,
+  title: { en: en_, ar: ar_ },
+  subtitle: { en: `${en_} sub`, ar: `${ar_} فرعي` },
+  ctaLabel: { en: "Browse", ar: "تصفح" },
+  ctaHref: "/shop?type=new",
+  imageDesktop: img,
+  ...extra,
+});
+const product = (id: string, type: "NEW" | "RESALE" = "NEW") => ({
+  id,
+  slug: `p-${id}`,
+  title: { en: `Sofa ${id}`, ar: `أريكة ${id}` },
+  type,
+  condition: type === "NEW" ? ("NEW" as const) : ("GOOD" as const),
+  price: 129900,
+  compareAtPrice: null,
+  stock: 3,
+  images: [img],
+});
+const sec = (
+  id: string,
+  type: HomeSection["type"],
+  extra: Partial<HomeSection> = {},
+): HomeSection => ({ id, type, title: { en: `T-${id}`, ar: `ع-${id}` }, ...extra });
+
+function wrap(locale: L, ui: React.ReactNode) {
+  document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+  return render(
+    <NextIntlClientProvider locale={locale} messages={messages[locale]}>
+      {ui}
+    </NextIntlClientProvider>,
+  );
+}
+
+afterEach(cleanup);
+
+describe.each(["en", "ar"] as const)("ADM-06 · hero banners (%s)", (locale) => {
+  it("ADM-06 · renders the first active banner localized, with carousel controls", () => {
+    wrap(locale, <Hero banners={[banner("1", "Winter", "الشتاء"), banner("2", "Spring", "الربيع")]} />);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      locale === "en" ? "Winter" : "الشتاء",
+    );
+    fireEvent.click(screen.getByRole("button", { name: messages[locale].home.hero.next }));
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      locale === "en" ? "Spring" : "الربيع",
+    );
+  });
+
+  it("ADM-06 · hides the carousel controls for a single banner", () => {
+    wrap(locale, <Hero banners={[banner("1", "Winter", "الشتاء")]} />);
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("ADM-06 · unsafe CTA links are not rendered", () => {
+    wrap(locale, <Hero banners={[banner("1", "W", "ش", { ctaHref: "javascript:alert(1)" })]} />);
+    expect(screen.queryByRole("link")).toBeNull();
+  });
+});
+
+describe("ADM-06 · safeHref", () => {
+  it("ADM-06 · allows same-site paths and https only", () => {
+    expect(safeHref("/shop")).toEqual({ href: "/shop", external: false });
+    expect(safeHref("https://example.com/x")?.external).toBe(true);
+    for (const bad of [
+      "javascript:alert(1)",
+      "data:text/html,x",
+      "//evil.com",
+      "http://x.com",
+      "",
+      null,
+      "/\\evil.com",
+    ]) {
+      expect(safeHref(bad)).toBeNull();
+    }
+  });
+});
+
+describe.each(["en", "ar"] as const)("ADM-07 · sections (%s)", (locale) => {
+  const sections: HomeSection[] = [
+    sec("a", "NEW_ARRIVALS", { products: [product("1")] }),
+    sec("b", "CATEGORY_GRID", {
+      categories: [{ id: "c1", slug: "sofas", name: { en: "Sofas", ar: "أرائك" } }],
+    }),
+    sec("c", "RESALE_PICKS", { products: [product("2", "RESALE")] }),
+    sec("d", "TESTIMONIALS", {
+      config: { testimonials: [{ name: "Sara", quote: { en: "Lovely", ar: "رائع" } }] },
+    }),
+  ];
+
+  it("ADM-07 · renders sections in API order, how-resale before testimonials", () => {
+    const { container } = wrap(locale, <HomeSections sections={sections} locale={locale} />);
+    const order = Array.from(container.querySelectorAll("[data-testid]"))
+      .map((e) => e.getAttribute("data-testid"))
+      .filter((x) => x !== "marquee");
+    expect(order).toEqual([
+      "home-section-NEW_ARRIVALS",
+      "home-section-CATEGORY_GRID",
+      "home-section-RESALE_PICKS",
+      "how-resale",
+      "home-section-TESTIMONIALS",
+    ]);
+  });
+
+  it("ADM-07 · localizes titles, shows price and pre-owned grade badge", () => {
+    wrap(locale, <HomeSections sections={sections} locale={locale} />);
+    expect(screen.getByRole("heading", { name: locale === "en" ? "T-a" : "ع-a" })).toBeTruthy();
+    const resale = screen.getByTestId("home-section-RESALE_PICKS");
+    expect(resale.textContent).toContain(messages[locale].condition.GOOD);
+    expect(resale.querySelector("bdi")).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Sofa 1|أريكة 1/ }).getAttribute("href")).toBe(
+      "/shop/p-1",
+    );
+  });
+
+  it("ADM-07 · hides empty sections", () => {
+    const empty: HomeSection[] = [
+      sec("e1", "FEATURED_PRODUCTS", { products: [] }),
+      sec("e2", "CATEGORY_GRID", { categories: [] }),
+      sec("e3", "PROMO_BANNER"),
+      sec("e4", "TESTIMONIALS", { config: { testimonials: [] } }),
+    ];
+    expect(empty.some(sectionHasContent)).toBe(false);
+    const { container } = wrap(locale, <HomeSections sections={empty} locale={locale} />);
+    expect(container.querySelector('[data-testid^="home-section-"]')).toBeNull();
+  });
+
+  it("ADM-07 · promo banner renders when resolved; marquee duplicate is aria-hidden", () => {
+    wrap(
+      locale,
+      <HomeSections
+        locale={locale}
+        sections={[sec("p", "PROMO_BANNER", { banner: banner("9", "Sale", "تخفيض") }), sections[3]]}
+      />,
+    );
+    expect(screen.getByTestId("home-section-PROMO_BANNER")).toBeTruthy();
+    const marquee = screen.getByTestId("marquee");
+    expect(within(marquee).getAllByRole("listitem", { hidden: true })).toHaveLength(2);
+    expect(marquee.querySelectorAll('[aria-hidden="true"]')).toHaveLength(1);
+  });
+});
+
+describe.each(["en", "ar"] as const)("UI-01 · motion (%s)", (locale) => {
+  it("UI-01 · reduced motion: content stays visible, marquee uses reduced-motion classes", () => {
+    vi.stubGlobal("matchMedia", (q: string) => ({
+      matches: q.includes("reduce"),
+      media: q,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    wrap(locale, <Hero banners={[banner("1", "W", "ش"), banner("2", "X", "ص")]} />);
+    expect(screen.getByRole("heading", { level: 1 }).textContent).not.toBe("");
+    cleanup();
+    wrap(
+      locale,
+      <HomeSections
+        locale={locale}
+        sections={[
+          sec("d", "TESTIMONIALS", {
+            config: { testimonials: [{ name: "S", quote: { en: "q", ar: "ق" } }] },
+          }),
+        ]}
+      />,
+    );
+    const marquee = screen.getByTestId("marquee");
+    expect(marquee.querySelector("ul")!.className).toContain("motion-safe:animate-marquee");
+    expect(marquee.className).toContain("motion-safe:overflow-hidden");
+    expect(marquee.querySelector('[aria-hidden="true"]')!.className).toContain(
+      "motion-reduce:hidden",
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("UI-01 · how-resale renders 3 localized steps", () => {
+    wrap(locale, <HomeSections sections={[]} locale={locale} />);
+    const steps = screen.getByTestId("how-resale").querySelectorAll("[data-step]");
+    expect(steps).toHaveLength(3);
+    expect(screen.getByRole("heading", { level: 2 }).textContent).toBe(
+      messages[locale].home.resale.title,
+    );
+  });
+});

@@ -79,3 +79,53 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Home (T-033): marquee for testimonials; the track holds two copies so -50% loops.
+   RTL flips the direction via --marquee-dir. Reduced motion is handled with
+   `motion-safe:` on the element (manual scroll instead). */
+@theme {
+  --animate-marquee: marquee 40s linear infinite;
+  @keyframes marquee {
+    to {
+      transform: translateX(calc(-50% * var(--marquee-dir, 1)));
+    }
+  }
+}
+[dir="rtl"] {
+  --marquee-dir: -1;
+}
+
+/* Shimmer sweep on the hero CTA (Magic UI ShimmerButton idea, token colours only). */
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    color-mix(in srgb, var(--primary-foreground) 35%, transparent) 50%,
+    transparent 70%
+  );
+  transform: translateX(-100%);
+  animation: shimmer 3s ease-in-out infinite;
+}
+[dir="rtl"] .shimmer::after {
+  transform: translateX(100%);
+  animation-name: shimmer-rtl;
+}
+@keyframes shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes shimmer-rtl {
+  to {
+    transform: translateX(-100%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after {
+    animation: none;
+    display: none;
+  }
+}

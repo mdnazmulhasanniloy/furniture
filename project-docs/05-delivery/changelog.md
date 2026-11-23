@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (web T-031 API client + auth state + token refresh done)
+- **web T-031 (AUTH-05): same-origin fetch wrapper (`/api/v1`, `Accept-Language`, Bearer), 401 -> single-flight refresh -> one retry, `REFRESH_RACE` retried once without logout, CSRF token cached after login, in-memory zustand auth store, TanStack Query provider, localized `errors.*` (en/ar) incl. Retry-After wait for `RATE_LIMITED`/`ACCOUNT_LOCKED`.** Vitest 26/26, e2e 14/14. Assumptions (autopilot) — owner to confirm: refresh attempted once on app start (anonymous visitors see one 401 on `/auth/csrf`); `Accept-Language` read from `<html lang>`; Retry-After under 60 s shown in seconds else minutes (rounded up); `@` alias added to `vitest.config.mts`.
+
 ## 2026-11-24 (T-029 dependency security updates complete, audit residual recorded)
 - **backend T-029 Dependency security updates (post-incident npm audit, NFR-01): all five sub-steps done.** Each bump in its own commit with the backend suite green and `npm audit` re-run; no test weakened (`tests/` diff across the task: 196 insertions / 4 deletions, the deletions being the port-1000 expectation updates from the port decision below, not weakenings).
   1. `sanitize-html` → 2.18.2 (moderate; 5 stored-XSS bypass advisories relevant to admin CMS HTML, ADR-013) + 96 lines of bypass regression tests in `tests/lib/safeHtml.test.ts` — commit `6c680b1`.

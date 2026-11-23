@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
+import { Providers } from "@/components/providers";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
@@ -40,7 +41,9 @@ export default async function LocaleLayout({
     >
       <body>
         <NextIntlClientProvider>
-          <DirectionProvider dir={dir}>{children}</DirectionProvider>
+          <DirectionProvider dir={dir}>
+            <Providers>{children}</Providers>
+          </DirectionProvider>
         </NextIntlClientProvider>
       </body>
     </html>

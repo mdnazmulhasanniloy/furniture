@@ -246,6 +246,53 @@ for (const locale of ["en", "ar"] as const) {
       expect(screen.getByTestId("co-total").textContent).toContain("2,300");
     });
 
+    it(`ORD-01 · all-zero defaults: Free delivery, no VAT line, total equals subtotal (${locale})`, async () => {
+      login();
+      mockApi(baseHandler((c) =>
+        c.path.startsWith("/cart") ? { body: cartFor(A1, { deliveryFee: 0, total: 200000 }) } : null));
+      await ready(locale);
+      expect(screen.getByTestId("co-delivery").textContent).toBe(m.cart.freeDelivery);
+      expect(screen.queryByTestId("co-vat")).toBeNull();
+      expect(screen.getByTestId("co-total").textContent).toContain("2,000");
+    });
+
+    it(`ORD-01 · VAT label follows pricesIncludeVat and the total is the API's (${locale})`, async () => {
+      login();
+      mockApi(baseHandler((c) =>
+        c.path.startsWith("/cart")
+          ? { body: cartFor(A1, { vat: { vatRate: 15, vatAmount: 30000, applyToDelivery: true, pricesIncludeVat: true } }) }
+          : null));
+      await ready(locale);
+      expect(screen.getByTestId("co-vat").parentElement?.textContent).toContain(m.cart.vatIncluded.replace("{rate}", "15"));
+      expect(screen.getByTestId("co-total").textContent).toContain("2,050");
+      cleanup();
+      mockApi(baseHandler((c) =>
+        c.path.startsWith("/cart")
+          ? { body: cartFor(A1, { vat: { vatRate: 15, vatAmount: 30000, applyToDelivery: true, pricesIncludeVat: false }, total: 235000 }) }
+          : null));
+      await ready(locale);
+      expect(screen.getByTestId("co-vat").parentElement?.textContent).toContain(m.cart.vatAdded.replace("{rate}", "15"));
+      expect(screen.getByTestId("co-total").textContent).toContain("2,350");
+    });
+
+    it(`ORD-01 · the fee is re-fetched and shown when another address (city) is selected (${locale})`, async () => {
+      login();
+      mockApi(baseHandler((c) => {
+        if (c.path === "/me/addresses") return { body: [addr(A1), addr(A2, { cityCode: "jeddah" })] };
+        if (c.path === `/cart?addressId=${A2}`) {
+          return { body: cartFor(A2, { deliveryFee: 0, total: 200000, address: { id: A2, cityCode: "jeddah", isDeliverable: true } }) };
+        }
+        return null;
+      }));
+      await ready(locale);
+      expect(screen.getByTestId("co-delivery").textContent).toContain("50");
+      const radios = screen.getAllByRole("radio").filter((r) => (r as HTMLInputElement).name === "address") as HTMLInputElement[];
+      fireEvent.click(radios[1]);
+      await waitFor(() => expect(screen.getByTestId("co-delivery").textContent).toBe(m.cart.freeDelivery));
+      expect(calls.some((c) => c.path === `/cart?addressId=${A2}`)).toBe(true);
+      expect(screen.getByTestId("co-total").textContent).toContain("2,000");
+    });
+
     it(`ORD-01 · success page shows the order number and totals from the API (${locale})`, async () => {
       login();
       mockApi(() => ({ body: orderBody }));

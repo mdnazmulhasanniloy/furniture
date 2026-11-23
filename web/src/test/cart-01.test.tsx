@@ -178,6 +178,34 @@ for (const locale of ["en", "ar"] as const) {
       expect(screen.getByTestId("cart-total").textContent).toMatch(/2,624/);
     });
 
+    it(`CART-01 · VAT label says included or added from pricesIncludeVat, and vatRate 0 hides it even when the toggle is on (${locale})`, () => {
+      login();
+      useCartStore.setState({
+        cart: cartOf({ deliveryFee: 2500, vat: { vatRate: 15, vatAmount: 39000, pricesIncludeVat: true }, total: 262400 }),
+      });
+      wrap(locale, <CartContents variant="page" />);
+      expect(screen.getByTestId("cart-vat").parentElement?.textContent).toContain(m.cart.vatIncluded.replace("{rate}", "15"));
+      cleanup();
+      useCartStore.setState({
+        cart: cartOf({ deliveryFee: 2500, vat: { vatRate: 15, vatAmount: 39000, pricesIncludeVat: false }, total: 301400 }),
+      });
+      wrap(locale, <CartContents variant="page" />);
+      expect(screen.getByTestId("cart-vat").parentElement?.textContent).toContain(m.cart.vatAdded.replace("{rate}", "15"));
+      expect(screen.getByTestId("cart-total").textContent).toMatch(/3,014/);
+      cleanup();
+      useCartStore.setState({ cart: cartOf({ vat: { vatRate: 0, vatAmount: 0, pricesIncludeVat: true } }) });
+      wrap(locale, <CartContents variant="page" />);
+      expect(screen.queryByTestId("cart-vat")).toBeNull();
+    });
+
+    it(`CART-01 · a non-zero fee is shown as a price, not as Free delivery (${locale})`, () => {
+      login();
+      useCartStore.setState({ cart: cartOf({ deliveryFee: 5000, total: 264900 }) });
+      wrap(locale, <CartContents variant="page" />);
+      expect(screen.getByTestId("cart-delivery").textContent).not.toBe(m.cart.freeDelivery);
+      expect(screen.getByTestId("cart-delivery").textContent).toMatch(/50/);
+    });
+
     it(`CART-01 · line issues and old vs new price are rendered (${locale})`, () => {
       login();
       useCartStore.setState({

@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router";
 import { restoreSession } from "@/lib/auth/flows";
+import { AdminsPage } from "@/routes/admins-page";
 import { AcceptInvitePage } from "@/routes/accept-invite-page";
 import { BannersPage } from "@/routes/banners-page";
 import { PagesPage } from "@/routes/pages-page";
@@ -52,6 +53,7 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
           <Route path="/orders/:id" element={<OrderDetailPage />} />
           <Route path="/orders/:id/invoice" element={<InvoicePage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/admins" element={<AdminsPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="*" element={<PlaceholderPage />} />

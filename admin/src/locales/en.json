@@ -63,7 +63,11 @@
     "UPLOAD_NOT_ALLOWED": "The image could not be used. Upload it again.",
     "STALE_UPDATE": "This was changed by someone else. Reload to see the latest version.",
     "INVALID_TRANSITION": "This status change is not allowed for the order's current status.",
-    "CITY_CODE_IMMUTABLE": "Cities can't be removed; deactivate instead."
+    "CITY_CODE_IMMUTABLE": "Cities can't be removed; deactivate instead.",
+    "EMAIL_IN_USE": "An account with this email already exists.",
+    "SELF_BLOCK": "You cannot block yourself.",
+    "LAST_ADMIN": "The last active admin cannot be blocked.",
+    "ALREADY_VERIFIED": "This invite was already accepted. The list was refreshed."
   },
   "orders": {
     "newOrderToast": "New order {orderNo} · {count} items",
@@ -650,5 +654,56 @@
     "bellUnread": "Notifications, {n} unread",
     "soundOn": "New-order sound: on (click to mute)",
     "soundOff": "New-order sound: off (click to turn on)"
+  },
+  "admins": {
+    "title": "Admins",
+    "loading": "Loading admins…",
+    "retry": "Retry",
+    "empty": "No admins found.",
+    "invited": "Invitation sent.",
+    "resent": "A new invitation was sent to {email}.",
+    "resend": "Resend invite",
+    "block": "Block",
+    "unblock": "Unblock",
+    "col": {
+      "name": "Name",
+      "email": "Email",
+      "status": "Status",
+      "invitedBy": "Invited by",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "state": {
+      "active": "Active",
+      "pending": "Invite pending",
+      "blocked": "Blocked"
+    },
+    "invite": {
+      "open": "Invite admin",
+      "title": "Invite an admin",
+      "hint": "They receive an email with a code and set their own password.",
+      "cancel": "Cancel",
+      "submit": "Send invite"
+    },
+    "form": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "locale": "Invitation language",
+      "localeHint": "The language of the invitation email.",
+      "localeAr": "العربية",
+      "localeEn": "English",
+      "errors": {
+        "required": "This field is required.",
+        "tooLong": "At most 40 characters.",
+        "invalidEmail": "Enter a valid email address."
+      }
+    },
+    "blockDialog": {
+      "title": "Block this admin?",
+      "body": "{name} will be signed out immediately and cannot sign in until unblocked.",
+      "cancel": "Keep active",
+      "confirm": "Block"
+    }
   }
 }

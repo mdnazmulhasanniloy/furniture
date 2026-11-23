@@ -47,6 +47,10 @@ export const KNOWN_ERROR_CODES = [
   "STALE_UPDATE",
   "CITY_CODE_IMMUTABLE",
   "INVALID_TRANSITION",
+  "EMAIL_IN_USE",
+  "SELF_BLOCK",
+  "LAST_ADMIN",
+  "ALREADY_VERIFIED",
 ] as const;
 
 /** Locale key for an error code, with a generic fallback. */

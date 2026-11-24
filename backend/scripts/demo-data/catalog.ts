@@ -58,6 +58,8 @@ export const CATEGORIES: DemoCategory[] = [
 /**
  * Four products per top-level category, in this order: NEW, NEW, RESALE, RESALE (16 + 16).
  * `sub` puts the product in a sub-category; `soldOut` => stock 0; `draft` => DRAFT.
+ * `photos` names manifest ids (images.json) in order, for products whose photos must not be picked by position;
+ * the first one is the main image. Without it the category pool is used, offset by the product's position.
  */
 export interface DemoProduct {
   slug: string;
@@ -73,6 +75,7 @@ export interface DemoProduct {
   dims: [number, number, number, number]; // width, depth, height cm, weight kg
   soldOut?: boolean;
   draft?: boolean;
+  photos?: string[];
 }
 
 export const PRODUCTS: DemoProduct[] = [
@@ -540,6 +543,9 @@ export const PRODUCTS: DemoProduct[] = [
       ar: 'مرآة مستديرة بقطر 80 سم وإطار ذهبي رفيع. الزجاج بلا عيوب مع خدش صغير على الإطار.',
     },
     sku: 'FX-DEC-003',
+    // The manifest has no photo of a round gold mirror; this one at least has a mirror in it. Real product
+    // photos are still pending (launch blocker B-038).
+    photos: ['decor-lighting-1', 'decor-lighting-3'],
     priceSar: 420,
     material: 'Metal frame, glass',
     color: 'Gold',
@@ -554,6 +560,7 @@ export const PRODUCTS: DemoProduct[] = [
       ar: 'ثلاث مزهريات خزفية بتشطيب يدوي بأحجام متدرجة. جميعها سليمة، وإحداها بها علامة صغيرة في الطلاء.',
     },
     sku: 'FX-DEC-004',
+    photos: ['decor-lighting-6', 'decor-lighting-5'], // the two ceramic-vase photos
     priceSar: 150,
     material: 'Ceramic',
     color: 'White',
@@ -590,9 +597,11 @@ export interface DemoBanner {
 export const BANNERS: DemoBanner[] = [
   {
     title: { en: 'Warm living rooms, ready to deliver', ar: 'غرف معيشة دافئة جاهزة للتوصيل' },
+    // Owner 2026-11-24 (QA item 7): the count is the number of seeded active delivery cities
+    // (prisma/seed/data.ts DELIVERY_CITIES, 6), which is what checkout offers. A test keeps the two in step.
     subtitle: {
-      en: 'New sofas and armchairs, delivered to your door',
-      ar: 'أرائك وكراسي جديدة نوصلها إلى بابك',
+      en: 'New sofas and armchairs, delivered to 6 Saudi cities',
+      ar: 'أرائك وكراسي جديدة، توصيل إلى 6 مدن في المملكة',
     },
     ctaLabel: { en: 'Shop new furniture', ar: 'تسوق الأثاث الجديد' },
     ctaHref: '/shop?type=new',

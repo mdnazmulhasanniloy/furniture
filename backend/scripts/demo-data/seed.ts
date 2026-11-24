@@ -74,6 +74,13 @@ export interface SeedResult {
 
 // ---------------------------------------------------------------- image upload (real admin-upload behaviour)
 
+/** One manifest photo by id; throws when the manifest has no such id (a typo must not ship a wrong photo). */
+export function imageById(manifest: ManifestImage[], id: string): ManifestImage {
+  const found = manifest.find((m) => m.id === id);
+  if (!found) throw new Error(`images.json has no image with id "${id}"`);
+  return found;
+}
+
 /** The pool of manifest photos for a theme; throws when the manifest lacks the theme. */
 export function poolFor(manifest: ManifestImage[], theme: string): ManifestImage[] {
   const pool = manifest.filter((m) => m.theme === theme);
@@ -166,8 +173,13 @@ export async function seedDemoData(prisma: PrismaClient, ctx: SeedContext): Prom
     const pool = poolFor(ctx.manifest, cat.theme);
     const imageCount = 2 + (idx % 3); // 2..4
     const images: ImageAsset[] = [];
-    for (let k = 0; k < imageCount; k++) {
-      images.push(await up.put(pool[(posInCategory + k) % pool.length]!));
+    if (p.photos) {
+      // the product names its own photos, first one main (QA 2026-11-24 item 5)
+      for (const id of p.photos) images.push(await up.put(imageById(ctx.manifest, id)));
+    } else {
+      for (let k = 0; k < imageCount; k++) {
+        images.push(await up.put(pool[(posInCategory + k) % pool.length]!));
+      }
     }
     const status = p.draft ? 'DRAFT' : 'PUBLISHED';
     const row = await prisma.product.create({

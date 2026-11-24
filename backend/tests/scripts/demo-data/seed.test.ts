@@ -22,6 +22,7 @@ import { prisma } from '../../../src/lib/prisma.js';
 import { keyPrefix } from '../../../src/lib/r2.js';
 import { createSectionBody } from '../../../src/modules/cms/schema.js';
 import { TRANSITIONS } from '../../../src/modules/orders/service.js';
+import { PRODUCTS } from '../../../scripts/demo-data/catalog.js';
 import { loadManifest, type ManifestImage } from '../../../scripts/demo-data/images.js';
 import { seedOrders } from '../../../scripts/demo-data/orders.js';
 import { planReset, resetDemoData, demoPrefix } from '../../../scripts/demo-data/reset.js';
@@ -239,6 +240,33 @@ describe('T-078 · demo catalogue counts and invariants', () => {
       }
     }
     expect(demoPrefix()).toBe(`${keyPrefix()}demo/`);
+  });
+
+  it('QA-5 · a product that names its photos gets them in that order, so the main image matches the product', async () => {
+    // QA 2026-11-24 item 5: the vase and the mirror showed pendant-lamp photos, because photos were handed
+    // out by position inside the category. Both now name their own, and the first one is the main image.
+    const expected: Record<string, string[]> = {};
+    for (const product of PRODUCTS) if (product.photos) expected[product.slug] = product.photos;
+    expect(Object.keys(expected).sort()).toEqual([
+      'ceramic-vase-set-of-3-pre-owned',
+      'large-round-gold-mirror-pre-owned',
+    ]);
+    for (const [slug, ids] of Object.entries(expected)) {
+      const row = await prisma.product.findUniqueOrThrow({ where: { slug } });
+      expect(row.images.length, slug).toBe(ids.length);
+      ids.forEach((id, i) => {
+        const photo = manifest.find((m) => m.id === id)!;
+        expect(photo, `${slug}: images.json has no ${id}`).toBeTruthy();
+        // the alt text comes from the manifest description, so it proves which photo landed where
+        expect(row.images[i]!.alt?.en, `${slug} image ${i}`).toBe(photo.description.en);
+        expect(row.images[i]!.alt?.ar, `${slug} image ${i}`).toBe(photo.description.ar);
+      });
+    }
+    // and the main image of each is no longer a hanging-light photo
+    for (const slug of Object.keys(expected)) {
+      const row = await prisma.product.findUniqueOrThrow({ where: { slug } });
+      expect(row.images[0]!.alt?.en, slug).not.toMatch(/hanging light|light bulbs|pendant lamps/i);
+    }
   });
 
   it('T-078 · 3 active banners with desktop + mobile image, bilingual copy, shop CTAs and one scheduled for the future', async () => {

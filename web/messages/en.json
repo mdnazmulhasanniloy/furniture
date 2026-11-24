@@ -31,6 +31,10 @@
         "cta": "See how it works"
       }
     },
+    "rail": {
+      "previous": "Previous",
+      "next": "Next"
+    },
     "categories": {
       "title": "Shop by category",
       "viewAll": "View all categories",

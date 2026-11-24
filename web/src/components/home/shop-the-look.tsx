@@ -64,6 +64,7 @@ export function ShopTheLook({ section, locale }: { section: HomeSection; locale:
           src={look.image.url}
           alt={pick(look.image.alt, lang)}
           fill
+          quality={60}
           sizes="(min-width: 1440px) 1344px, 100vw"
           className="object-cover"
           loading="lazy"

@@ -71,8 +71,8 @@ describe.each(["en", "ar"] as const)("UI-04 · rails (%s)", (locale) => {
     const list = screen.getByTestId("rail");
     expect(list.className).toContain("rail-scroll");
     expect(list.className).not.toMatch(/overflow-x-auto/);
-    expect(screen.queryByRole("button", { name: m.home.carousel.previous })).toBeNull(); // at the start
-    expect(screen.getByRole("button", { name: m.home.carousel.next })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: m.home.rail.previous })).toBeNull(); // at the start
+    expect(screen.getByRole("button", { name: m.home.rail.next })).toBeTruthy();
   });
 
   it(`UI-04 · no arrows when everything fits (${locale})`, () => {
@@ -87,7 +87,7 @@ describe.each(["en", "ar"] as const)("UI-04 · rails (%s)", (locale) => {
     HTMLElement.prototype.scrollBy = scrollBy as unknown as typeof HTMLElement.prototype.scrollBy;
     wrap(locale, <Rail label="Related" testId="rail"><li>a</li></Rail>);
     const sign = locale === "ar" ? -1 : 1; // toward the inline end
-    fireEvent.click(screen.getByRole("button", { name: m.home.carousel.next }));
+    fireEvent.click(screen.getByRole("button", { name: m.home.rail.next }));
     expect(scrollBy.mock.calls[0]![0].left).toBeCloseTo(sign * 340);
     const forwardKey = locale === "ar" ? "ArrowLeft" : "ArrowRight";
     fireEvent.keyDown(screen.getByTestId("rail"), { key: forwardKey });

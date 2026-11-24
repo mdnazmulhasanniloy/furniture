@@ -29,6 +29,7 @@ function Tile({ c, index, locale }: { c: HomeCategory; index: number; locale: Lo
           src={src}
           alt=""
           fill
+          quality={60}
           sizes={large ? "(min-width: 1024px) 50vw, 100vw" : "(min-width: 1024px) 25vw, 50vw"}
           className="object-cover"
         />

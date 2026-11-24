@@ -38,7 +38,7 @@ const ctaCls = "h-12 px-8";
  * getImageProps so Next still optimises and resizes. Only slide 1 is eager; the rest are lazy.
  */
 function SlidePicture({ slide, first, active }: { slide: Slide; first: boolean; active: boolean }) {
-  const base = { fill: true as const, sizes: "100vw", priority: first, loading: first ? undefined : ("lazy" as const) };
+  const base = { fill: true as const, sizes: "100vw", quality: 70, priority: first, loading: first ? undefined : ("lazy" as const) };
   const d = getImageProps({ ...base, src: slide.desktop.src, alt: active ? slide.desktop.alt : "" }).props;
   const m = slide.mobile ? getImageProps({ ...base, src: slide.mobile.src, alt: "" }).props : null;
   return (

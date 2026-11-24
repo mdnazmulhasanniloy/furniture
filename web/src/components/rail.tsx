@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 /**
  * A horizontal rail (ADR-018 / UI-04): no native scrollbar, snap kept, arrow buttons (shown only when there is
  * more to scroll in that direction) and arrow keys. Scrolls by about one viewport of the rail; mirrors in RTL.
- * Arrow labels reuse the approved carousel strings (home.carousel.previous / next).
+ * Arrow labels: home.rail.previous / next ("Previous" / "Next", owner-approved wording).
  */
 export function Rail({
   children,
@@ -22,7 +22,7 @@ export function Rail({
   className?: string;
   testId?: string;
 }) {
-  const t = useTranslations("home.carousel");
+  const t = useTranslations("home.rail");
   const rtl = useLocale() === "ar";
   const ref = useRef<HTMLUListElement>(null);
   const [can, setCan] = useState({ start: false, end: false });

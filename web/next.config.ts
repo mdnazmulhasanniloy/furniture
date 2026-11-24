@@ -14,6 +14,8 @@ if (!r2PublicBaseUrl && process.env.NODE_ENV === "production") {
 
 const nextConfig: NextConfig = {
   images: {
+    // Qualities the storefront asks for (UI-04, review item 5): 60 for cards, tiles and the look photo, 70 for the hero.
+    qualities: [60, 70, 75],
     remotePatterns: r2PublicBaseUrl ? [new URL(`${r2PublicBaseUrl}/**`)] : [],
   },
   // Same-origin API proxy (ADR-011): the backend's host-only refresh cookie becomes

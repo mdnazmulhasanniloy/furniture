@@ -23,3 +23,20 @@ for (const locale of ["en", "ar"] as const) {
     await expect(page).toHaveURL(/sort=price_asc/);
   });
 }
+
+// CR-011 checkpoint 2 review, item 4.
+for (const locale of ["en", "ar"] as const) {
+  test(`UI-04: "Sort by" stays on one line and the filter sidebar has only a thin scrollbar in /${locale}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1568, height: 900 });
+    await page.goto(`/${locale}/shop`);
+    const label = page.getByTestId("sort-toolbar").locator("xpath=ancestor::label[1]");
+    await expect(label).toBeVisible();
+    const lines = await label.locator("span").first().evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return Math.round(el.getBoundingClientRect().height / parseFloat(cs.lineHeight));
+    });
+    expect(lines).toBe(1);
+    const aside = page.locator("#shop-filters");
+    expect(await aside.evaluate((el) => getComputedStyle(el).scrollbarWidth)).toBe("thin");
+  });
+}

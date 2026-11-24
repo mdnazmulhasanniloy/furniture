@@ -95,7 +95,7 @@ function ShopFrameInner({
     <select
       data-testid={testId}
       aria-label={t("sort.label")}
-      className={`${fieldClass} w-auto`}
+      className={`${fieldClass} w-auto shrink-0`}
       value={filters.sort}
       onChange={(e) =>
         router.push(shopHref(withChange(filters, { sort: e.target.value as ShopFilters["sort"] })))
@@ -135,8 +135,8 @@ function ShopFrameInner({
         aria-modal={open ? true : undefined}
         className={
           open
-            ? "fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-y-auto rounded-t-lg bg-background p-4 pb-6 shadow-float lg:sticky lg:top-24 lg:z-auto lg:max-h-[calc(100svh-7rem)] lg:self-start lg:overflow-y-auto lg:rounded-none lg:p-0 lg:pe-2 lg:shadow-none"
-            : "hidden lg:sticky lg:top-24 lg:block lg:max-h-[calc(100svh-7rem)] lg:self-start lg:overflow-y-auto lg:pe-2"
+            ? "fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-y-auto rounded-t-lg bg-background p-4 pb-6 shadow-float lg:sticky lg:top-24 lg:z-auto lg:max-h-[calc(100svh-7rem)] lg:self-start lg:overflow-y-auto scroll-subtle lg:rounded-none lg:p-0 lg:pe-2 lg:shadow-none"
+            : "hidden lg:sticky lg:top-24 lg:block lg:max-h-[calc(100svh-7rem)] lg:self-start lg:overflow-y-auto scroll-subtle lg:pe-2"
         }
       >
         <div className="mb-4 flex items-center justify-between lg:hidden">
@@ -155,7 +155,7 @@ function ShopFrameInner({
           <span className="font-semibold">{t("sort.label")}</span>
           {sortSelect("sort-sheet")}
         </div>
-        <form onSubmit={apply} className="space-y-6" aria-label={t("filters")}>
+        <form onSubmit={apply} className="space-y-5" aria-label={t("filters")}>
           {categories.length > 0 && (
             <fieldset className="space-y-2">
               <legend className="mb-2 text-base font-semibold">{t("category")}</legend>
@@ -285,8 +285,8 @@ function ShopFrameInner({
             <SlidersHorizontal aria-hidden />
             {t("filters")}
           </Button>
-          <label className="ms-auto hidden items-center gap-2 text-sm lg:flex">
-            <span className="text-muted-foreground">{t("sort.label")}</span>
+          <label className="ms-auto hidden shrink-0 items-center gap-2 whitespace-nowrap text-sm lg:flex">
+            <span className="whitespace-nowrap text-muted-foreground">{t("sort.label")}</span>
             {sortSelect("sort-toolbar")}
           </label>
         </div>

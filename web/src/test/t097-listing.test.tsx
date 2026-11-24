@@ -67,3 +67,19 @@ describe.each(["en", "ar"] as const)("UI-04 · listing (%s)", (locale) => {
     expect(title.parentElement!.className).toContain("rounded-lg");
   });
 });
+
+describe.each(["en", "ar"] as const)("UI-04 · listing review fixes (%s)", (locale) => {
+  it(`UI-04 · the Sort by label never wraps and the control keeps its width (${locale})`, () => {
+    wrap(locale, <ShopFrame filters={parseFilters({})} categories={[]} locale={locale}><p>x</p></ShopFrame>);
+    const label = screen.getByTestId("sort-toolbar").closest("label")!;
+    expect(label.className).toContain("whitespace-nowrap");
+    expect(label.className).toContain("shrink-0");
+    expect(label.querySelector("span")!.className).toContain("whitespace-nowrap");
+    expect(screen.getByTestId("sort-toolbar").className).toContain("shrink-0");
+  });
+
+  it(`UI-04 · the sticky sidebar scrolls with a thin, quiet scrollbar, not a default one (${locale})`, () => {
+    wrap(locale, <ShopFrame filters={parseFilters({})} categories={[]} locale={locale}><p>x</p></ShopFrame>);
+    expect(document.getElementById("shop-filters")!.className).toContain("scroll-subtle");
+  });
+});

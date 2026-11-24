@@ -82,6 +82,7 @@ export function ProductCard({
                   alt={pick(first.alt, locale) || title}
                   fill
                   sizes={SIZES}
+                  quality={60}
                   className={cn("object-cover mix-blend-multiply", soldOut && "opacity-60")}
                 />
               ) : (
@@ -96,7 +97,7 @@ export function ProductCard({
                   animate={{ opacity: hover ? 1 : 0 }}
                   transition={{ duration: reduced ? 0 : 0.35 }}
                 >
-                  <Image src={second.url} alt="" fill sizes={SIZES} className="object-cover mix-blend-multiply" />
+                  <Image src={second.url} alt="" fill sizes={SIZES} quality={60} className="object-cover mix-blend-multiply" />
                 </motion.div>
               ) : null}
             </div>

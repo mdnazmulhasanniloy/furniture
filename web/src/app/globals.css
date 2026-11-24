@@ -222,6 +222,22 @@ body {
   background-color: color-mix(in srgb, var(--primary-foreground) 16%, transparent);
 }
 
+/* A scroll area that only shows a thin, quiet scrollbar when it actually overflows (the sticky filter sidebar). */
+.scroll-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.scroll-subtle::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-subtle::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.scroll-subtle::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 /* Rails: no native scrollbar (arrow buttons and keyboard stay), snap kept. */
 .rail-scroll {
   scrollbar-width: none;

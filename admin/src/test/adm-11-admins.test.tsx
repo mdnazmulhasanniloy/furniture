@@ -131,7 +131,8 @@ describe.each([
     expect(within(dlg).queryByLabelText(/password|كلمة/i)).toBeNull();
     expect((within(dlg).getByLabelText(msgs.admins.form.locale) as HTMLSelectElement).value).toBe("ar");
     fireEvent.click(screen.getByTestId("admin-invite-submit"));
-    expect(await within(dlg).findAllByText(msgs.admins.form.errors.required)).toHaveLength(2);
+    // Three since QA C2: the email says "required" when it is empty, like the two names.
+    expect(await within(dlg).findAllByText(msgs.admins.form.errors.required)).toHaveLength(3);
     expect(writes()).toHaveLength(0);
     fireEvent.change(within(dlg).getByLabelText(msgs.admins.form.firstName), { target: { value: "Nora" } });
     fireEvent.change(within(dlg).getByLabelText(msgs.admins.form.lastName), { target: { value: "New" } });

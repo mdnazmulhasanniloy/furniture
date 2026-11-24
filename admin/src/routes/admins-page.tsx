@@ -16,7 +16,8 @@ import { cn } from "@/lib/utils";
 const schema = z.object({
   firstName: z.string().trim().min(1, "required").max(40, "tooLong"),
   lastName: z.string().trim().min(1, "required").max(40, "tooLong"),
-  email: z.string().trim().email("invalidEmail"),
+  // QA C2: "required" before the shape check, like the two names above.
+  email: z.string().trim().min(1, "required").email("invalidEmail"),
   preferredLocale: z.enum(["ar", "en"]),
 });
 type Values = z.infer<typeof schema>;

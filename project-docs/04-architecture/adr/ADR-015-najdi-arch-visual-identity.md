@@ -80,3 +80,7 @@ The owner rejected the v1 look as templated. Looking at what v1 actually shipped
 - Q-7 approved: COD sentence and cities-served wording drafted in en and ar; the owner reviews them in the screenshots.
 - Readex Pro: if next/font rejects the width axis, weights only.
 - Screenshots for review are saved in `03-design/screens-v2/`.
+
+## Amendment (CR-009, proposed 2026-11-24; takes effect when the owner approves ADR-016)
+
+The arch no longer applies to the home page: the hero and the category tiles become photo panels and 12 px radius image tiles (see ADR-016). Decision 1 of this ADR now reads "the arch masks the auth image panel only". Tokens, fonts, header, footer, product tile, product page, cart, checkout and auth pages are unchanged.

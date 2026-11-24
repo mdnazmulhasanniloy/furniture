@@ -36,9 +36,10 @@ export const HOME_SECTIONS: { type: SectionType; title: L; config: Record<string
   },
 ];
 
-const PLACEHOLDER: L = {
-  en: 'PLACEHOLDER - replace before launch',
-  ar: 'نص مؤقت - يجب استبداله قبل الإطلاق',
+/** Body of a policy page until the owner writes it (owner 2026-11-24, QA item 8). */
+const COMING_SOON: L = {
+  en: 'Content coming soon.',
+  ar: 'المحتوى قريبًا.',
 };
 
 export const PAGES: {
@@ -51,8 +52,8 @@ export const PAGES: {
     slug: 'about',
     title: { en: 'About us', ar: 'من نحن' },
     content: {
-      en: '<p>Furnixa offers new and pre-owned furniture delivered across Saudi Arabia.</p>',
-      ar: '<p>تقدم فرنيكسا أثاثاً جديداً ومستعملاً يصل إلى جميع أنحاء المملكة العربية السعودية.</p>',
+      en: '<p>Furnixa offers new and pre-owned furniture delivered to your door in the cities we serve.</p>',
+      ar: '<p>تقدم فرنيكسا أثاثاً جديداً ومستعملاً يصل إلى بابك في المدن التي نخدمها.</p>',
     },
     isPublished: true,
   },
@@ -74,16 +75,25 @@ export const PAGES: {
     },
     isPublished: true,
   },
+  // The policy pages are seeded as DRAFTS (owner 2026-11-24): a placeholder legal page must never be
+  // published, so the storefront footer links none of them until the owner writes the real text in the
+  // admin and publishes it. Saudi e-commerce rules require all three before launch (launch blocker B-040).
   {
     slug: 'terms',
     title: { en: 'Terms and conditions', ar: 'الشروط والأحكام' },
-    content: { en: `<p>${PLACEHOLDER.en}</p>`, ar: `<p>${PLACEHOLDER.ar}</p>` },
+    content: { en: `<p>${COMING_SOON.en}</p>`, ar: `<p>${COMING_SOON.ar}</p>` },
     isPublished: false,
   },
   {
     slug: 'privacy',
     title: { en: 'Privacy policy', ar: 'سياسة الخصوصية' },
-    content: { en: `<p>${PLACEHOLDER.en}</p>`, ar: `<p>${PLACEHOLDER.ar}</p>` },
+    content: { en: `<p>${COMING_SOON.en}</p>`, ar: `<p>${COMING_SOON.ar}</p>` },
+    isPublished: false,
+  },
+  {
+    slug: 'returns',
+    title: { en: 'Return and refund policy', ar: 'سياسة الإرجاع والاسترجاع' },
+    content: { en: `<p>${COMING_SOON.en}</p>`, ar: `<p>${COMING_SOON.ar}</p>` },
     isPublished: false,
   },
 ];

@@ -46,7 +46,7 @@ beforeAll(async () => {
       firstName: 'Admin',
       lastName: 'One',
       email: 'admin@example.com',
-      passwordHash: await hashPassword('Passw0rdOne'),
+      passwordHash: await hashPassword('Passw0rdOne!'),
       isVerified: true,
       role: 'ADMIN',
     },

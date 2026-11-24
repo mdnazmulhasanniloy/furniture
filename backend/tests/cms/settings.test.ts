@@ -97,7 +97,7 @@ beforeAll(async () => {
     env: { ...process.env },
     stdio: 'pipe',
   });
-  const hash = await hashPassword('Passw0rdOne');
+  const hash = await hashPassword('Passw0rdOne!');
   const admin = await prisma.user.create({
     data: {
       firstName: 'Admin',
@@ -208,6 +208,58 @@ describe('ADM-09 · site settings', () => {
     );
     expect(ok.status).toBe(200);
     expect(ok.body.vat.registrationNumber).toBe('310000000000003');
+  });
+
+  it('ADM-09 · contact email and phone are optional: absent or empty clears them, VAT and delivery still save (owner 2026-11-24, B-033)', async () => {
+    const seeded = await seedSettings();
+    const withoutContact = putBody(seeded.updatedAt);
+    delete (withoutContact as Record<string, unknown>).contactEmail;
+    delete (withoutContact as Record<string, unknown>).contactPhone;
+    const absent = await put().send(withoutContact);
+    expect(absent.status, JSON.stringify(absent.body)).toBe(200);
+    expect(absent.body.contactEmail).toBe('');
+    expect(absent.body.contactPhone).toBe('');
+    // the VAT and delivery values of the same request were saved, so a settings save never needs contact details
+    expect(absent.body.vat.vatRate).toBe(15);
+    expect(absent.body.deliveryFee).toBe(1500);
+
+    const emptyStrings = await put().send(
+      putBody(absent.body.updatedAt, { contactEmail: '', contactPhone: '   ' }),
+    );
+    expect(emptyStrings.status).toBe(200);
+    expect(emptyStrings.body.contactEmail).toBe('');
+    expect(emptyStrings.body.contactPhone).toBe('');
+  });
+
+  it('ADM-09 · a provided contact email and phone must be valid; the phone is stored as +966XXXXXXXXX', async () => {
+    const seeded = await seedSettings();
+    const valid = await put().send(
+      putBody(seeded.updatedAt, { contactEmail: 'hello@furnixa.sa', contactPhone: '011 234 5678' }),
+    );
+    expect(valid.status, JSON.stringify(valid.body)).toBe(200);
+    expect(valid.body.contactEmail).toBe('hello@furnixa.sa');
+    expect(valid.body.contactPhone).toBe('+966112345678');
+
+    const mobile = await put().send(putBody(valid.body.updatedAt, { contactPhone: '٠٥٥١٢٣٤٥٦٧' }));
+    expect(mobile.status).toBe(200);
+    expect(mobile.body.contactPhone).toBe('+966551234567');
+
+    const invalid: Record<string, unknown>[] = [
+      { contactEmail: 'not-an-email' },
+      { contactEmail: 'two@@at.test' },
+      { contactPhone: 'seed-phone' },
+      { contactPhone: '+1 202 555 0147' },
+      { contactPhone: '05512345' }, // too short
+      { contactPhone: '0051234567' }, // nine national digits may not start with 0
+    ];
+    for (const overrides of invalid) {
+      const res = await put().send(putBody(mobile.body.updatedAt, overrides));
+      expect(res.status, JSON.stringify(overrides)).toBe(422);
+      expect(res.body.code, JSON.stringify(overrides)).toBe('VALIDATION_ERROR');
+    }
+    // nothing was saved by the rejected requests
+    const after = await get().expect(200);
+    expect(after.body.contactPhone).toBe('+966551234567');
   });
 
   it('ADM-09 · duplicate city codes or a missing city name locale -> 422', async () => {

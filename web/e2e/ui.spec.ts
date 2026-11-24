@@ -2,8 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 // UI-01 — design tokens and per-locale fonts actually applied.
 
-// linen --background #FBF8F3 → rgb(251, 248, 243)
-const LINEN_RGB = "rgb(251, 248, 243)";
+// white --background #FFFFFF → rgb(255, 255, 255) (CR-007 "Emerald and gold")
+const LINEN_RGB = "rgb(255, 255, 255)";
 
 // Next's font-preload manifest is per route entry; [locale] is one entry, so
 // next/font preload would ship BOTH locales' fonts to everyone. Fonts therefore use
@@ -58,7 +58,7 @@ async function fontNetworkAudit(page: Page, url: string) {
 
 test.describe("UI-01 — tokens, fonts and locale-scoped preloads", () => {
   for (const locale of ["en", "ar"] as const) {
-    test(`UI-01: body uses the linen --background token in /${locale}`, async ({
+    test(`UI-01: body uses the white --background token in /${locale}`, async ({
       page,
     }) => {
       await page.goto(`/${locale}`);
@@ -69,57 +69,40 @@ test.describe("UI-01 — tokens, fonts and locale-scoped preloads", () => {
     });
   }
 
-  test("UI-01: /en headings use Fraunces, body uses Manrope", async ({ page }) => {
+  test("UI-01: /en headings use Bodoni Moda, body uses IBM Plex Sans", async ({ page }) => {
     await page.goto("/en");
-    const h1Font = await page
-      .locator("h1")
-      .evaluate((el) => getComputedStyle(el).fontFamily);
-    const bodyFont = await page.evaluate(
-      () => getComputedStyle(document.body).fontFamily,
-    );
-    expect(h1Font).toMatch(/Fraunces/i);
-    expect(bodyFont).toMatch(/Manrope/i);
+    const h1Font = await page.locator("h1").first().evaluate((el) => getComputedStyle(el).fontFamily);
+    const bodyFont = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+    expect(h1Font).toMatch(/Bodoni/i);
+    expect(bodyFont).toMatch(/IBM[_ ]?Plex[_ ]?Sans/i);
+    expect(bodyFont).not.toMatch(/Arabic/i);
   });
 
-  test("UI-01: /ar headings use Noto Kufi Arabic, body uses IBM Plex Sans Arabic", async ({
-    page,
-  }) => {
+  test("UI-01: /ar headings use El Messiri, body uses IBM Plex Sans Arabic", async ({ page }) => {
     await page.goto("/ar");
-    const h1Font = await page
-      .locator("h1")
-      .evaluate((el) => getComputedStyle(el).fontFamily);
-    const bodyFont = await page.evaluate(
-      () => getComputedStyle(document.body).fontFamily,
-    );
-    expect(h1Font).toMatch(/Noto[_ ]?Kufi/i);
+    const h1Font = await page.locator("h1").first().evaluate((el) => getComputedStyle(el).fontFamily);
+    const bodyFont = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+    expect(h1Font).toMatch(/El[_ ]?Messiri/i);
     expect(bodyFont).toMatch(/Plex[_ ]?Sans[_ ]?Arabic/i);
   });
 
-  test("UI-01: /en downloads/preloads only Latin fonts (no Arabic font files)", async ({
-    page,
-  }) => {
+  test("UI-01: /en downloads/preloads only Latin fonts (no Arabic font family)", async ({ page }) => {
     const audit = await fontNetworkAudit(page, "/en");
     expect(audit.downloadedFamilies.length).toBeGreaterThan(0);
     for (const family of audit.downloadedFamilies) {
-      expect(family).toMatch(/Fraunces|Manrope/i);
-      expect(family).not.toMatch(/Kufi|Plex/i);
+      expect(family).toMatch(/Bodoni|IBM[_ ]Plex[_ ]Sans/i);
+      expect(family).not.toMatch(/Arabic/i);
     }
-    for (const family of audit.preloadedFamilies) {
-      expect(family).not.toMatch(/Kufi|Plex/i);
-    }
+    for (const family of audit.preloadedFamilies) expect(family).not.toMatch(/Arabic/i);
   });
 
-  test("UI-01: /ar downloads/preloads only Arabic fonts (no Latin display font)", async ({
-    page,
-  }) => {
+  test("UI-01: /ar downloads/preloads no Latin-only body font (IBM Plex Sans without Arabic)", async ({ page }) => {
     const audit = await fontNetworkAudit(page, "/ar");
     expect(audit.downloadedFamilies.length).toBeGreaterThan(0);
     for (const family of audit.downloadedFamilies) {
-      expect(family).toMatch(/Kufi|Plex/i);
-      expect(family).not.toMatch(/Fraunces|Manrope/i);
+      expect(family).toMatch(/El[_ ]Messiri|Plex[_ ]Sans[_ ]Arabic/i);
+      expect(family).not.toMatch(/IBM[_ ]Plex[_ ]Sans(?![_ ]Arabic)/i);
     }
-    for (const family of audit.preloadedFamilies) {
-      expect(family).not.toMatch(/Fraunces|Manrope/i);
-    }
+    for (const family of audit.preloadedFamilies) expect(family).not.toMatch(/IBM[_ ]Plex[_ ]Sans(?![_ ]Arabic)/i);
   });
 });

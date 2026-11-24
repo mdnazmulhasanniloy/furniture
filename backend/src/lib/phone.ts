@@ -26,6 +26,23 @@ export function normalizeSaudiPhone(input: unknown): string | null {
   return `+9665${cleaned.slice(-8)}`;
 }
 
+/**
+ * The store's own contact number (api-spec `SaudiContactPhoneInput`; B-033, owner 2026-11-24: mobile,
+ * landline and unified 9200/800 numbers, E.164 `+966…`, a validator of its own). Same cleaning as above;
+ * the national part is 9 digits starting 1-9 (mobile 5XXXXXXXX, landline 11XXXXXXX, unified 9200XXXXX)
+ * or a 10-digit toll-free 800XXXXXXX.
+ */
+export const SAUDI_CONTACT_PHONE_PATTERN = /^(\+966|00966|0)?(800\d{7}|[1-9]\d{8})$/;
+export const SAUDI_CONTACT_PHONE_MAX_LENGTH = 40;
+
+/** Normalises a Saudi store contact number to `+966XXXXXXXXX`, or returns null when it is not one. */
+export function normalizeSaudiContactPhone(input: unknown): string | null {
+  if (typeof input !== 'string' || input.length > SAUDI_CONTACT_PHONE_MAX_LENGTH) return null;
+  const cleaned = toAsciiDigits(input.trim()).replace(/[\s\-.()]/g, '');
+  const national = SAUDI_CONTACT_PHONE_PATTERN.exec(cleaned)?.[2];
+  return national ? `+966${national}` : null;
+}
+
 /** zod schema used by profile and address (T-007): output is always `+9665XXXXXXXX`. */
 export const saudiPhone = z
   .string({

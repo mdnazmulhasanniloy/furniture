@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_SEARCH_LENGTH, MAX_SEARCH_WORDS, searchTerms } from '../../lib/searchText.js';
 
 const MAX_MONEY = 100_000_000; // halalas = 1,000,000 SAR (owner 2026-11-22)
 const MAX_STOCK = 100_000;
@@ -100,20 +101,35 @@ const page = z.coerce.number().int().min(1).default(1);
 const limit = z.coerce.number().int().min(1).max(100).default(24);
 
 /** PROD-01. Unknown query params are stripped (shareable URLs may carry extras). */
-export const publicListQuery = z.object({
-  q: z.string().max(100).optional(),
-  category: z.string().max(60).optional(),
-  type: z.enum(['NEW', 'RESALE']).optional(),
-  condition: csv(z.enum(['NEW', 'LIKE_NEW', 'GOOD', 'FAIR'])).optional(),
-  minPrice: z.coerce.number().int().min(0).optional(),
-  maxPrice: z.coerce.number().int().min(0).optional(),
-  material: z.string().max(60).optional(),
-  inStock: boolParam.optional(),
-  featured: boolParam.optional(),
-  sort: z.enum(['newest', 'price_asc', 'price_desc', 'featured']).default('newest'),
-  page,
-  limit,
-});
+export const publicListQuery = z
+  .object({
+    // Capped (owner 2026-11-24): each word adds six regex conditions to the query, so a long or
+    // many-word `q` is rejected instead of being run.
+    q: z
+      .string()
+      .max(MAX_SEARCH_LENGTH)
+      .refine((v) => searchTerms(v).length <= MAX_SEARCH_WORDS, {
+        message: `Search is limited to ${MAX_SEARCH_WORDS} words`,
+      })
+      .optional(),
+    category: z.string().max(60).optional(),
+    type: z.enum(['NEW', 'RESALE']).optional(),
+    condition: csv(z.enum(['NEW', 'LIKE_NEW', 'GOOD', 'FAIR'])).optional(),
+    minPrice: z.coerce.number().int().min(0).optional(),
+    maxPrice: z.coerce.number().int().min(0).optional(),
+    material: z.string().max(60).optional(),
+    inStock: boolParam.optional(),
+    featured: boolParam.optional(),
+    sort: z.enum(['newest', 'price_asc', 'price_desc', 'featured']).default('newest'),
+    page,
+    limit,
+  })
+  // QA 2026-11-24: a reversed range (min 3000, max 1000) is a mistake, not "no products found".
+  // Negative and non-numeric values are already rejected by the coercion above.
+  .refine((q) => q.minPrice === undefined || q.maxPrice === undefined || q.minPrice <= q.maxPrice, {
+    path: ['minPrice'],
+    message: 'minPrice must be less than or equal to maxPrice',
+  });
 
 /** ADM-02 list. */
 export const adminListQuery = z.object({

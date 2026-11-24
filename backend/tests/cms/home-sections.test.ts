@@ -64,7 +64,7 @@ beforeAll(async () => {
     env: { ...process.env },
     stdio: 'pipe',
   });
-  const hash = await hashPassword('Passw0rdOne');
+  const hash = await hashPassword('Passw0rdOne!');
   const admin = await prisma.user.create({
     data: {
       firstName: 'Admin',
@@ -245,6 +245,33 @@ describe('ADM-07 · home sections', () => {
     expect(picked.categories.map((c: { id: string }) => c.id)).toEqual([child.id, categoryId]);
 
     await prisma.category.deleteMany({ where: { id: { in: [inactive.id, child.id] } } });
+  });
+
+  it('ADM-07 · CATEGORY_GRID items carry productCount: PUBLISHED products of the category and its direct children only', async () => {
+    const child = await prisma.category.create({
+      data: {
+        name: { en: 'Kid', ar: 'ك' },
+        slug: 'count-child',
+        parentId: categoryId,
+        image: null,
+      },
+    });
+    const before = await prisma.product.count({ where: { categoryId, status: 'PUBLISHED' } });
+    const made = [
+      await createProduct({ categoryId: child.id, status: 'PUBLISHED' }),
+      await createProduct({ categoryId: child.id, status: 'DRAFT' }),
+    ];
+    const created = await api('post').send(
+      section({ type: 'CATEGORY_GRID', title: { en: 'Shop', ar: 'تسوق' }, sortOrder: 9 }),
+    );
+    expect(created.status).toBe(201);
+    const res = await request(app).get('/api/v1/cms/home');
+    const grid = res.body.sections.find((s: { id: string }) => s.id === created.body.id);
+    const root = grid.categories.find((c: { id: string }) => c.id === categoryId);
+    expect(Number.isInteger(root.productCount)).toBe(true);
+    expect(root.productCount).toBe(before + 1); // the child's published product counts, its draft does not
+    await prisma.product.deleteMany({ where: { id: { in: made.map((m) => m.id) } } });
+    await prisma.category.delete({ where: { id: child.id } });
   });
 
   it('ADM-07 · PROMO_BANNER resolves config.bannerId only when the banner is active and scheduled', async () => {

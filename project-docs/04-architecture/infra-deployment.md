@@ -100,3 +100,13 @@ To fill in from the owner's preview run (keep the history):
 
 ## Domains (example)
 `furnixa.com` (web), `admin.furnixa.com` (admin), `api.furnixa.com` (backend). Cookies follow `AUTH_COOKIE_DOMAIN` (empty = host-only on the origin that proxies `/api`), `AUTH_COOKIE_SAME_SITE` (`lax`), `AUTH_COOKIE_SECURE` (true in production). The socket connects directly to `api.furnixa.com` (`NEXT_PUBLIC_SOCKET_URL` / `VITE_SOCKET_URL`) with the access token in the handshake, so it does not need the cookie.
+
+## Reviewing from another machine: production builds, never an exposed dev server
+`next dev` and `vite` dev servers are for localhost only. `next dev` blocks dev resources (HMR, dev chunks) from any host except localhost, so opened by an IP the page is served but **never hydrates** (no header, carousel, cart; found in CR-011 review round 3).
+
+- **Do not "fix" that by exposing the dev server.** `ALLOWED_DEV_ORIGINS` (read by `web/next.config.ts` into `allowedDevOrigins`, default empty, set only in an uncommitted `.env.local`) is for a trusted LAN host name on a developer's own machine. **Never put a public IP, a wildcard or `0.0.0.0` in it**: a dev server runs unminified code with source maps and the HMR socket, and anyone who can reach it can read it.
+- **For remote review use a production build:**
+  - web: `cd web && npm run build && npx next start -p 3100` (needs `R2_PUBLIC_BASE_URL` set; `API_ORIGIN` points at the backend, `/api/*` is proxied by the Next rewrite, ADR-011).
+  - admin: `cd admin && npm run build && npm run preview -- --host` (serves `dist/` on 3101, `strictPort`).
+  - backend: `cd backend && npm run build && npm start` (or the running instance), with `CORS_ALLOWED_ORIGINS` and `ADMIN_URL` listing the exact origins the browser uses (for example `http://<host>:3100,http://<host>:3101`).
+- **The admin does not use a proxy, in dev or in preview.** `admin/vite.config.ts` has no `server.proxy`; the admin calls the backend **cross-origin** at `VITE_API_URL` (default `http://localhost:1000/api/v1`, `credentials: "include"` for the `fx_rt` refresh cookie, CORS from the backend). `vite preview` behaves the same as `vite` dev here, so nothing differs between the two except that **`VITE_API_URL` is baked in at build time**: build the admin with the backend URL the reviewer's browser can reach (`VITE_API_URL=http://<host>:1000/api/v1 npm run build`), and add that admin origin to the backend's `CORS_ALLOWED_ORIGINS`. Over plain http on another host the `Secure` cookie flag (`AUTH_COOKIE_SECURE`) must be off or the refresh cookie is dropped; production uses https.

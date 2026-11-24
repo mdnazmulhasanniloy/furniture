@@ -16,7 +16,7 @@ import { createLogger, REDACT_CENSOR } from '../../src/lib/logger.js';
 import { hashPassword } from '../../src/lib/password.js';
 import { prisma } from '../../src/lib/prisma.js';
 
-const PASSWORD = 'Sup3rSecretPw1';
+const PASSWORD = 'Sup3rSecretPw1!';
 const EMAIL = 'redact@example.com';
 
 /** A REAL pino logger (the test environment's own logger is silent) writing into memory. */

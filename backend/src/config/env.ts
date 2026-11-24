@@ -31,6 +31,8 @@ const schema = z.object({
   SEED_DEMO_DATA: optStr,
   SEED_CONTACT_EMAIL: optStr,
   SEED_CONTACT_PHONE: optStr,
+  // Demo-data tooling only (npm run demo:reset); read from process.env by the script, never by the API.
+  DEMO_CUSTOMER_PASSWORD: optStr,
   ACCESS_TOKEN_SECRET: optStr,
   REFRESH_TOKEN_PEPPER: optStr,
   CSRF_SECRET: optStr,
@@ -167,6 +169,15 @@ export function parseEnv(raw: NodeJS.ProcessEnv | Record<string, string | undefi
     AUTH_COOKIE_SECURE = parseBool('AUTH_COOKIE_SECURE', e.AUTH_COOKIE_SECURE, production);
   } catch (err) {
     problems.push((err as Error).message.replace('Invalid environment: ', ''));
+  }
+  // The refresh cookie is always httpOnly (src/lib/tokens.ts). In production it must also be Secure, and
+  // SameSite must stay lax or strict: the storefront, the admin and the API share one registrable domain,
+  // so nothing needs `none` (QA 2026-11-24 item 1).
+  if (production && !AUTH_COOKIE_SECURE) {
+    problems.push('AUTH_COOKIE_SECURE cannot be false in production (auth cookies must be Secure)');
+  }
+  if (production && e.AUTH_COOKIE_SAME_SITE === 'none') {
+    problems.push('AUTH_COOKIE_SAME_SITE=none is not allowed in production (use lax or strict)');
   }
 
   let SEED_DEMO_DATA = false;

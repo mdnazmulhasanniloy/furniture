@@ -27,7 +27,7 @@ const BASE = '/api/v1/admin/admins';
 const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
 
 const INVITEE = 'invitee@example.com';
-const NEW_PASSWORD = 'Chosen1Pass';
+const NEW_PASSWORD = 'Chosen1Pass!';
 let hash = '';
 let adminToken = '';
 let adminId = '';
@@ -79,7 +79,7 @@ beforeAll(async () => {
     env: { ...process.env },
     stdio: 'pipe',
   });
-  hash = await hashPassword('Passw0rdOne');
+  hash = await hashPassword('Passw0rdOne!');
 });
 
 beforeEach(async () => {
@@ -141,7 +141,7 @@ describe('POST /admin/admins (ADM-11 invite)', () => {
     expect(mail.text).toContain('48 ساعة');
 
     // No usable password: any guess gets the generic 401 (no EMAIL_NOT_VERIFIED leak either).
-    for (const password of ['Passw0rdOne', NEW_PASSWORD]) {
+    for (const password of ['Passw0rdOne!', NEW_PASSWORD]) {
       const login = await request(app)
         .post('/api/v1/auth/login')
         .send({ email: INVITEE, password });
@@ -176,7 +176,7 @@ describe('POST /admin/admins (ADM-11 invite)', () => {
       firstName: 'Pend',
       lastName: 'Ing',
       email: 'pending@example.com',
-      password: 'Passw0rdOne',
+      password: 'Passw0rdOne!',
     });
     expect(reg.status).toBe(201);
 
@@ -196,7 +196,7 @@ describe('POST /admin/admins (ADM-11 invite)', () => {
     expect((await invite({ firstName: '' })).status).toBe(422);
     expect((await invite({ email: 'not-an-email' })).status).toBe(422);
     // The invite never carries a password (owner 2026-11-22): strict schema rejects it.
-    expect((await invite({ password: 'Sneaky1Pass' })).status).toBe(422);
+    expect((await invite({ password: 'Sneaky1Pass!' })).status).toBe(422);
 
     const customer = await prisma.user.create({
       data: {
@@ -264,11 +264,13 @@ describe('POST /auth/accept-invite (ADM-11 accept)', () => {
     expect(burnt.body.code).toBe('OTP_INVALID');
   });
 
-  it('ADM-11 · a weak password -> 422 and the code stays usable', async () => {
+  it('ADM-11 · a password that breaks the policy -> 400 PASSWORD_TOO_WEAK and the code stays usable', async () => {
     await invite();
     const code = sentCode();
     const weak = await accept(code, { password: 'short' });
-    expect(weak.status).toBe(422);
+    expect(weak.status).toBe(400);
+    expect(weak.body.code).toBe('PASSWORD_TOO_WEAK');
+    expect(weak.body.details).toEqual({ rules: ['length', 'upper', 'digit', 'symbol'] });
     expect((await accept(code)).status).toBe(200);
   });
 
@@ -352,7 +354,7 @@ describe('takeover guards (ADM-11 / AUTH-01)', () => {
       firstName: 'Att',
       lastName: 'Acker',
       email: INVITEE,
-      password: 'Attack3rPass',
+      password: 'Attack3rPass!',
     });
     expect(reg.status).toBe(409);
     expect(reg.body.code).toBe('EMAIL_IN_USE');

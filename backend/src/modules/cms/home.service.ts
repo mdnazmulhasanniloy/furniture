@@ -1,4 +1,4 @@
-import type { Banner, Prisma } from '@prisma/client';
+import type { Banner, Category, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { notSet } from '../../lib/prismaFilters.js';
 import { toCategory } from '../categories/service.js';
@@ -16,6 +16,7 @@ interface SectionConfig {
   limit?: unknown;
   bannerId?: unknown;
   testimonials?: unknown;
+  look?: unknown;
 }
 
 const idList = (v: unknown): string[] =>
@@ -69,11 +70,66 @@ async function resolveProductsByIds(
     .map(toProduct);
 }
 
+/** CR-011 T-092: PUBLISHED products per category, counting direct sub-categories like the shop filter does. */
+async function withProductCounts(
+  picked: Category[],
+  all: Category[],
+): Promise<(ReturnType<typeof toCategory> & { productCount: number })[]> {
+  const ids = [
+    ...new Set(
+      picked.flatMap((c) => [c.id, ...all.filter((x) => x.parentId === c.id).map((x) => x.id)]),
+    ),
+  ];
+  const rows = ids.length
+    ? await prisma.product.groupBy({
+        by: ['categoryId'],
+        where: { status: 'PUBLISHED', categoryId: { in: ids } },
+        _count: { _all: true },
+      })
+    : [];
+  const countBy = new Map(rows.map((r) => [r.categoryId, r._count._all]));
+  return picked.map((c) => {
+    const own = [c.id, ...all.filter((x) => x.parentId === c.id).map((x) => x.id)];
+    return { ...toCategory(c), productCount: own.reduce((n, id) => n + (countBy.get(id) ?? 0), 0) };
+  });
+}
+
 type ResolvedSection = SectionResponse & {
   products?: ReturnType<typeof toProduct>[];
-  categories?: ReturnType<typeof toCategory>[];
+  categories?: (ReturnType<typeof toCategory> & { productCount: number })[];
   banner?: BannerResponse;
+  look?: {
+    image: unknown;
+    hotspots: { x: number; y: number; product: ReturnType<typeof toProduct> }[];
+  };
 };
+
+/**
+ * SHOP_THE_LOOK (ADM-15): each hotspot gets its PUBLISHED product; a hotspot whose product is unpublished
+ * or deleted is dropped; with no photo or no hotspot left the property is omitted and the storefront skips
+ * the section. Tolerates any stored shape (the home page must never 500).
+ */
+async function resolveLook(config: SectionConfig): Promise<ResolvedSection['look'] | undefined> {
+  const look = config.look as { image?: unknown; hotspots?: unknown } | undefined;
+  const raw = Array.isArray(look?.hotspots) ? (look.hotspots as unknown[]) : [];
+  const spots = raw
+    .map((h) => h as { x?: unknown; y?: unknown; productId?: unknown })
+    .filter(
+      (h): h is { x: number; y: number; productId: string } =>
+        typeof h.x === 'number' && typeof h.y === 'number' && typeof h.productId === 'string',
+    );
+  if (!look?.image || spots.length === 0) return undefined;
+  const products = await resolveProductsByIds(
+    [...new Set(spots.map((h) => h.productId))],
+    spots.length,
+  );
+  const byId = new Map(products.map((p) => [p.id, p]));
+  const hotspots = spots.flatMap((h) => {
+    const product = byId.get(h.productId);
+    return product ? [{ x: h.x, y: h.y, product }] : [];
+  });
+  return hotspots.length > 0 ? { image: look.image, hotspots } : undefined;
+}
 
 async function resolveSection(
   section: SectionResponse,
@@ -101,16 +157,19 @@ async function resolveSection(
       const ids = idList(cfg.categoryIds);
       if (ids.length) {
         const byId = new Map(active.map((c) => [c.id, c]));
-        const picked = ids
-          .map((id) => byId.get(id))
-          .filter((c) => c !== undefined)
-          .map(toCategory);
-        return { ...section, categories: picked };
+        const picked = ids.map((id) => byId.get(id)).filter((c) => c !== undefined);
+        return { ...section, categories: await withProductCounts(picked, active) };
       }
       // Roots are found in memory: a `{ parentId: null }` where-filter would miss documents created
       // without the field (null-vs-missing, CLAUDE.md rule 8; seeded categories carry explicit null,
       // but older imports may not).
-      return { ...section, categories: active.filter((c) => !c.parentId).map(toCategory) };
+      return {
+        ...section,
+        categories: await withProductCounts(
+          active.filter((c) => !c.parentId),
+          active,
+        ),
+      };
     }
     case 'PROMO_BANNER': {
       const banner = activeBanners.find((b) => b.id === cfg.bannerId);
@@ -119,6 +178,10 @@ async function resolveSection(
     }
     case 'TESTIMONIALS':
       return { ...section }; // config.testimonials is the payload, already on the section
+    case 'SHOP_THE_LOOK': {
+      const look = await resolveLook(cfg);
+      return look ? { ...section, look } : { ...section };
+    }
     default:
       return { ...section };
   }

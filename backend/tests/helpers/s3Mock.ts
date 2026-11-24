@@ -38,6 +38,7 @@ class Cmd {
 class PutObjectCommand extends Cmd {}
 class HeadObjectCommand extends Cmd {}
 class DeleteObjectCommand extends Cmd {}
+class ListObjectsV2Command extends Cmd {}
 
 class S3Client {
   constructor(config: unknown) {
@@ -46,6 +47,23 @@ class S3Client {
   async send(cmd: Cmd) {
     s3State.calls.push({ type: cmd.constructor.name, input: cmd.input });
     const key = String(cmd.input.Key);
+    if (cmd instanceof ListObjectsV2Command) {
+      const prefix = String(cmd.input.Prefix ?? '');
+      return {
+        Contents: [...s3State.objects.keys()]
+          .filter((k) => k.startsWith(prefix))
+          .map((Key) => ({ Key })),
+        IsTruncated: false,
+      };
+    }
+    if (cmd instanceof PutObjectCommand) {
+      const body = cmd.input.Body as Uint8Array | undefined;
+      s3State.objects.set(key, {
+        ContentType: cmd.input.ContentType as string,
+        ContentLength: body?.byteLength ?? (cmd.input.ContentLength as number),
+      });
+      return {};
+    }
     if (cmd instanceof HeadObjectCommand) {
       if (s3State.headError) throw s3State.headError;
       const o = s3State.objects.get(key);
@@ -67,6 +85,7 @@ export const clientS3Module = {
   PutObjectCommand,
   HeadObjectCommand,
   DeleteObjectCommand,
+  ListObjectsV2Command,
 };
 
 export const presignerModule = {

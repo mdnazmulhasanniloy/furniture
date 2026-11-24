@@ -45,7 +45,7 @@ describe('sentry', () => {
         url: 'http://localhost:1000/api/v1/auth/login',
         headers: { authorization: 'Bearer eyJ.full.jwt', cookie: 'fx_rt=RAW', 'x-csrf-token': 'c' },
         cookies: { fx_rt: 'RAW' },
-        data: { email: 'a@b.com', password: 'Sup3rSecret' },
+        data: { email: 'a@b.com', password: 'Sup3rSecret!' },
       },
     } as unknown as Sentry.ErrorEvent;
     const out = beforeSend!(event, {}) as Sentry.ErrorEvent;

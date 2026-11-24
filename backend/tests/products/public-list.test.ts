@@ -186,6 +186,20 @@ describe('PROD-01 · public product listing', () => {
     expect(slugs(await list({ minPrice: '150000' }))).toEqual(['velvet-sofa']);
   });
 
+  it('PROD-01 · a reversed or negative price range is a 422, not an empty page (QA 2026-11-24)', async () => {
+    const reversed = await list({ minPrice: '300000', maxPrice: '100000' });
+    expect(reversed.status).toBe(422);
+    expect(reversed.body.code).toBe('VALIDATION_ERROR');
+    expect((await list({ minPrice: '-1' })).status).toBe(422);
+    expect((await list({ maxPrice: 'abc' })).status).toBe(422);
+    // the same bound twice is a valid (single price) range
+    expect((await list({ minPrice: '50000', maxPrice: '50000' })).status).toBe(200);
+    expect(slugs(await list({ minPrice: '50000', maxPrice: '50000' }))).toEqual(['oak-table']);
+    // one bound alone stays valid
+    expect((await list({ minPrice: '100000' })).status).toBe(200);
+    expect((await list({ maxPrice: '100000' })).status).toBe(200);
+  });
+
   it('PROD-01 · material filter matches case-insensitively', async () => {
     expect(slugs(await list({ material: 'oak wood' }))).toEqual(['oak-table']);
     expect(slugs(await list({ material: 'VELVET' }))).toEqual(['velvet-sofa']);
@@ -230,6 +244,76 @@ describe('PROD-01 · public product listing', () => {
     expect(paren.status).toBe(200);
     expect(paren.body.items).toEqual([]);
     expect((await list({ q: 'a'.repeat(101) })).status).toBe(422);
+  });
+
+  it('PROD-01 · q is capped at 100 characters and 6 words; beyond that a 422, not a huge regex query (owner 2026-11-24)', async () => {
+    // At the caps: still a normal 200.
+    expect((await list({ q: 'a'.repeat(100) })).status).toBe(200);
+    expect((await list({ q: 'one two three four five six' })).status).toBe(200);
+    // Over either cap: 422, never a 200 with an empty page.
+    for (const q of [
+      'a'.repeat(101),
+      'one two three four five six seven',
+      Array.from({ length: 20 }, (_, i) => `w${i}`).join(' '),
+      '  one   two three four five six seven  ', // extra spaces do not buy another word
+    ]) {
+      const res = await list({ q });
+      expect(res.status, q).toBe(422);
+      expect(res.body.code, q).toBe('VALIDATION_ERROR');
+    }
+  });
+
+  it('PROD-01 · regex metacharacters anywhere in a multi-word q stay literal and never error (rule 9)', async () => {
+    for (const q of [
+      '.*',
+      '[',
+      '(',
+      'sofa .*',
+      '.* sofa',
+      'sofa [a-z]',
+      '\\',
+      '^$',
+      'oak (table)',
+    ]) {
+      const res = await list({ q });
+      expect(res.status, q).toBe(200);
+      expect(Array.isArray(res.body.items), q).toBe(true);
+    }
+    // "[a-z]" as a literal matches nothing, while the same words without the brackets do match
+    expect((await list({ q: 'oak [table]' })).body.items).toEqual([]);
+    expect(slugs(await list({ q: 'oak table' }))).toEqual(['oak-table']);
+  });
+
+  it('PROD-01 · q matches the plural and the singular of a word (sofas / sofa, benches / bench)', async () => {
+    expect(slugs(await list({ q: 'sofas' }))).toEqual(['velvet-sofa']);
+    expect(slugs(await list({ q: 'SOFA' }))).toEqual(['velvet-sofa']);
+    expect(slugs(await list({ q: 'tables' }))).toEqual(['oak-table']);
+    expect(slugs(await list({ q: 'armchairs' }))).toEqual(['used-armchair']);
+  });
+
+  it('PROD-01 · q also searches the category name, the description and the material, in both languages; every word must match', async () => {
+    const extra = await seedProduct({
+      slug: 'chesterfield',
+      title: { en: 'Classic Chesterfield Three-Seater', ar: 'تشيسترفيلد' },
+      categoryId: sofasId,
+      material: 'Leather',
+    });
+    await prisma.product.update({
+      where: { id: extra.id },
+      data: { description: { en: 'Deep buttoned seat', ar: 'مقعد مبطن' } },
+    });
+    try {
+      expect(slugs(await list({ q: 'sofa' })).sort()).toEqual(['chesterfield', 'velvet-sofa']); // category name
+      expect(slugs(await list({ q: 'كنب' })).sort()).toEqual(['chesterfield', 'velvet-sofa']); // category name, Arabic
+      expect(slugs(await list({ q: 'buttoned' }))).toEqual(['chesterfield']); // description
+      expect(slugs(await list({ q: 'مبطن' }))).toEqual(['chesterfield']); // description, Arabic
+      expect(slugs(await list({ q: 'leather' }))).toEqual(['chesterfield']); // material
+      expect(slugs(await list({ q: 'sofas leather' }))).toEqual(['chesterfield']); // all words, plural form
+      expect(slugs(await list({ q: 'sofa oak' }))).toEqual([]); // one word missing
+      expect(slugs(await list({ q: '.*' }))).toEqual([]); // regex characters stay literal
+    } finally {
+      await prisma.product.delete({ where: { id: extra.id } });
+    }
   });
 
   it('PROD-01 · sort orders: newest, price_asc, price_desc, featured', async () => {

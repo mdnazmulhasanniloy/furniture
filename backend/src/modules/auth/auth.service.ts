@@ -3,7 +3,7 @@ import { getEnv } from '../../config/env.js';
 import { mailer } from '../../emails/mailer.js';
 import { socketEmitter } from '../../lib/emitter.js';
 import { AppError } from '../../lib/errors.js';
-import { dummyVerify, hashPassword } from '../../lib/password.js';
+import { assertStrongPassword, dummyVerify, hashPassword } from '../../lib/password.js';
 import { prisma } from '../../lib/prisma.js';
 import { limitKey, resetKeyInTx } from '../../lib/rateLimit.js';
 import { issueRefreshToken, revokeAllForUser, signAccessToken } from '../../lib/tokens.js';
@@ -61,6 +61,7 @@ export async function register(
   body: RegisterBody,
   headerLocale: Locale | undefined,
 ): Promise<void> {
+  assertStrongPassword(body.password);
   const { email } = body;
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing && (existing.isVerified || existing.role !== 'CUSTOMER')) {
@@ -188,6 +189,7 @@ export async function resetPassword(
   code: string,
   newPassword: string,
 ): Promise<void> {
+  assertStrongPassword(newPassword); // before the code is matched, so a weak password leaves the code usable
   let match;
   try {
     match = await matchOtp(email, 'RESET_PASSWORD', code, 'OTP_INVALID');
@@ -255,6 +257,7 @@ export async function acceptInvite(
   password: string,
   userAgent?: string,
 ) {
+  assertStrongPassword(password); // before the code is matched, so a weak password leaves the code usable
   let match;
   try {
     match = await matchOtp(email, 'INVITE_ADMIN', code, 'OTP_INVALID');

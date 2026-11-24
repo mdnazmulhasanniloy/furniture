@@ -3,15 +3,12 @@ import { z } from 'zod';
 export const email = z.string().trim().toLowerCase().pipe(z.email().max(254));
 export const name = z.string().trim().min(1).max(40);
 
-/** PRD AUTH-03: 8-128 characters, at least one letter and one number. */
-export const password = z
-  .string()
-  .min(8)
-  .max(128)
-  .refine(
-    (v) => /\p{L}/u.test(v) && /\d/.test(v),
-    'Password must contain at least one letter and one number',
-  );
+/**
+ * Shape only: a non-empty string of at most 128 characters. The strength rules (src/lib/passwordPolicy.ts) are
+ * asserted in the service with `assertStrongPassword`, so a weak password is 400 `PASSWORD_TOO_WEAK` naming every
+ * unmet rule instead of an opaque 422 (owner 2026-11-24).
+ */
+export const password = z.string().min(1).max(128);
 
 export const locale = z.enum(['ar', 'en']);
 const otpPurpose = z.enum(['VERIFY_EMAIL', 'RESET_PASSWORD']);

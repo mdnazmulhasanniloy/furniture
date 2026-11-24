@@ -1,32 +1,51 @@
-/* Design tokens — source: project-docs/03-design/design-system.md ("Warm Walnut").
-   Shared verbatim with admin/src/index.css (light theme). */
+/* Design tokens — source: project-docs/03-design/design-system.md v3 ("Soft luxury", ADR-018; contrast rules of ADR-014).
+   Light values shared with admin/src/index.css. Checked by src/test/ui-02-aa-contrast.test.ts and ui-02-aa-call-sites.test.ts. */
 @import "tailwindcss";
 @import "tw-animate-css";
 
 :root {
-  --background: #fbf8f3;
-  --foreground: #1f1a17;
+  /* paper / ink */
+  --background: #ffffff;
+  --foreground: #14201d;
   --card: #ffffff;
-  --card-foreground: #1f1a17;
+  --card-foreground: #14201d;
   --popover: #ffffff;
-  --popover-foreground: #1f1a17;
-  --muted: #f2ebe1;
-  --muted-foreground: #6b5e54;
-  --primary: #8b5a3c;
+  --popover-foreground: #14201d;
+  /* sand: image backdrops, chips and quiet bands. Never the page background. */
+  --muted: #efe9dd;
+  /* stone ink: secondary text on paper AND on sand (5.1:1 on sand). */
+  --muted-foreground: #5c6360;
+  /* stone: hairlines, icons, placeholders. Not for text on sand (4.08:1). */
+  --stone: #6b726f;
+  /* emerald */
+  --primary: #0f4c45;
   --primary-foreground: #ffffff;
-  --secondary: #5f6f52;
-  --secondary-foreground: #ffffff;
-  --accent: #c8794a;
-  --accent-foreground: #ffffff;
-  --gold: #c9a66b;
-  --border: #e6dccf;
-  --input: #e6dccf;
-  --ring: #8b5a3c;
-  --destructive: #b4442e;
-  --success: #3f7d58;
-  --warning: #c98a1a;
-  --radius: 10px;
-  --shadow-soft: 0 8px 24px -12px rgb(60 40 25 / 0.18);
+  --secondary: #efe9dd;
+  --secondary-foreground: #14201d;
+  /* date gold: decorative lines only. Never text, never a meaningful graphic (2.9:1 on paper). */
+  --gold: #b8913a;
+  --gold-foreground: #14201d;
+  /* gold-strong: meaningful gold graphics (free-delivery bar), >= 3:1 on paper and sand. */
+  --gold-strong: #9c7a2e;
+  /* blush (ADR-018): soft "sweet" band surface; ink and primary text pass AA on it. */
+  --blush: #f7eeea;
+  --blush-foreground: #14201d;
+  /* champagne (ADR-018): decorative lines and ornaments only. Never text (2.2:1 on paper). */
+  --champagne: #c8a96a;
+  --price: #7a5e22;
+  --border: #e4e0d6;
+  /* input: form-field borders (>= 3:1 on paper). Fields sit on paper only. */
+  --input: #7d8a85;
+  --ring: #0f4c45;
+  --destructive: #b42318;
+  --success: #1f7a4d;
+  --success-foreground: #17603b;
+  /* warning: icons and badge backgrounds only; text uses warning-foreground. */
+  --warning: #b7791f;
+  --warning-foreground: #7a4b05;
+  --radius: 8px;
+  /* one soft shadow, only for floating layers (drawer, toast, menu). Content has none. */
+  --shadow-soft: 0 10px 30px -12px rgb(20 32 29 / 0.22);
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -43,27 +62,97 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+  --color-stone: var(--stone);
+  --color-blush: var(--blush);
+  --color-blush-foreground: var(--blush-foreground);
+  --color-champagne: var(--champagne);
   --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-gold-strong: var(--gold-strong);
+  --color-price: var(--price);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);
   --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
-  --radius-sm: 6px;
+  --color-warning-foreground: var(--warning-foreground);
+  --radius-sm: 4px;
   --radius-md: var(--radius);
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+  --radius-tile: 8px;
+  --shadow-float: var(--shadow-soft);
   /* --font-heading / --font-body are set per locale by next/font on <html>
      (src/fonts/latin.ts for en, src/fonts/arabic.ts for ar). */
-  --font-display: var(--font-heading), serif;
+  --font-display: var(--font-heading), system-ui, sans-serif;
   --font-sans: var(--font-body), system-ui, sans-serif;
 }
 
+/* UI-02: visible keyboard focus everywhere (components may refine it). */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+html {
+  line-height: 1.65;
+  font-size: 106.25%; /* body 17 px; rem-based sizes scale with it */
+}
 html[lang="ar"] {
-  line-height: 1.7;
+  line-height: 1.85;
+}
+
+/* Type (design-system v3 section 2): Bodoni Moda / El Messiri headings, weight 600 to 700 only, never tracked in Arabic. */
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.15;
+  }
+  /* Bodoni is for display sizes (Q-10): h3 and h4 are card and panel titles, so they use the body face. */
+  h3,
+  h4 {
+    font-family: var(--font-body), system-ui, sans-serif;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+  html[lang="en"] :is(h1, h2, h3, h4) {
+    letter-spacing: -0.02em;
+  }
+  html[lang="en"] :is(h3, h4) {
+    letter-spacing: 0;
+  }
+  html[lang="ar"] :is(h1, h2, h3, h4) {
+    line-height: 1.5;
+    letter-spacing: 0;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--primary);
+  }
+}
+/* Hero headline: confident serif, 36 px on mobile up to 72 px on wide screens. */
+.type-hero {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+  font-size: clamp(2.25rem, 1.2rem + 4.2vw, 4.5rem);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+html[lang="ar"] .type-hero {
+  letter-spacing: 0; /* Arabic is never tracked: it breaks the joins */
+  line-height: 1.35;
+}
+/* Measure: running text never wider than 65 characters. */
+.measure {
+  max-width: 65ch;
 }
 
 body {
@@ -78,4 +167,139 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ADR-018 layout: one container, one vertical rhythm. */
+.container-wide {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+@media (min-width: 640px) {
+  .container-wide {
+    padding-inline: 32px;
+  }
+}
+@media (min-width: 1024px) {
+  .container-wide {
+    padding-inline: 48px;
+  }
+}
+/* ONE vertical rhythm (review item 4): a plain band owns only its top padding, so two bands in a row are
+   exactly one gap apart (40 px mobile, 64 px desktop), never two paddings added together. A filled band
+   (sand, blush) owns its own padding and the same gap above it; the page end gets the gap below. */
+:root {
+  --band-gap: 40px;
+}
+@media (min-width: 1024px) {
+  :root {
+    --band-gap: 64px;
+  }
+}
+.band {
+  padding-top: var(--band-gap);
+}
+.band-fill {
+  margin-top: var(--band-gap);
+  padding-block: var(--band-gap);
+}
+/* Header over the hero (UI-04): light text on the transparent header. Search box, popovers and the mobile menu
+   keep their own colours (they sit on paper). The hero carries a top scrim so this stays readable. */
+.hdr-light {
+  color: var(--primary-foreground);
+}
+.hdr-light :is(a, button, span, svg, p):not([role="search"] *, [role="dialog"] *, [data-testid="mega-panel"] *) {
+  color: var(--primary-foreground);
+}
+.hdr-light [role="search"] input {
+  color: var(--foreground);
+}
+.hdr-light [role="search"] input::placeholder {
+  color: var(--muted-foreground);
+}
+.hdr-light :is(a, button):not([role="search"] *, [role="dialog"] *, [data-testid="mega-panel"] *):hover {
+  background-color: color-mix(in srgb, var(--primary-foreground) 16%, transparent);
+}
+
+/* A scroll area that only shows a thin, quiet scrollbar when it actually overflows (the sticky filter sidebar). */
+.scroll-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.scroll-subtle::-webkit-scrollbar {
+  width: 6px;
+}
+.scroll-subtle::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+.scroll-subtle::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Rails: no native scrollbar (arrow buttons and keyboard stay), snap kept. */
+.rail-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-snap-type: x mandatory;
+  overflow-x: auto;
+}
+.rail-scroll::-webkit-scrollbar {
+  display: none;
+}
+.rail-scroll > * {
+  scroll-snap-align: start;
+}
+/* Hover/focus zoom for photo tiles; off under reduced motion. */
+.zoom-on-hover img {
+  transition: transform 400ms var(--ease-out-soft);
+}
+.zoom-on-hover:is(:hover, :focus-visible) img {
+  transform: scale(1.04);
+}
+@media (prefers-reduced-motion: reduce) {
+  .zoom-on-hover:is(:hover, :focus-visible) img {
+    transform: none;
+  }
+}
+
+/* Hero carousel (UI-04): the bar animation is the autoplay timer; the zoom shares its 6 s. Animate the
+   individual "scale" property so it never multiplies with a utility's transform. */
+@keyframes hero-bar {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+@keyframes hero-zoom {
+  from {
+    scale: 1;
+  }
+  to {
+    scale: 1.07;
+  }
+}
+/* Banner focal point (CR-011): the mobile photo uses its own point below 768 px, the desktop photo above. */
+.hero-img {
+  object-position: var(--hero-pos-m, 50% 50%);
+}
+@media (min-width: 768px) {
+  .hero-img {
+    object-position: var(--hero-pos-d, 50% 50%);
+  }
+}
+.hero-bar-fill {
+  transform-origin: left center;
+}
+[dir="rtl"] .hero-bar-fill {
+  transform-origin: right center;
+}
+.hero-bar {
+  animation: hero-bar 6s linear forwards;
+}
+.hero-zoom {
+  animation: hero-zoom 6s linear forwards;
 }

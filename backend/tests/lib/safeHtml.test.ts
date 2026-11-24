@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import sanitize from 'sanitize-html';
-import { sanitizePageHtml } from '../../src/lib/safeHtml.js';
+import { isSafeHref, sanitizePageHtml } from '../../src/lib/safeHtml.js';
 
 /**
  * T-029 regression tests for the sanitize-html <2.18.0 advisories (GHSA batch fixed in 2.18.0):
@@ -92,5 +92,22 @@ describe('NFR-01 · sanitize-html ≥2.18.0 advisory regressions (T-029, ADR-013
       const [major = 0, minor = 0] = (pkg as { version: string }).version.split('.').map(Number);
       expect(major > 2 || (major === 2 && minor >= 18)).toBe(true);
     });
+  });
+});
+
+describe('ADM-06 · isSafeHref rejects control-character protocol-relative tricks', () => {
+  it.each([
+    '/\t/evil.com',
+    '/\n/evil.com',
+    '/\r/evil.com',
+    '/\u0000/evil.com',
+    '//evil.com',
+    '/\\evil.com',
+    'javascript:alert(1)',
+    'http://x.com',
+  ])('rejects %j', (v) => expect(isSafeHref(v)).toBe(false));
+  it('keeps same-site paths and https URLs', () => {
+    expect(isSafeHref('/shop?type=new')).toBe(true);
+    expect(isSafeHref('https://example.com/x')).toBe(true);
   });
 });

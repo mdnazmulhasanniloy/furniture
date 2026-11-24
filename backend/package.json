@@ -18,6 +18,7 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "seed": "tsx prisma/seed.ts",
+    "demo:reset": "tsx scripts/demo-data/reset-and-seed.ts",
     "p95": "tsx scripts/p95-check.ts",
     "migrate:refresh-family": "tsx scripts/migrations/2026-11-21-refresh-token-family.ts",
     "postinstall": "prisma generate",

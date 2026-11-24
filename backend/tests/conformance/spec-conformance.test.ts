@@ -92,8 +92,8 @@ const en = (s: string) => ({ en: s, ar: `${s} ع` });
 
 // ---- shared session state (the its run in file order)
 const CUSTOMER_EMAIL = 'conf-customer@example.com';
-const PASSWORD_1 = 'Passw0rdOne';
-const PASSWORD_2 = 'Passw0rdTwo';
+const PASSWORD_1 = 'Passw0rdOne!';
+const PASSWORD_2 = 'Passw0rdTwo!';
 let adminToken = '';
 let customer2Id = '';
 let customerToken = '';
@@ -365,6 +365,12 @@ it('NFR-01 · CMS routes conform (banners, sections, pages, settings, home)', as
       sortOrder: 2,
     },
   });
+  // CR-011: a reorder bumps updatedAt, so it runs after the PATCH above (which needed the old token).
+  await call('put', '/admin/banners/order', {
+    status: 204,
+    token: adminToken,
+    body: { ids: [(b2.body as { id: string }).id, (b1.body as { id: string }).id] },
+  });
   await call('delete', '/admin/banners/{id}', {
     status: 204,
     path: `/admin/banners/${(b2.body as { id: string }).id}`,
@@ -463,6 +469,35 @@ it('NFR-01 · CMS routes conform (banners, sections, pages, settings, home)', as
       defaultLocale: 'ar',
     },
   });
+});
+
+it('NFR-01 · wishlist routes conform', async () => {
+  const w = '/me/wishlist';
+  await call('put', w + '/{productId}', {
+    status: 200,
+    path: w + '/' + productId,
+    token: customerToken,
+  });
+  await call('get', w, { status: 200, token: customerToken });
+  await call('post', w + '/merge', {
+    status: 200,
+    token: customerToken,
+    body: { productIds: [productId] },
+  });
+  await call('put', w + '/{productId}', {
+    status: 404,
+    path: w + '/000000000000000000000000',
+    token: customerToken,
+  });
+  await call('post', w + '/merge', { status: 422, token: customerToken, body: {} });
+  await call('delete', w + '/{productId}', {
+    status: 200,
+    path: w + '/' + productId,
+    token: customerToken,
+  });
+  await call('delete', w, { status: 204, token: customerToken });
+  await call('get', w, { status: 403, token: adminToken });
+  await call('get', w, { status: 401 });
 });
 
 it('NFR-01 · cart, order and dashboard routes conform', async () => {
@@ -582,7 +617,35 @@ it('NFR-01 · admin user routes conform (customers + admins + accept-invite)', a
     status: 200,
     path: `/admin/customers/${customer2Id}/block`,
     token: adminToken,
-    body: { isBlocked: true },
+    body: { isBlocked: true, reason: 'Conformance check' }, // CR-011: a reason is required to block
+  });
+  // CR-011 (ADM-17): edit name and phone, then soft-delete a throwaway customer.
+  const victim = await prisma.user.create({
+    data: {
+      firstName: 'Conf',
+      lastName: 'Victim',
+      email: 'conf-victim@example.com',
+      passwordHash: 'x',
+      isVerified: true,
+      phone: null,
+      invitedById: null,
+    },
+  });
+  await call('patch', '/admin/customers/{id}', {
+    status: 200,
+    path: `/admin/customers/${victim.id}`,
+    token: adminToken,
+    body: {
+      expectedUpdatedAt: victim.updatedAt.toISOString(),
+      firstName: 'Changed',
+      phone: '0551112233',
+    },
+  });
+  await call('delete', '/admin/customers/{id}', {
+    status: 200,
+    path: `/admin/customers/${victim.id}`,
+    token: adminToken,
+    body: { confirmEmail: 'conf-victim@example.com' },
   });
   const invite = await call('post', '/admin/admins', {
     status: 201,

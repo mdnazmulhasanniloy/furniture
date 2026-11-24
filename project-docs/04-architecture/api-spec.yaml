@@ -16,6 +16,7 @@ tags:
   - name: Catalog
   - name: CMS
   - name: Cart
+  - name: Wishlist
   - name: Orders
   - name: Notifications
   - name: Admin
@@ -50,7 +51,8 @@ paths:
       security: []
       summary: Register and send email OTP (AUTH-01)
       description: |
-        Email is trimmed and lower-cased. Password: 8-128 characters, at least one letter and one number.
+        Email is trimmed and lower-cased. Password policy (owner 2026-11-24): at least 8 characters with one uppercase letter, one lowercase letter, one digit and one special character (not a letter, digit or space), max 128.
+        A password that breaks it is 400 `PASSWORD_TOO_WEAK`, where `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`).
         The OTP email is sent in the locale of `Accept-Language` (`ar`|`en`), else `preferredLocale`, else `ar`.
         Registering an email that already has an **unverified** account never changes that account: the submitted
         data (password hash, names, locale) is stored on the new OTP row and applied only when *that* OTP is verified
@@ -67,10 +69,11 @@ paths:
                 firstName: { type: string, minLength: 1, maxLength: 40 }
                 lastName: { type: string, minLength: 1, maxLength: 40 }
                 email: { type: string, format: email }
-                password: { type: string, minLength: 8, maxLength: 128, description: At least one letter and one number }
+                password: { type: string, minLength: 8, maxLength: 128, description: "Policy (owner 2026-11-24): at least 8 characters with one uppercase letter, one lowercase letter, one digit and one special character (not a letter, digit or space). Max 128. A password that breaks it is 400 `PASSWORD_TOO_WEAK` and `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`)." }
                 preferredLocale: { $ref: '#/components/schemas/Locale' }
       responses:
         '201': { $ref: '#/components/responses/Message' }
+        '400': { $ref: '#/components/responses/Error', description: "`PASSWORD_TOO_WEAK` - no account and no OTP are created; `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`)" }
         '409': { $ref: '#/components/responses/Error', description: "`EMAIL_IN_USE` - the email belongs to a verified account" }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` - cooldown, hourly OTP cap, or the per-IP cap (20/hour)" }
@@ -257,12 +260,12 @@ paths:
               properties:
                 email: { type: string, format: email }
                 code: { type: string, pattern: '^[0-9]{6}$' }
-                newPassword: { type: string, minLength: 8, maxLength: 128, description: "At least one letter and one number (same rule as registration)" }
+                newPassword: { type: string, minLength: 8, maxLength: 128, description: "Policy (owner 2026-11-24): at least 8 characters with one uppercase letter, one lowercase letter, one digit and one special character (not a letter, digit or space). Max 128. A password that breaks it is 400 `PASSWORD_TOO_WEAK` and `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`)." }
       responses:
         '200': { $ref: '#/components/responses/Message' }
-        '400': { $ref: '#/components/responses/Error', description: "`OTP_INVALID` (any failure to match a live code; see above)" }
+        '400': { $ref: '#/components/responses/Error', description: "`OTP_INVALID` (any failure to match a live code; see above), or `PASSWORD_TOO_WEAK` - the password is checked first, so the code stays usable; `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`)" }
         '403': { description: "`ACCOUNT_BLOCKED`, only after a correct code", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { $ref: '#/components/responses/Error', description: "Validation error (malformed email or code, weak password); the code stays usable" }
+        '422': { $ref: '#/components/responses/Error', description: "Validation error (malformed email or code, or a password over 128 characters); the code stays usable" }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (per-IP limit on failed attempts)" }
   /auth/accept-invite:
     post:
@@ -277,7 +280,7 @@ paths:
         expired — invites live `INVITE_TTL_SECONDS`, default 48 h —, already used, wrong code) is the identical
         400 `OTP_INVALID`, and each failure path spends one argon2 verify so timing matches. The 5th wrong code
         for an email burns every live code. `ACCOUNT_BLOCKED` (403) is returned only after a correct code.
-        A weak password -> 422 and the code stays usable.
+        A password that breaks the policy -> 400 `PASSWORD_TOO_WEAK`, checked before the code so the code stays usable.
 
         **On success, in one transaction:** the chosen password's argon2id hash is stored, `isVerified` is set,
         and every `INVITE_ADMIN` OTP of the email is consumed. The invitee is logged in (same response shape as
@@ -296,7 +299,7 @@ paths:
               properties:
                 email: { type: string, format: email }
                 code: { type: string, pattern: '^[0-9]{6}$' }
-                password: { type: string, minLength: 8, maxLength: 128, description: "At least one letter and one number (same rule as registration)" }
+                password: { type: string, minLength: 8, maxLength: 128, description: "Policy (owner 2026-11-24): at least 8 characters with one uppercase letter, one lowercase letter, one digit and one special character (not a letter, digit or space). Max 128. A password that breaks it is 400 `PASSWORD_TOO_WEAK` and `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`)." }
       responses:
         '200':
           description: Verified and logged in (sets the `fx_rt` refresh cookie, same flags as login)
@@ -307,9 +310,9 @@ paths:
                 properties:
                   accessToken: { type: string }
                   user: { $ref: '#/components/schemas/User' }
-        '400': { $ref: '#/components/responses/Error', description: "`OTP_INVALID` (any failure to match a live code; see above)" }
+        '400': { $ref: '#/components/responses/Error', description: "`OTP_INVALID` (any failure to match a live code; see above), or `PASSWORD_TOO_WEAK` - the password is checked first, so the code stays usable; `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`)" }
         '403': { description: "`ACCOUNT_BLOCKED`, only after a correct code", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { $ref: '#/components/responses/Error', description: "Validation error (malformed email or code, weak password); the code stays usable" }
+        '422': { $ref: '#/components/responses/Error', description: "Validation error (malformed email or code, or a password over 128 characters); the code stays usable" }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (per-IP limit on failed attempts)" }
   /auth/me:
     get:
@@ -489,12 +492,12 @@ paths:
         does not hide products (it affects navigation only, T-009). Sort `featured` = isFeatured desc, then
         newest; default `newest`. Prices are halalas, min/max inclusive (owner decisions 2026-11-22, T-010).
       parameters:
-        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: q, in: query, description: "Words (all must match). A word also matches its plural or singular (sofas / sofa). Searched in the title, the description, the category name and the material, in English and Arabic. Case-insensitive; regex characters are literal. Capped (owner 2026-11-24): at most 100 characters and at most 6 words after normalisation, otherwise 422 VALIDATION_ERROR.", schema: { type: string, maxLength: 100 } }
         - { name: category, in: query, description: category slug (includes its sub-categories' products), schema: { type: string } }
         - { name: type, in: query, schema: { $ref: '#/components/schemas/ProductType' } }
         - { name: condition, in: query, schema: { type: array, items: { $ref: '#/components/schemas/Condition' } }, style: form, explode: false }
-        - { name: minPrice, in: query, schema: { type: integer } }
-        - { name: maxPrice, in: query, schema: { type: integer } }
+        - { name: minPrice, in: query, description: "Halalas, 0 or more. When both are given, minPrice must be <= maxPrice, else 422 (QA 2026-11-24).", schema: { type: integer, minimum: 0 } }
+        - { name: maxPrice, in: query, description: "Halalas, 0 or more. See minPrice.", schema: { type: integer, minimum: 0 } }
         - { name: material, in: query, schema: { type: string } }
         - { name: inStock, in: query, schema: { type: boolean } }
         - { name: featured, in: query, schema: { type: boolean } }
@@ -541,7 +544,7 @@ paths:
         newest-first (all with `config.limit`, default 8, max 24); CATEGORY_GRID = `config.categoryIds` (active
         only, given order) when set, else all active root categories; PROMO_BANNER = `config.bannerId` resolved
         into `banner` when that banner is active and inside its schedule, otherwise the property is omitted
-        (storefront skips the section); TESTIMONIALS = `config.testimonials` passed through.
+        (storefront skips the section); TESTIMONIALS = `config.testimonials` passed through; SHOP_THE_LOOK (ADM-15) = `config.look` resolved into `look`: each hotspot gets its PUBLISHED product (a hotspot whose product is unpublished or deleted is dropped), and the property is omitted when the photo is missing or no hotspot is left (storefront skips the section).
       responses:
         '200':
           description: OK
@@ -559,8 +562,18 @@ paths:
                         - type: object
                           properties:
                             products: { type: array, items: { $ref: '#/components/schemas/Product' } }
-                            categories: { type: array, items: { $ref: '#/components/schemas/Category' } }
+                            categories:
+                              type: array
+                              description: >-
+                                CATEGORY_GRID items carry `productCount` (CR-011 T-092): PUBLISHED products in the category and its direct sub-categories, the same set the shop filter shows.
+                              items:
+                                allOf:
+                                  - $ref: '#/components/schemas/Category'
+                                  - type: object
+                                    required: [productCount]
+                                    properties: { productCount: { type: integer, minimum: 0 } }
                             banner: { $ref: '#/components/schemas/Banner' }
+                            look: { $ref: '#/components/schemas/ResolvedLook' }
   /cms/settings:
     get:
       tags: [CMS]
@@ -678,6 +691,104 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error', description: Not a customer }
         '409': { $ref: '#/components/responses/Error', description: "`CART_CONFLICT` (concurrent writes, retry)" }
+
+  # ---------------- WISHLIST (FAV-01, CR-007) ----------------
+  # Customers only (requireRole CUSTOMER): an admin gets 403. Bearer auth only (no CSRF header), like /cart. Register the static /me/wishlist/merge route before /me/wishlist/{productId}.
+  # Per-item writes (owner 2026-11-24): add and remove are idempotent, so two tabs or devices never overwrite
+  # each other's list. Writes are optimistic-concurrent on Wishlist.version (conditional update, re-read and
+  # re-apply up to 3 attempts, then 409 WISHLIST_CONFLICT). Rate limit: same as /cart writes.
+  /me/wishlist:
+    get:
+      tags: [Wishlist]
+      summary: My favourites (FAV-01)
+      description: |
+        Returns the stored ids and the PUBLISHED products among them, newest first. Ids of products that were
+        unpublished or deleted are not returned and not counted (`total` counts what `items` holds).
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Wishlist' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+    delete:
+      tags: [Wishlist]
+      summary: Clear all my favourites (FAV-01)
+      description: Idempotent. Removes every stored id.
+      responses:
+        '204': { description: Cleared }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+  /me/wishlist/{productId}:
+    parameters:
+      - name: productId
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/ObjectId' }
+    put:
+      tags: [Wishlist]
+      summary: Add one product to my favourites (FAV-01)
+      description: |
+        Idempotent add: adding a product that is already saved returns 200 with the unchanged list. Unknown or
+        non-PUBLISHED product -> 404 `NOT_FOUND`. A 101st distinct product -> 409
+        `WISHLIST_LIMIT_REACHED` (max 100). Concurrent writes that keep conflicting after 3 attempts -> 409
+        `WISHLIST_CONFLICT` (client retries). No request body.
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Wishlist' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+        '404': { $ref: '#/components/responses/Error', description: "`NOT_FOUND` (unknown or not PUBLISHED)" }
+        '409': { $ref: '#/components/responses/Error', description: "`WISHLIST_LIMIT_REACHED` (max 100) or `WISHLIST_CONFLICT` (concurrent writes, retry)" }
+    delete:
+      tags: [Wishlist]
+      summary: Remove one product from my favourites (FAV-01)
+      description: Idempotent remove (also for ids of deleted products and for ids that are not saved) -> 200 with the list.
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Wishlist' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+        '409': { $ref: '#/components/responses/Error', description: "`WISHLIST_CONFLICT` (concurrent writes, retry)" }
+  /me/wishlist/merge:
+    post:
+      tags: [Wishlist]
+      summary: Merge guest favourites after login (FAV-01)
+      description: |
+        Idempotent union: existing account ids first (order kept), then the given ids in the given order.
+        Duplicates, malformed ids, unknown and non-PUBLISHED products are skipped (counted in `skipped`); the
+        result is truncated at 100 (counted in `truncated`). Repeating the same merge changes nothing. The web
+        client clears the localStorage list only after a successful response (web T-048).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productIds]
+              additionalProperties: false
+              properties:
+                productIds:
+                  type: array
+                  maxItems: 100
+                  items: { type: string, maxLength: 64, description: 'ObjectId; malformed values are skipped, not rejected' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  productIds: { type: array, items: { $ref: '#/components/schemas/ObjectId' } }
+                  total: { type: integer }
+                  skipped: { type: integer, description: Given ids dropped (duplicate, malformed, unknown, unpublished) }
+                  truncated: { type: integer, description: Valid ids dropped by the 100 cap }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+        '409': { $ref: '#/components/responses/Error', description: "`WISHLIST_CONFLICT` (concurrent writes, retry)" }
+        '422': { $ref: '#/components/responses/Error', description: "VALIDATION_ERROR (body is not {productIds: string[] with at most 100 entries})" }
 
   # ---------------- ORDERS ----------------
   /orders:
@@ -1190,7 +1301,8 @@ paths:
         Users with role CUSTOMER only (verified and unverified), newest first. `q` (trimmed, <= 100 chars)
         matches the email, first name or last name case-insensitively (escaped literal, rule 9), or — when it
         normalises to a Saudi mobile number (NFR-06, incl. Arabic-Indic digits) — the exact stored phone.
-      parameters: [{ name: q, in: query, schema: { type: string, maxLength: 100 } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+        CR-011 (ADM-17): `status` filters by state: `active` (not blocked, not deleted), `blocked` (blocked, not deleted) or `deleted` (soft-deleted, anonymised); without it the list shows active and blocked customers and never deleted ones.
+      parameters: [{ name: q, in: query, schema: { type: string, maxLength: 100 } }, { name: status, in: query, schema: { type: string, enum: [active, blocked, deleted] } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
       responses:
         '200':
           description: OK
@@ -1203,7 +1315,7 @@ paths:
                   meta: { $ref: '#/components/schemas/PageMeta' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — `q` over 100 chars, bad page/limit" }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — `q` over 100 chars, bad page/limit, unknown `status`" }
   /admin/customers/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     get:
@@ -1218,7 +1330,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  user: { $ref: '#/components/schemas/User' }
+                  user: { $ref: '#/components/schemas/AdminCustomer' }
                   orders: { type: array, items: { $ref: '#/components/schemas/Order' } }
                   meta: { $ref: '#/components/schemas/PageMeta' }
         '401': { $ref: '#/components/responses/Error' }
@@ -1226,13 +1338,62 @@ paths:
         '404':
           description: NOT_FOUND — unknown or malformed id, or the user is not a CUSTOMER (admins are served by /admin/admins)
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    patch:
+      tags: [Admin]
+      summary: Edit a customer's name and phone (ADM-17)
+      description: >-
+        CR-011. Admin only; customers only. The body accepts `firstName`, `lastName` and `phone` (a Saudi mobile,
+        stored as +9665XXXXXXXX; `null` clears it) and nothing else: any other field (email, password, role, ...) is
+        422. At least one of the three is required. `expectedUpdatedAt` is required; a mismatch -> 409
+        `STALE_UPDATE`. No response contains a password hash and the admin can never set or read one. Targeting
+        oneself -> 403 `FORBIDDEN_TARGET`; another admin -> 404; a soft-deleted customer -> 409 `CUSTOMER_DELETED`.
+        Email change is out of scope. One log line per call (`customer.update`: actor id, target id, changed field
+        names; no personal data).
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CustomerPatch' } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminCustomer' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: "FORBIDDEN (not an admin) or `FORBIDDEN_TARGET` (the target is the caller)" }
+        '404': { $ref: '#/components/responses/Error', description: NOT_FOUND — unknown or malformed id, or the user is not a CUSTOMER }
+        '409': { $ref: '#/components/responses/Error', description: "`STALE_UPDATE` or `CUSTOMER_DELETED`" }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — unknown field, empty body, bad name, or a phone that is not a Saudi mobile" }
+    delete:
+      tags: [Admin]
+      summary: Delete a customer (soft delete with anonymisation, ADM-17)
+      description: >-
+        CR-011. Admin only; customers only. Body `{ confirmEmail }` must equal the stored email (case-insensitive),
+        else 422 `CONFIRM_EMAIL_MISMATCH`. Refused with 409 `CUSTOMER_HAS_OPEN_ORDERS` while the customer has a
+        PENDING or CONFIRMED order. In one transaction: name becomes "Deleted customer", email becomes a unique
+        non-deliverable placeholder (the real address is free to register again), phone and avatar are cleared,
+        the password becomes an unusable hash, `isBlocked` is true, `deletedAt`/`deletedById` are set, all
+        refresh tokens are revoked, and addresses, cart, wishlist, notifications and pending OTPs are removed.
+        **Orders are kept** with their address snapshot (the sales and VAT record). Live sockets are disconnected
+        and the avatar object is released after commit. Targeting oneself -> 403 `FORBIDDEN_TARGET`; another admin
+        -> 404; already deleted -> 409 `CUSTOMER_DELETED`. One log line (`customer.delete`, no personal data).
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CustomerDeleteInput' } } }
+      responses:
+        '200':
+          description: OK (the anonymised customer)
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminCustomer' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: "FORBIDDEN or `FORBIDDEN_TARGET`" }
+        '404': { $ref: '#/components/responses/Error', description: NOT_FOUND }
+        '409': { $ref: '#/components/responses/Error', description: "`CUSTOMER_HAS_OPEN_ORDERS` or `CUSTOMER_DELETED`" }
+        '422': { $ref: '#/components/responses/Error', description: "`CONFIRM_EMAIL_MISMATCH` or `VALIDATION_ERROR`" }
   /admin/customers/{id}/block:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
       tags: [Admin]
       summary: Block / unblock a customer
       description: >-
-        Customers only — an ADMIN id -> 404 (admins are blocked via /admin/admins/{id}/block). Idempotent.
+        Customers only — an ADMIN id -> 404 (admins are blocked via /admin/admins/{id}/block); the caller's own id -> 403 `FORBIDDEN_TARGET`; a soft-deleted customer -> 409 `CUSTOMER_DELETED`. Idempotent.
+        CR-011 (ADM-17): blocking requires a `reason` (3 to 300 characters, admin-only: it is stored with `blockedAt` and `blockedById`, shown only in the admin API and never to the customer). Unblocking may send a `reason`, which is not stored; it clears the three blocked fields to explicit null. The customer sees only the generic `ACCOUNT_BLOCKED` response on login, refresh and any authenticated call, and cannot request a password reset code or place an order. One log line per call (`customer.block` / `customer.unblock`: actor id, target id, field names; no personal data, no reason text).
         Blocking revokes every refresh token in the same transaction and then disconnects the user's live
         sockets (`socketEmitter.disconnectUser`, T-023); the still-valid access token is rejected by
         `requireAuth` (T-005). Unblocking only clears the flag (the login lockout counter is untouched).
@@ -1240,17 +1401,18 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: false, required: [isBlocked], properties: { isBlocked: { type: boolean } } }
+            schema: { $ref: '#/components/schemas/CustomerBlockInput' }
       responses:
         '200':
           description: OK
-          content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminCustomer' } } }
         '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: "FORBIDDEN or `FORBIDDEN_TARGET`" }
         '404':
           description: NOT_FOUND — unknown or malformed id, or the user is not a CUSTOMER
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — isBlocked missing or not boolean" }
+        '409': { $ref: '#/components/responses/Error', description: "`CUSTOMER_DELETED`" }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — isBlocked missing or not boolean, or blocking without a reason of 3 to 300 characters" }
   /admin/banners:
     get:
       tags: [Admin]
@@ -1271,6 +1433,24 @@ paths:
           description: Created
           content: { application/json: { schema: { $ref: '#/components/schemas/Banner' } } }
         '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` (missing alt, bad ctaHref, startsAt >= endsAt) or `UPLOAD_NOT_ALLOWED`" }
+  /admin/banners/order:
+    put:
+      tags: [Admin]
+      summary: Set banner order by id list (CR-011, ADM-06)
+      description: >-
+        `ids` must be exactly the set of existing banner ids, each once, else 422 `VALIDATION_ERROR` and nothing is
+        written (all-or-nothing). `sortOrder` becomes the list position (1 to n); it drives the hero slide order.
+        Revalidates `home`. Used by the admin's drag to reorder.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [ids], properties: { ids: { type: array, minItems: 1, maxItems: 100, items: { $ref: '#/components/schemas/ObjectId' } } } }
+      responses:
+        '204': { description: OK }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — ids missing, duplicated, unknown, or not the full set" }
   /admin/banners/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
@@ -1590,6 +1770,19 @@ components:
       pattern: '^\+9665[0-9]{8}$'
       description: Normalized E.164 Saudi mobile number returned by the API.
       examples: ['+966551234567']
+    SaudiContactPhoneInput:
+      type: string
+      maxLength: 40
+      x-canonical-pattern: '^(\+966|00966|0)?(800\d{7}|[1-9]\d{8})$'
+      description: >-
+        The store's own contact number (B-033, owner 2026-11-24: mobile, landline and unified 9200/800 numbers,
+        normalised to E.164, a validator of its own, separate from the customer mobile rule SaudiPhoneInput).
+        Optional: `""` clears it and the storefront footer then shows no phone line. Same normalisation as
+        SaudiPhoneInput (trim, Arabic-Indic digits to ASCII, remove spaces/dashes/dots/parentheses); the national
+        part is then 9 digits starting 1-9 (mobile `5XXXXXXXX`, landline `11XXXXXXX`, unified `9200XXXXX`) or a
+        10-digit toll-free `800XXXXXXX`, each optionally written with `0`, `+966` or `00966` in front. Anything
+        else is VALIDATION_ERROR. The stored and returned value is always `+966` plus the national part.
+      examples: ['0112345678', '011 234 5678', '+966 55 123 4567', '9200 12345', '800 123 4567']
     DeliveryCity:
       type: object
       required: [code, name, isActive, sortOrder]
@@ -1623,12 +1816,12 @@ components:
     Condition: { type: string, enum: [NEW, LIKE_NEW, GOOD, FAIR] }
     ProductStatus: { type: string, enum: [DRAFT, PUBLISHED, ARCHIVED] }
     OrderStatus: { type: string, enum: [PENDING, CONFIRMED, PROCESSING, OUT_FOR_DELIVERY, DELIVERED, CANCELLED] }
-    SectionType: { type: string, enum: [FEATURED_PRODUCTS, NEW_ARRIVALS, RESALE_PICKS, CATEGORY_GRID, PROMO_BANNER, TESTIMONIALS] }
+    SectionType: { type: string, enum: [FEATURED_PRODUCTS, NEW_ARRIVALS, RESALE_PICKS, CATEGORY_GRID, PROMO_BANNER, TESTIMONIALS, SHOP_THE_LOOK] }
     Error:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, ALREADY_VERIFIED] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, WISHLIST_LIMIT_REACHED, WISHLIST_CONFLICT, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, ALREADY_VERIFIED, CUSTOMER_HAS_OPEN_ORDERS, FORBIDDEN_TARGET, CUSTOMER_DELETED, CONFIRM_EMAIL_MISMATCH] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }
@@ -1666,6 +1859,9 @@ components:
         alt: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
         width: { type: [integer, 'null'] }
         height: { type: [integer, 'null'] }
+        # CR-011 (banner photos only): the point of the photo that must stay visible when it is cropped, in percent. The storefront applies it as object-position at every breakpoint. Absent or null = centre.
+        focalX: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        focalY: { type: [number, 'null'], minimum: 0, maximum: 100 }
     ImageAssetInput:
       type: object
       additionalProperties: false
@@ -1691,9 +1887,44 @@ components:
         isBlocked: { type: boolean }
         preferredLocale: { $ref: '#/components/schemas/Locale' }
         createdAt: { type: string, format: date-time }
-    CustomerListItem:
+    AdminCustomer:
+      description: A customer as the admin sees it (CR-011, ADM-17). The blocked reason is admin-only and never part of the public User. No password hash, ever.
       allOf:
         - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            updatedAt: { type: string, format: date-time, description: Send back as `expectedUpdatedAt` when editing }
+            blockedReason: { type: [string, 'null'], description: Why the customer was blocked (3 to 300 chars); null when not blocked }
+            blockedAt: { type: [string, 'null'], format: date-time }
+            blockedById: { type: [string, 'null'], description: Id of the admin who blocked the customer }
+            deletedAt: { type: [string, 'null'], format: date-time, description: Set when the customer was soft-deleted and anonymised }
+            deletedById: { type: [string, 'null'] }
+    CustomerBlockInput:
+      type: object
+      additionalProperties: false
+      required: [isBlocked]
+      properties:
+        isBlocked: { type: boolean }
+        reason: { type: string, minLength: 3, maxLength: 300, description: Required when `isBlocked` is true (admin-only, never shown to the customer). Optional and not stored when unblocking }
+    CustomerPatch:
+      type: object
+      additionalProperties: false
+      required: [expectedUpdatedAt]
+      minProperties: 2
+      properties:
+        expectedUpdatedAt: { type: string, format: date-time }
+        firstName: { type: string, minLength: 1, maxLength: 40 }
+        lastName: { type: string, minLength: 1, maxLength: 40 }
+        phone: { description: A Saudi mobile (SaudiPhoneInput), stored as +9665XXXXXXXX; null clears it, oneOf: [{ type: string }, { type: 'null' }] }
+    CustomerDeleteInput:
+      type: object
+      additionalProperties: false
+      required: [confirmEmail]
+      properties:
+        confirmEmail: { type: string, description: The customer's exact email, typed by the admin }
+    CustomerListItem:
+      allOf:
+        - $ref: '#/components/schemas/AdminCustomer'
         - type: object
           properties:
             orderCount: { type: integer, description: Total orders of this customer (any status), derived (ADM-05) }
@@ -1907,6 +2138,12 @@ components:
       properties:
         items: { type: array, items: { $ref: '#/components/schemas/Product' } }
         meta: { $ref: '#/components/schemas/PageMeta' }
+    Wishlist:
+      type: object
+      properties:
+        productIds: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/ObjectId' }, description: Ids of PUBLISHED products, newest first }
+        items: { type: array, items: { $ref: '#/components/schemas/Product' } }
+        total: { type: integer, description: Number of PUBLISHED favourites (= items.length) }
     Cart:
       type: object
       properties:
@@ -2029,7 +2266,10 @@ components:
         - $ref: '#/components/schemas/ImageAssetInput'
         - type: object
           required: [alt]
-          description: Banner images require localized alt text in both en and ar (UI-02, owner 2026-11-22) -> 422 if missing.
+          description: "Banner images require localized alt text in both en and ar (UI-02, owner 2026-11-22) -> 422 if missing. CR-011 adds the optional `focalX` and `focalY` (0 to 100, both or neither) that set the focal point; sending neither clears it."
+          properties:
+            focalX: { type: number, minimum: 0, maximum: 100 }
+            focalY: { type: number, minimum: 0, maximum: 100 }
     BannerInput:
       type: object
       additionalProperties: false
@@ -2100,6 +2340,46 @@ components:
             properties:
               name: { type: string, minLength: 1, maxLength: 80 }
               quote: { $ref: '#/components/schemas/LocalizedText', description: '<= 500 chars per locale' }
+        look:
+          type: object
+          additionalProperties: false
+          required: [image, hotspots]
+          description: >-
+            SHOP_THE_LOOK only (ADM-15): required for that type, rejected (422) for every other type. In a
+            request `image` is an `ImageAssetInput` (R2 key from the upload flow plus alt text in both locales,
+            UI-02); in a response it is the stored `ImageAsset`. The photo is attached to the section like a banner
+            image and released when the section is deleted or the photo replaced.
+          properties:
+            image: { oneOf: [{ $ref: '#/components/schemas/ImageAssetInput' }, { $ref: '#/components/schemas/ImageAsset' }] }
+            hotspots:
+              type: array
+              minItems: 1
+              maxItems: 4
+              items:
+                type: object
+                additionalProperties: false
+                required: [x, y, productId]
+                properties:
+                  x: { type: number, minimum: 0, maximum: 100, description: Percent from the inline start of the photo }
+                  y: { type: number, minimum: 0, maximum: 100, description: Percent from the top of the photo }
+                  productId: { $ref: '#/components/schemas/ObjectId' }
+    ResolvedLook:
+      type: object
+      required: [image, hotspots]
+      description: Resolved SHOP_THE_LOOK payload on `GET /cms/home` (ADM-15). Hotspots keep the admin's order.
+      properties:
+        image: { $ref: '#/components/schemas/ImageAsset' }
+        hotspots:
+          type: array
+          minItems: 1
+          maxItems: 4
+          items:
+            type: object
+            required: [x, y, product]
+            properties:
+              x: { type: number, minimum: 0, maximum: 100 }
+              y: { type: number, minimum: 0, maximum: 100 }
+              product: { $ref: '#/components/schemas/Product' }
     HomeSectionInput:
       type: object
       required: [type, title]
@@ -2183,20 +2463,24 @@ components:
     SiteSettingInput:
       type: object
       additionalProperties: false
-      required: [expectedUpdatedAt, storeName, contactEmail, contactPhone, deliveryFee, vat, deliveryCities, defaultLocale]
+      required: [expectedUpdatedAt, storeName, deliveryFee, vat, deliveryCities, defaultLocale]
       description: >-
         Body of PUT /admin/settings (full replace, owner 2026-11-22, T-011). `currency` is fixed to SAR and not
         accepted (unknown field -> 422). The logo is an ImageAssetInput (`url` recomputed from `key`). Limits:
-        storeName <= 120, address <= 300 per locale, contactEmail <= 120, contactPhone free text <= 40, social
+        storeName <= 120, address <= 300 per locale, contactEmail <= 120, social
         URLs <= 300, SEO title <= 120 / description <= 300 per locale, city name <= 60 per locale, city code
         <= 40. Duplicate city codes, a missing ar/en city name, no active city or > 100 cities -> 422.
         Delivery-city codes are immutable: every existing code must be present (T-022), see PUT /admin/settings.
+        Contact details are optional (owner 2026-11-24, closes B-033): `contactEmail` and `contactPhone` may be
+        omitted or sent as `""`, which clears them and hides those lines in the storefront footer, so saving VAT,
+        the delivery fee or any other setting never requires contact details. A non-empty value must be valid
+        (email format; a Saudi phone, see SaudiContactPhoneInput) or the request is 422.
       properties:
         expectedUpdatedAt: { type: string, format: date-time, description: The `updatedAt` the admin loaded; mismatch -> 409 STALE_UPDATE }
         storeName: { $ref: '#/components/schemas/LocalizedText' }
         logo: { oneOf: [{ $ref: '#/components/schemas/ImageAssetInput' }, { type: 'null' }] }
-        contactEmail: { type: string, format: email }
-        contactPhone: { type: string, description: Free text; the store may list a landline }
+        contactEmail: { type: string, maxLength: 120, description: 'Optional; `""` clears it. A non-empty value must be a valid email address' }
+        contactPhone: { $ref: '#/components/schemas/SaudiContactPhoneInput' }
         address: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
         socials:
           type: object
@@ -2223,8 +2507,8 @@ components:
         storeName: { $ref: '#/components/schemas/LocalizedText' }
         # logo/address/socials/seo are optional; writers store explicit null (rule 8), so responses carry null, not absence (T-019).
         logo: { oneOf: [{ $ref: '#/components/schemas/ImageAsset' }, { type: 'null' }] }
-        contactEmail: { type: string, format: email }
-        contactPhone: { type: string, description: Free text; the store may list a landline }
+        contactEmail: { type: string, description: 'Email address, or `""` when the store has not published one (the footer then shows no email line)' }
+        contactPhone: { type: string, description: 'Normalized `+966XXXXXXXXX`, or `""` when the store has not published one (the footer then shows no phone line)' }
         address: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
         socials:
           type: [object, 'null']

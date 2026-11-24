@@ -79,6 +79,7 @@ enum SectionType {
   CATEGORY_GRID
   PROMO_BANNER
   TESTIMONIALS
+  SHOP_THE_LOOK // CR-009 / ADM-15: a room photo with 1 to 4 product hotspots (config.look)
 }
 
 // ---------- Composite types ----------
@@ -94,6 +95,9 @@ type ImageAsset {
   alt    LocalizedText?
   width  Int?
   height Int?
+  // CR-011: banner focal point in percent (0 to 100); explicit null or absent = centre
+  focalX Float?
+  focalY Float?
 }
 
 type Dimensions {
@@ -184,6 +188,12 @@ model User {
   avatar            String?
   preferredLocale   Locale         @default(ar)
   invitedById       String?        @db.ObjectId // T-017 audit: the admin who created the invite; explicit null otherwise
+  // CR-011 / ADM-17 (additive, explicit null when unset; "not deleted" filters use notSet, rule 8)
+  blockedReason     String? // admin-only, 3 to 300 chars, never returned to the customer
+  blockedAt         DateTime?
+  blockedById       String?        @db.ObjectId
+  deletedAt         DateTime? // set by the soft delete (anonymised account, orders kept)
+  deletedById       String?        @db.ObjectId
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   addresses         Address[]
@@ -191,6 +201,7 @@ model User {
   orders            Order[]
   notifications     Notification[]
   cart              Cart?
+  wishlist          Wishlist?
 }
 
 // Registration data bound to a VERIFY_EMAIL OTP; applied to the User only when that OTP is verified.
@@ -437,4 +448,15 @@ model Counter {
   id   String @id @default(auto()) @map("_id") @db.ObjectId
   name String @unique
   seq  Int    @default(0)
+}
+
+// FAV-01 (CR-007, T-031): one favourites list per customer, created lazily. Writes are conditional on
+// (userId, version) like Cart; ids of deleted/unpublished products are filtered at read, pruned on write.
+model Wishlist {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @unique @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productIds String[] @db.ObjectId
+  version    Int      @default(0)
+  updatedAt  DateTime @updatedAt
 }

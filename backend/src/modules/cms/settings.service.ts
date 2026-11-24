@@ -124,8 +124,9 @@ export async function update(
         data: {
           storeName: body.storeName,
           logo,
-          contactEmail: body.contactEmail,
-          contactPhone: body.contactPhone,
+          // Optional since 2026-11-24 (B-033): absent clears them, like the other optional fields.
+          contactEmail: body.contactEmail ?? '',
+          contactPhone: body.contactPhone ?? '',
           address: body.address ?? null,
           socials: jsonOrNull(body.socials),
           deliveryFee: body.deliveryFee,

@@ -1,11 +1,525 @@
 {
-  "home": { "brand": "Furnixa", "tagline": "Warm, crafted furniture — new and pre-owned.", "intro": "A well-lit showroom of natural wood, linen and clay. Shop new pieces or give quality furniture a second life." },
-  "lang": { "label": "Language", "en": "English", "ar": "العربية" },
-  "nav": { "shop": "Shop", "new": "New", "resale": "Pre-owned", "categories": "Categories", "search": "Search furniture…", "cart": "Cart", "account": "Account", "notifications": "Notifications" },
-  "badge": { "new": "New", "preowned": "Pre-owned · {grade}", "featured": "Featured", "soldOut": "Sold out" },
-  "condition": { "NEW": "New", "LIKE_NEW": "Like new", "GOOD": "Good", "FAIR": "Fair" },
-  "cart": { "addToCart": "Add to cart", "subtotal": "Subtotal", "delivery": "Delivery", "total": "Total", "checkout": "Checkout", "freeDeliveryIn": "Add {amount} more for free delivery" },
-  "checkout": { "payment": "Payment", "cod": "Cash on Delivery", "codInfo": "Pay in cash when your furniture arrives.", "placeOrder": "Place order" },
-  "auth": { "login": "Log in", "register": "Create account", "verifyTitle": "Verify your email", "otpSent": "We sent a 6-digit code to {email}", "resendIn": "Resend in {seconds}s", "resend": "Resend code", "forgot": "Forgot password?" },
-  "orderStatus": { "PENDING": "Pending", "CONFIRMED": "Confirmed", "PROCESSING": "Processing", "OUT_FOR_DELIVERY": "Out for delivery", "DELIVERED": "Delivered", "CANCELLED": "Cancelled" }
+  "home": {
+    "brand": "Furnixa",
+    "viewAll": "View all",
+    "hero": {
+      "shopNew": "Shop new"
+    },
+    "carousel": {
+      "label": "Featured collections",
+      "slide": "Slide {n} of {total}",
+      "previous": "Previous slide",
+      "next": "Next slide",
+      "pause": "Pause slideshow",
+      "play": "Play slideshow",
+      "goTo": "Go to slide {n}",
+      "s1": {
+        "title": "New furniture for every room",
+        "line": "Sofas, beds and tables, delivered to your door.",
+        "cta": "Shop new",
+        "cta2": "Browse rooms"
+      },
+      "s2": {
+        "title": "Pre-owned, for less",
+        "line": "Pieces with a clear condition grade, photographed and described.",
+        "cta": "Shop pre-owned",
+        "cta2": "How pre-owned works"
+      },
+      "s3": {
+        "title": "Pay when it arrives",
+        "line": "{count, plural, one {Cash on delivery in # Saudi city.} other {Cash on delivery in # Saudi cities.}}",
+        "cta": "See how it works"
+      }
+    },
+    "rail": {
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "categories": {
+      "title": "Shop by category",
+      "viewAll": "View all categories",
+      "count": "{count, plural, one {# product} other {# products}}"
+    },
+    "resale": {
+      "title": "How pre-owned works",
+      "subtitle": "Quality furniture, given a second life, in three steps.",
+      "step": "Step {n}",
+      "steps": {
+        "browse": {
+          "title": "We photograph it",
+          "body": "Every piece gets its own photos."
+        },
+        "grade": {
+          "title": "We grade it",
+          "body": "Each piece is marked new, like new, good or fair, with notes."
+        },
+        "deliver": {
+          "title": "You pay when it arrives",
+          "body": "Order online and pay in cash on delivery."
+        }
+      }
+    },
+    "shelf": {
+      "title": "New and pre-owned furniture",
+      "seeAllNew": "See all new",
+      "seeAllResale": "See all pre-owned"
+    },
+    "look": {
+      "title": "Shop the look",
+      "hint": "Tap the dots to see what is in the room.",
+      "hotspot": "Show {name}"
+    },
+    "trust": {
+      "cod": "Pay in cash when it arrives",
+      "cities": "We deliver to {cities}",
+      "freeDelivery": "Free delivery over {amount}"
+    }
+  },
+  "lang": {
+    "label": "Language",
+    "en": "English",
+    "ar": "العربية"
+  },
+  "nav": {
+    "shop": "Shop",
+    "new": "New",
+    "resale": "Pre-owned",
+    "categories": "Categories",
+    "search": "Search furniture…",
+    "cart": "Cart",
+    "account": "Account",
+    "notifications": "Notifications",
+    "login": "Log in",
+    "logout": "Log out",
+    "menu": "Menu",
+    "skip": "Skip to main content",
+    "close": "Close",
+    "main": "Main navigation",
+    "searchLabel": "Search",
+    "notificationsBadge": "Notifications, {count, plural, one {# unread} other {# unread}}"
+  },
+  "badge": {
+    "new": "New",
+    "preowned": "Pre-owned · {grade}",
+    "featured": "Featured",
+    "soldOut": "Sold out"
+  },
+  "condition": {
+    "NEW": "New",
+    "LIKE_NEW": "Like new",
+    "GOOD": "Good",
+    "FAIR": "Fair"
+  },
+  "cart": {
+    "addToCart": "Add to cart",
+    "subtotal": "Subtotal",
+    "delivery": "Delivery",
+    "total": "Total",
+    "checkout": "Checkout",
+    "freeDeliveryIn": "Add {amount} more for free delivery",
+    "title": "Your cart",
+    "empty": "Your cart is empty.",
+    "continueShopping": "Continue shopping",
+    "viewCart": "View cart",
+    "close": "Close cart",
+    "loading": "Loading your cart...",
+    "loadError": "We could not load your cart.",
+    "retry": "Try again",
+    "mergeError": "We could not move your cart to your account yet. Your items are safe on this device.",
+    "itemsCount": "{count, plural, one {# item} other {# items}}",
+    "badgeLabel": "Cart, {count, plural, one {# item} other {# items}}",
+    "remove": "Remove {title}",
+    "lineTotal": "Line total",
+    "added": "Added to cart",
+    "freeDelivery": "Free delivery",
+    "deliveryNote": "Delivery fee is confirmed at checkout",
+    "guestNote": "Delivery fee and VAT are shown once you log in.",
+    "vatIncluded": "Includes VAT ({rate}%)",
+    "vatAdded": "VAT ({rate}%)",
+    "freeDeliveryReached": "You have free delivery",
+    "loginToCheckout": "Log in to checkout",
+    "notDeliverable": "We don't deliver to this city",
+    "issue": {
+      "UNAVAILABLE": "No longer available",
+      "OUT_OF_STOCK": "Out of stock",
+      "QTY_REDUCED": "Quantity reduced to the available stock",
+      "PRICE_CHANGED": "Price changed from {oldPrice} to {newPrice}"
+    },
+    "removed": "{title} removed",
+    "undo": "Undo",
+    "stockLimit": "Only {stock} available — you already have {inCart} in your cart."
+  },
+  "checkout": {
+    "title": "Checkout",
+    "payment": "Payment",
+    "cod": "Cash on Delivery",
+    "codInfo": "Pay in cash when your furniture arrives.",
+    "placeOrder": "Place order",
+    "placing": "Placing your order...",
+    "stepAddress": "1. Delivery address",
+    "stepReview": "2. Review your items",
+    "stepPayment": "3. Payment",
+    "addAddress": "Add a new address",
+    "newAddress": "New address",
+    "noAddress": "Add a delivery address to continue.",
+    "addressList": "Delivery addresses",
+    "notDeliverableBadge": "Not deliverable",
+    "notDeliverableHint": "Edit this address and pick an active city to use it.",
+    "defaultBadge": "Default",
+    "cityPlaceholder": "Select a city",
+    "phonePrefix": "+966",
+    "form": {
+      "label": "Label (e.g. Home)",
+      "fullName": "Full name",
+      "phone": "Mobile number",
+      "city": "City",
+      "area": "Area",
+      "street": "Street",
+      "notes": "Notes (optional)",
+      "save": "Save address",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "makeDefault": "Set as default address"
+    },
+    "validation": {
+      "required": "This field is required.",
+      "phone": "Enter a valid Saudi mobile number (05XXXXXXXX).",
+      "tooLong": "This is too long."
+    },
+    "totalsUpdated": "Totals were updated. Please review them before placing your order.",
+    "lineOnlyLeft": "Only {stock} left in stock",
+    "lineOutOfStock": "Out of stock",
+    "reviewIssue": "Remove or fix the highlighted items in your cart to continue.",
+    "loading": "Loading checkout...",
+    "loadError": "We could not load checkout.",
+    "retry": "Try again",
+    "emptyCart": "Your cart is empty.",
+    "backToCart": "Back to cart",
+    "continueShopping": "Continue shopping",
+    "adminNotice": "Checkout is for customer accounts.",
+    "success": {
+      "title": "Thank you, your order is placed",
+      "orderNo": "Order number",
+      "intro": "We will contact you to arrange delivery. You pay in cash when your order arrives.",
+      "items": "Items",
+      "deliverTo": "Delivering to",
+      "payment": "Payment",
+      "loadError": "We could not load your order details.",
+      "qty": "Qty {qty}"
+    },
+    "rateLimited": "You can place at most 3 orders per hour.",
+    "editAddress": "Edit address"
+  },
+  "auth": {
+    "login": "Log in",
+    "register": "Create account",
+    "verifyTitle": "Verify your email",
+    "otpSent": "We sent a 6-digit code to {email}",
+    "resendIn": "Resend in {seconds}s",
+    "resend": "Resend code",
+    "forgot": "Forgot password?",
+    "loginTitle": "Welcome back",
+    "loginIntro": "Log in to your Furnixa account.",
+    "registerTitle": "Create your account",
+    "registerIntro": "Join Furnixa to order warm, crafted furniture.",
+    "email": "Email",
+    "password": "Password",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "newPassword": "New password",
+    "noAccount": "New to Furnixa?",
+    "haveAccount": "Already have an account?",
+    "backToLogin": "Back to log in",
+    "verifyIntro": "Enter the code to finish signing up.",
+    "verifySubmit": "Verify",
+    "otpGroup": "Verification code",
+    "otpDigit": "Digit {n} of 6",
+    "newCodeSent": "A new code was sent",
+    "codeSentAgain": "We sent you a new code.",
+    "expiredStartOver": "This code expired. Please create your account again.",
+    "forgotTitle": "Reset your password",
+    "forgotIntro": "Enter your email and we will send you a 6-digit code.",
+    "sendCode": "Send code",
+    "resetTitle": "Choose a new password",
+    "resetIntro": "If an account exists for {email}, we sent a 6-digit code.",
+    "resetIntroNoEmail": "Enter your email, the 6-digit code and a new password.",
+    "resetSubmit": "Reset password",
+    "codeInvalidReset": "Invalid or expired code.",
+    "requestNewCode": "Request a new code",
+    "resetDone": "Your password was changed. Log in with your new password.",
+    "submitting": "Please wait…",
+    "validation": {
+      "required": "This field is required.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordWeak": "Your password needs: At least 8 characters, One uppercase letter, One lowercase letter, One number, One special character (e.g. ! @ # $)",
+      "codeIncomplete": "Enter all 6 digits."
+    },
+    "brand": {
+      "line": "{count, plural, one {Cash on delivery in # Saudi city.} other {Cash on delivery in # Saudi cities.}}"
+    },
+    "field": {
+      "show": "Show password",
+      "hide": "Hide password"
+    },
+    "rules": {
+      "title": "Your password needs",
+      "length": "At least {n} characters",
+      "digit": "One number",
+      "upper": "One uppercase letter",
+      "lower": "One lowercase letter",
+      "symbol": "One special character (e.g. ! @ # $)"
+    },
+    "errors": {
+      "summary": "Please fix the highlighted fields."
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "NETWORK_ERROR": "Can't reach the server. Check your connection and try again.",
+    "INVALID_CREDENTIALS": "Incorrect email or password.",
+    "RATE_LIMITED": "Too many attempts.",
+    "ACCOUNT_LOCKED": "This account is temporarily locked.",
+    "ACCOUNT_BLOCKED": "This account is unavailable. Please contact support.",
+    "EMAIL_NOT_VERIFIED": "Please verify your email first.",
+    "UNAUTHORIZED": "Please log in to continue.",
+    "REFRESH_RACE": "Your session is being updated. Please try again.",
+    "CSRF_INVALID": "Your session could not be verified. Please reload the page.",
+    "retrySeconds": "Try again in {seconds, plural, one {# second} other {# seconds}}.",
+    "retryMinutes": "Try again in {minutes, plural, one {# minute} other {# minutes}}.",
+    "OTP_INVALID": "Invalid or expired code.",
+    "OTP_EXPIRED": "This code has expired.",
+    "EMAIL_IN_USE": "This email is already in use.",
+    "OUT_OF_STOCK": "Not enough stock for that quantity.",
+    "CART_LIMIT_REACHED": "Your cart has reached the maximum number of different items.",
+    "CART_CONFLICT": "Your cart changed in another window. Please try again.",
+    "NOT_FOUND": "This product is no longer available.",
+    "PRICE_CHANGED": "Prices or totals changed. Please review the updated totals.",
+    "OUT_OF_DELIVERY_AREA": "We don't deliver to this address's city. Please choose another address.",
+    "CART_EMPTY": "Your cart is empty.",
+    "TOO_MANY_PENDING_ORDERS": "You already have 3 pending orders. Please wait for one to be processed.",
+    "IDEMPOTENCY_MISMATCH": "Your order details changed. Please review and try again.",
+    "CONFLICT": "Stock was updated while placing your order. Please try again.",
+    "VALIDATION_ERROR": "Some details are invalid. Please check and try again.",
+    "ADDRESS_LIMIT_REACHED": "You have reached the maximum of 10 saved addresses.",
+    "INVALID_TRANSITION": "This order can no longer be cancelled because it is already being processed.",
+    "WISHLIST_LIMIT_REACHED": "Your favourites are full (100 products). Remove one to add another.",
+    "WISHLIST_CONFLICT": "Your favourites changed on another device. Please try again.",
+    "PASSWORD_TOO_WEAK": "Your password needs: At least 8 characters, One uppercase letter, One lowercase letter, One number, One special character (e.g. ! @ # $)"
+  },
+  "orderStatus": {
+    "PENDING": "Pending",
+    "CONFIRMED": "Confirmed",
+    "PROCESSING": "Processing",
+    "OUT_FOR_DELIVERY": "Out for delivery",
+    "DELIVERED": "Delivered",
+    "CANCELLED": "Cancelled"
+  },
+  "footer": {
+    "about": "Warm, crafted furniture — new and pre-owned.",
+    "contact": "Contact",
+    "social": "Social media",
+    "explore": "Explore",
+    "cities": "Cities we deliver to",
+    "cod": "You pay in cash when your order arrives. No card needed.",
+    "socials": {
+      "facebook": "Facebook",
+      "instagram": "Instagram",
+      "whatsapp": "WhatsApp",
+      "tiktok": "TikTok"
+    }
+  },
+  "shop": {
+    "title": "Shop",
+    "filters": "Filters",
+    "close": "Close",
+    "apply": "Apply filters",
+    "clearFilters": "Clear filters",
+    "category": "Category",
+    "allCategories": "All categories",
+    "condition": "Condition",
+    "priceRange": "Price range (SAR)",
+    "minPrice": "Min",
+    "maxPrice": "Max",
+    "material": "Material",
+    "inStock": "In stock only",
+    "type": {
+      "label": "Type",
+      "all": "All",
+      "new": "New",
+      "resale": "Pre-owned"
+    },
+    "sort": {
+      "label": "Sort by",
+      "newest": "Newest",
+      "price_asc": "Price: low to high",
+      "price_desc": "Price: high to low",
+      "featured": "Featured"
+    },
+    "count": "{count, plural, =0 {No products} one {1 product} other {{formatted} products}}",
+    "activeFilters": "Active filters",
+    "removeFilter": "Remove filter",
+    "chip": {
+      "q": "Search: {q}",
+      "min": "From",
+      "max": "Up to"
+    },
+    "empty": {
+      "title": "No products found",
+      "body": "Try changing or clearing your filters."
+    },
+    "loadError": "We could not load products right now. Please try again shortly.",
+    "pagination": "Pagination",
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "goToPage": "Go to page {n}",
+    "priceRangeError": "Min price can't be greater than max price."
+  },
+  "product": {
+    "loadError": "We could not load this product right now. Please try again shortly.",
+    "gallery": {
+      "label": "Product images",
+      "noImage": "No image available",
+      "prev": "Previous image",
+      "next": "Next image",
+      "thumbs": "Choose image",
+      "thumb": "Show image {n} of {total}",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out"
+    },
+    "saving": "You save {amount}",
+    "vatIncl": "Incl. VAT",
+    "vatExcl": "+ VAT",
+    "stock": {
+      "in": "In stock",
+      "only": "{count, plural, one {Only 1 left} other {Only {formatted} left}}"
+    },
+    "quantity": "Quantity",
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity",
+    "cartSoon": "Adding to cart is coming soon.",
+    "condition": {
+      "title": "Condition report",
+      "grade": "Grade",
+      "scale": "Condition grade scale",
+      "notes": "Our notes",
+      "closeups": "Close-ups",
+      "byline": "Photos and condition notes by Furnixa",
+      "grades": {
+        "NEW": "Unused, in its original condition.",
+        "LIKE_NEW": "Used a few times, no marks we could find.",
+        "GOOD": "Used, with light signs of wear.",
+        "FAIR": "Used, with clear signs of wear. Read our notes for the details."
+      }
+    },
+    "specs": {
+      "title": "Specifications",
+      "sku": "SKU",
+      "category": "Category",
+      "material": "Material",
+      "color": "Colour",
+      "dimensions": "Dimensions (W × D × H)",
+      "dimensionsValue": "{w} × {d} × {h} cm",
+      "weight": "Weight",
+      "weightValue": "{value} kg"
+    },
+    "description": "Description",
+    "delivery": {
+      "title": "Delivery",
+      "body": "Delivery to selected Saudi cities.",
+      "cod": "Pay with cash on delivery."
+    },
+    "related": "You may also like",
+    "relatedLabel": "Related products",
+    "breadcrumb": {
+      "label": "Breadcrumb",
+      "home": "Home"
+    },
+    "buyBar": "Add to cart bar"
+  },
+  "account": {
+    "title": "My account",
+    "loading": "Loading your account...",
+    "adminNotice": "The account area is for customer accounts.",
+    "tabs": {
+      "profile": "Profile",
+      "addresses": "Addresses",
+      "orders": "Orders",
+      "notifications": "Notifications"
+    },
+    "profile": {
+      "title": "Profile",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "emailHint": "Email cannot be changed here.",
+      "phone": "Mobile number",
+      "language": "Preferred language",
+      "languageAr": "العربية",
+      "languageEn": "English",
+      "save": "Save changes",
+      "saved": "Your profile was saved."
+    },
+    "addresses": {
+      "title": "Address book",
+      "empty": "You have no saved addresses yet.",
+      "edit": "Edit",
+      "delete": "Delete",
+      "confirmDelete": "Yes, delete",
+      "makeDefault": "Make default",
+      "loadError": "We could not load your addresses."
+    },
+    "orders": {
+      "title": "My orders",
+      "empty": "You have not placed any orders yet.",
+      "itemsCount": "{count, plural, one {# item} other {# items}}",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {total}",
+      "loadError": "We could not load your orders.",
+      "notFound": "We could not find this order.",
+      "back": "Back to my orders",
+      "orderNo": "Order",
+      "timeline": "Order status",
+      "cancel": "Cancel order",
+      "cancelConfirm": "Cancel this order? This cannot be undone.",
+      "cancelYes": "Yes, cancel order",
+      "cancelNo": "Keep order",
+      "viewOrder": "View order",
+      "viewOrders": "My orders"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "You have no notifications yet.",
+    "unread": "Unread",
+    "loadError": "We could not load your notifications.",
+    "actionError": "We could not update your notifications. Please try again.",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}",
+    "grouped": "{count} new notifications",
+    "dismiss": "Dismiss"
+  },
+  "pages": {
+    "loadError": "We couldn't load this page. Please try again shortly.",
+    "notFound": {
+      "title": "Page not found",
+      "body": "The page you are looking for does not exist or has moved.",
+      "home": "Back to home"
+    }
+  },
+  "favourites": {
+    "add": "Add to favourites",
+    "remove": "Remove from favourites",
+    "title": "Favourites",
+    "linkLabel": "Favourites ({count})",
+    "mergeFailed": "We could not add the favourites saved in this browser to your account.",
+    "retry": "Try again",
+    "full": "Your favourites are full (100 products). Remove one to add another.",
+    "loading": "Loading your favourites…",
+    "emptyTitle": "No favourites yet",
+    "emptyText": "Tap the heart on a product to save it here.",
+    "browse": "Browse the shop"
+  }
 }

@@ -94,7 +94,7 @@ export const listSections: RequestHandler = async (_req, res) => {
 };
 
 export const createSection: RequestHandler = async (req, res) => {
-  const section = await sections.create(req.body as CreateSectionBody);
+  const section = await sections.create(req.body as CreateSectionBody, ctx(req));
   await finishAfterCommit(
     () => revalidateTags(HOME_TAGS, ctx(req)),
     () => res.status(201).json(section),
@@ -102,15 +102,33 @@ export const createSection: RequestHandler = async (req, res) => {
 };
 
 export const updateSection: RequestHandler = async (req, res) => {
-  const section = await sections.update(idParam(req), req.body as UpdateSectionBody);
+  const { section, release } = await sections.update(
+    idParam(req),
+    req.body as UpdateSectionBody,
+    ctx(req),
+  );
   await finishAfterCommit(
-    () => revalidateTags(HOME_TAGS, ctx(req)),
+    async () => {
+      await release();
+      await revalidateTags(HOME_TAGS, ctx(req));
+    },
     () => res.status(200).json(section),
   );
 };
 
 export const removeSection: RequestHandler = async (req, res) => {
-  await sections.remove(idParam(req));
+  const { release } = await sections.remove(idParam(req), ctx(req));
+  await finishAfterCommit(
+    async () => {
+      await release();
+      await revalidateTags(HOME_TAGS, ctx(req));
+    },
+    () => res.status(204).end(),
+  );
+};
+
+export const reorderBanners: RequestHandler = async (req, res) => {
+  await banners.reorder((req.body as ReorderBody).ids);
   await finishAfterCommit(
     () => revalidateTags(HOME_TAGS, ctx(req)),
     () => res.status(204).end(),

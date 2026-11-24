@@ -7,6 +7,9 @@ import { getEnv } from '../config/env.js';
  * javascript:, data:, http:, "//host", "/\host" — is rejected. Used by banner `ctaHref` and page links.
  */
 export function isSafeHref(href: string): boolean {
+  // Browsers drop tab/newline inside URLs ("/<TAB>/host" becomes "//host"): reject control chars anywhere.
+  // eslint-disable-next-line no-control-regex -- control chars are exactly what is rejected here
+  if (/[\u0000-\u001f\u007f]/.test(href)) return false;
   if (/^\/(?![/\\])/.test(href)) return true;
   return /^https:\/\//i.test(href);
 }

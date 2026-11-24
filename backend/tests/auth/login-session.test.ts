@@ -31,7 +31,7 @@ const app = createApp();
 const sendMail = vi.fn().mockResolvedValue({});
 const env = getEnv();
 
-const PASSWORD = 'Passw0rdOne';
+const PASSWORD = 'Passw0rdOne!';
 const WRONG = 'Wr0ngPassword';
 const EMAIL = 'user@example.com';
 let passwordHash = '';

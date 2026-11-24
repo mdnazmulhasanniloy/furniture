@@ -15,7 +15,7 @@ A bilingual (Arabic default / English) online store for **Saudi Arabia** that se
 
 ## 3. Non-goals (MVP)
 
-Payment gateway, Redis/Kafka/queues, multi-vendor marketplace, mobile app, SMS OTP, reviews/ratings, wishlist, coupons, multi-currency, live chat, customer "Sell to us" / resale submissions (SRC-002.1), delivery outside Saudi Arabia or to cities not enabled in Site Settings (SRC-003.2). (SRC-001.9, SRC-001.11)
+Payment gateway, Redis/Kafka/queues, multi-vendor marketplace, mobile app, SMS OTP, reviews/ratings, coupons, newsletter sign-up (separate future CR, CR-007 Q-6), multi-currency, live chat, customer "Sell to us" / resale submissions (SRC-002.1), delivery outside Saudi Arabia or to cities not enabled in Site Settings (SRC-003.2). (SRC-001.9, SRC-001.11)
 
 ## 4. Roles
 
@@ -46,7 +46,8 @@ As a visitor, I want to sign up with first name, last name, email and password a
 
 **AUTH-03 Forgot / reset password via OTP** · draft
 - Given a registered email, When I request reset, Then an OTP (purpose `RESET_PASSWORD`) is emailed; the response is identical for unknown emails.
-- Given a valid OTP and new password (min 8 chars, 1 letter + 1 number), When I submit, Then the password is changed, all refresh tokens are revoked and access tokens issued before the reset stop working; I am not logged in by the reset and must log in.
+- Given a valid OTP and a new password that meets the password policy, When I submit, Then the password is changed, all refresh tokens are revoked and access tokens issued before the reset stop working; I am not logged in by the reset and must log in.
+- **Password policy (owner 2026-11-24), the same everywhere a password is chosen** — register, reset, admin accept-invite and the admin seed: at least 8 characters (at most 128, the API limit) with at least one uppercase letter, one lowercase letter, one digit and one special character (anything that is not a letter, a digit or a space). Reference: `^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d\s]).{8,}$`. One definition is shared by the API, the storefront and the admin (`passwordPolicy.ts`, copied per app because the three deploy separately, with a test in each app that fails if a copy drifts). A password that breaks it is **400 `PASSWORD_TOO_WEAK`** with `details.rules` naming each unmet rule, checked **before** the OTP so the code stays usable. **Login is never checked against the policy**, so older passwords keep working. Both storefront and admin show the five rules as a live checklist and block submit until all five are met.
 - Given a successful reset, Then a "Your password was changed" email (no code, no password) is sent in my `preferredLocale` (en/ar), telling me to contact support if it was not me. *(Source: owner decision 2026-11-21.)*
 
 **AUTH-04 Resend OTP** · draft
@@ -62,6 +63,8 @@ As a visitor, I want to sign up with first name, last name, email and password a
 - Given a CUSTOMER token, When calling any `/api/v1/admin/*` route, Then 403.
 - Given no token, When opening the admin app, Then I am redirected to admin login.
 - Admin accounts are created by seed script or by another admin; no public admin signup.
+
+Visual redesign (CR-007, SRC-008.11): the register, login and OTP screens use a split layout (lifestyle image panel, emerald panel with a gold accent line), inline validation and an animated 6-box OTP with a resend countdown, mirrored in RTL. Behaviour of AUTH-01..04 is unchanged.
 
 ### 5.2 Profile (PROF)
 
@@ -82,6 +85,7 @@ As a visitor, I want to sign up with first name, last name, email and password a
 - Search by name/description in the active locale.
 - Paginated (24 per page), URL reflects filters (shareable).
 - Given a resale product, Then its card shows a "Pre-owned · {grade}" badge; new products show a "New" badge.
+- Card (CR-007, SRC-008.7): 4:5 image with a second-image crossfade on hover, type/condition badge, animated heart favourite toggle (FAV-01), title in 2 lines, price in the price colour, quick "Add to cart" button; Given stock is 0, Then the button is disabled and reads "Sold out".
 
 **PROD-02 Product detail** · draft
 - Image gallery (zoom on desktop, swipe on mobile), localized title/description, price, compare-at price (optional), condition + condition notes (resale), dimensions (W×D×H cm), material, colour, stock status, delivery note ("Delivery to selected Saudi cities").
@@ -96,6 +100,7 @@ As a visitor, I want to sign up with first name, last name, email and password a
 - Quantity cannot exceed stock; resale items max qty = stock (usually 1).
 - Cart shows subtotal, delivery fee, VAT line (only when `vatRate` > 0), total, all in SAR. Fee and VAT come from admin settings (ADM-14, ADR-009) and default to 0.
 - Given the resolved delivery fee is 0, Then the cart, checkout and order show "Free delivery". Given `vatRate` is 0, Then no VAT line is shown on the cart, checkout, order or invoice.
+- Cart drawer and page (CR-007, SRC-008.13): line thumbnail, quantity stepper, remove with an undo toast (undo re-adds the line), free-delivery progress bar in gold (only when a threshold is set), clear totals, sticky checkout button on mobile.
 - Given a delivery address is selected, Then the fee uses that city's override if set, else the base `deliveryFee`, else 0; Given no address yet, Then the base fee is shown and checkout recalculates once the address is chosen. Given a free-delivery threshold is set and the subtotal reaches it, Then the fee is 0.
 
 **ORD-01 Checkout (COD)** · draft
@@ -135,8 +140,24 @@ Order status flow (owner 2026-11-22, T-014): `PENDING → CONFIRMED → PROCESSI
 
 ### 5.7 UI quality (UI) — SRC-001.5, .7, .8, .12
 
-**UI-01 Look & motion** · draft — Follows `03-design/design-system.md`. Framer Motion for component/page transitions, GSAP for the home hero/scroll storytelling, AOS for simple scroll reveals. `prefers-reduced-motion` disables non-essential animation.
-**UI-02 Responsive & accessible** · draft — 360 px to 1920 px; WCAG 2.1 AA colour contrast; keyboard navigable; images have localized alt text.
+**UI-01 Look & motion** · draft — "Emerald and gold" on white (`03-design/design-system.md`, ADR-014). Motion is restrained (CR-011, UI-04): hero carousel crossfade, slow image zoom and hover zoom only, nothing on scroll; the cart drawer and add-to-cart toast keep their short transitions. `prefers-reduced-motion` disables autoplay, zoom and non-essential animation, and every animation mirrors in RTL. Headings in Bodoni Moda / El Messiri (UI-04; Fraunces and Noto Kufi Arabic were the earlier choice); radius and shadow tokens only; no hex values in components.
+**UI-02 Responsive & accessible** · draft — 360 px to 1920 px; WCAG 2.1 AA colour contrast, enforced by an automated test on the design tokens (body, muted text, price, every button and badge text, light and dark; ≥ 4.5:1, graphics ≥ 3:1); keyboard navigable; images have localized alt text.
+
+**UI-03 Selectable theme (storefront)** · draft (SRC-011, CR-010, ADR-017) — The storefront applies the theme chosen in Settings → Appearance as CSS variables on `<html>`, on the server (no flash of the default theme).
+- Given an admin applied a preset, When a visitor opens any page after the cache window (immediately once the revalidation route exists), Then the page uses that preset's colours.
+- Given no theme is stored or the stored id is unknown, Then the default (Emerald) applies.
+- Given the settings API is unreachable, Then the CSS defaults (Emerald) apply.
+- Every preset passes the AA gate (text 4.5:1; focus ring, field border, free-delivery graphic and footer hairline 3:1). Ink, paper and the status colours never change with the theme.
+
+**UI-04 Soft luxury system** · draft (SRC-012, CR-011, ADR-018) — Typography, tokens, hero carousel, category bento, auth split screen; applied to every storefront page (checkpoint 2).
+- Headings Bodoni Moda (en) / El Messiri (ar) at weight 600 or 700, body IBM Plex Sans / IBM Plex Sans Arabic 16 to 17 px; each locale downloads only its own fonts.
+- Colours only from theme tokens (primary, blush, champagne; champagne is decorative, never text); every preset passes the AA gate on every new surface.
+- Container up to 1440 px, full-bleed bands, no empty gaps, image corners 4 to 8 px, no native scrollbars on rails (arrow buttons and keyboard kept). The arch is removed from the whole storefront.
+- Given the home page, Then a full-bleed carousel (85vh desktop, 70vh mobile, min 480 px) shows the active banners, or three static slides when there are none; Given autoplay, Then there is a visible pause button, hover and focus pause it, and reduced motion means no autoplay and no zoom (WCAG 2.2.2).
+- Given the categories band, Then an editorial grid shows up to five categories (one large and four small on desktop, two columns on tablet and mobile) with no horizontal scrollbar.
+- Given any auth page, Then desktop shows a photo side and a form side (mirrored in RTL) and mobile a 28vh banner; floating labels, show/hide password, live password rules (only rules the API enforces), six-box OTP with paste and a resend timer, field-level errors.
+- LCP and CLS stay within the CR-009 budget (mobile LCP <= 1505 ms en / 1580 ms ar, desktop <= 400 ms, CLS <= 0.042 mobile / 0.01 desktop, transfer <= +15%).
+- Photos are placeholders until final photography is owner-supplied or commercially licensed (blocker B-038).
 
 ### 5.8 Resale (RESALE)
 
@@ -147,17 +168,17 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 ### 5.9 Admin dashboard (ADM) — SRC-001.4, .5
 
 **ADM-01 Overview** · draft — Cards: today's orders, pending orders, revenue (delivered, this month), low-stock count; chart of orders per day (30 days); latest 5 orders.
-**ADM-02 Products** · draft — Table with search/filter/pagination; create/edit with localized fields, type NEW/RESALE, condition, price, compare-at price, stock, SKU, dimensions, material, colour, category, up to 8 images (drag to reorder; uploaded straight to Cloudflare R2 with presigned URLs, ADR-010; removing an image or deleting the product deletes the R2 object, and a failed delete is logged without failing the request), `isFeatured`, `status` (DRAFT/PUBLISHED/ARCHIVED). Soft delete (archive) if the product is in any order.
+**ADM-02 Products** · draft — Table with search/filter/pagination; create/edit with localized fields, type NEW/RESALE, condition, price, compare-at price, stock, SKU, dimensions, material, colour, category, up to 8 images (drag to reorder; uploaded straight to Cloudflare R2 with presigned URLs, ADR-010; removing an image or deleting the product deletes the R2 object, and a failed delete is logged without failing the request), `isFeatured`, `status` (DRAFT/PUBLISHED/ARCHIVED). Soft delete (archive) if the product is in any order. Admins type prices in SAR with up to 2 decimals; the UI converts to integer halalas by exact decimal parsing and rejects more than 2 decimals (B-031, 2026-11-24).
 **ADM-03 Categories** · draft — CRUD, image, parent, sort order, active toggle; cannot delete a category with products.
 **ADM-04 Orders** · draft — Filter by status/date/search; detail view; change status following the flow (invalid transitions rejected); internal note; printable invoice showing the VAT breakdown and the VAT registration number when set (ADM-14); ZATCA e-invoicing compliance (QR code, e-invoice format) pending B-013.
 - Owner 2026-11-22 (T-014): the full transition matrix is in §5.4 (every non-terminal status can be cancelled; cancel requires an internal reason of 3–500 chars and restores stock). Search matches the order number, the customer email, or — when the query normalises to a Saudi mobile number (NFR-06 rules, incl. Arabic-Indic digits) — the order's snapshot phone. Date filters are inclusive Asia/Riyadh calendar days. Internal notes (`adminNote` and status-event notes) are never shown to customers or included in emails.
-**ADM-05 Customers** · draft — List, view orders of a customer, block/unblock.
-**ADM-06 Hero banners** · draft — CRUD, localized title/subtitle/CTA, desktop + mobile image, link, schedule (start/end), sort, active.
+**ADM-05 Customers** · draft — List (search, status filter, pagination), detail with orders, block/unblock with a required reason (CR-011; see ADM-17).
+**ADM-06 Hero banners** · draft — CRUD, localized title/subtitle/CTA, desktop + mobile image, link, schedule (start/end), sort, active. CR-011: drag reorder (bulk order endpoint), separate editor page with a live hero preview, and a focal point (x/y percent, applied as object-position at every breakpoint); the banners are the slides of the home hero carousel. One button per banner.
 - Owner 2026-11-22 (T-011): banner images require localized alt text in both en and ar (UI-02); the CTA link must be a same-site path or an absolute https URL (protocol-relative, `javascript:`, `data:` and `http:` rejected).
-**ADM-07 Home sections** · draft — Ordered list of sections the home page renders: `FEATURED_PRODUCTS`, `NEW_ARRIVALS`, `RESALE_PICKS`, `CATEGORY_GRID`, `PROMO_BANNER`, `TESTIMONIALS`; each with localized title, visibility, sort order, config (e.g. product ids, limit).
+**ADM-07 Home sections** · draft — (CR-007 Q-7: the hero from banners, "How resale works" and the contact strip are fixed parts of the home page; the sections below stay admin-ordered and hideable.) Ordered list of sections the home page renders: `FEATURED_PRODUCTS`, `NEW_ARRIVALS`, `RESALE_PICKS`, `CATEGORY_GRID`, `PROMO_BANNER`, `TESTIMONIALS`; each with localized title, visibility, sort order, config (e.g. product ids, limit). Admins may create and delete sections (B-032, 2026-11-24).
 **ADM-08 Static pages** · draft — About, Contact, FAQ, Terms, Privacy; rich text per locale; slug; published toggle.
 - Owner 2026-11-22 (T-011): page HTML is sanitised server-side on every write with an allowlist matching the Tiptap editor (ADR-013); a published page needs title and content in both locales, an unpublished one at least one (I18N-02).
-**ADM-09 Site settings** · draft — Store name, logo, contact email/phone/address, social links, delivery fee and VAT (ADM-14), currency (fixed SAR, not editable — ADR-008), delivery cities (ADM-13), default locale (`ar` by default), SEO meta (localized). Contact phone is free text (the store may list a landline).
+**ADM-09 Site settings** · draft — Store name, logo, contact email/phone/address, social links, delivery fee and VAT (ADM-14), currency (fixed SAR, not editable — ADR-008), delivery cities (ADM-13), default locale (`ar` by default), SEO meta (localized). Contact phone accepts Saudi mobile, landline and unified numbers (9200/800), normalised to E.164 +966, with its own validator separate from the customer mobile rule (B-033). Contact email and phone are **optional** (owner 2026-11-24): empty (or absent from the full-replace body) clears them and the storefront footer then shows no email/phone line, so saving VAT, the delivery fee or any other setting never requires contact details; a non-empty value must still be valid (email format, the contact-phone rule above) or the request is 422. Social links must be https on a per-platform host allowlist (instagram.com, facebook.com, x.com, tiktok.com, snapchat.com, wa.me), max 200 characters (B-034).
 **ADM-10 Admin notifications** · draft — Same as NOTIF-02/03 in admin UI.
 **ADM-11 Admin users** · draft — Admin can create another admin (OTP-verified email).
 - Owner 2026-11-22 (T-017): the invitee sets their **own** password — the invite carries only first/last name, email and an optional preferred locale (en|ar, default ar; used for the invite emails). The invite email contains a 6-digit code (valid 48 h), the validity period and a link to the admin accept-invite screen with the email prefilled (the code is never in the URL). The invitee accepts with code + new password and is logged in. Resending an invite invalidates the old code. Admins can block/unblock other admins (never themselves; the last active verified admin can never be blocked), with the same effects as blocking a customer (sessions revoked, live sockets disconnected). The list of admins shows who invited whom.
@@ -180,6 +201,36 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 - Seed: all values at their defaults (0 / empty); no VAT rate is pre-set.
 - Out of scope: ZATCA e-invoicing (B-013), per-product VAT rates or exemptions.
 
+**ADM-15 Shop the look section** · draft (SRC-010, CR-009, ADR-016) — A home section type `SHOP_THE_LOOK`: one room photo with 1 to 4 hotspots, each pointing at a product. The admin editing screen is a follow-up (T-085); until then the section is created through the API and the demo seed.
+- Given a look section is visible, When the home page loads, Then the room photo shows with one hotspot button per product that is still PUBLISHED.
+- Given a hotspot's product is unpublished or deleted, Then that hotspot is not shown; Given no hotspot is left or the photo is missing, Then the section is not shown.
+- Given I use the keyboard or touch, When I activate a hotspot, Then a small product card opens (image, name, price in SAR, Add to cart); Escape closes it and returns focus.
+- The photo needs localized alt text (en and ar, UI-02); the photo is an R2 upload attached to the section and released when the section is deleted or the photo replaced.
+
+**ADM-16 Appearance (theme preset)** · draft (SRC-011, CR-010, ADR-017) — Settings → Appearance.
+- Given I open Appearance, Then I see five preset cards (Emerald, Walnut, Charcoal, Sand, Burgundy), each with a live preview of a product tile, a button and a price; no free colour picker exists.
+- Given I select a card and press Apply, Then the theme is saved (admin only) and I see that visitors get it within the cache window.
+- Given another admin changed settings meanwhile, When I apply, Then I get a conflict message (409 `STALE_UPDATE`) and can reload.
+- Given an unknown theme id is sent, Then the API rejects it with 422 `VALIDATION_ERROR`.
+- Who and when: the settings document records `themeUpdatedById` and `themeUpdatedAt`; one log line records admin id, old and new theme and request id.
+
+**ADM-17 Customer management** · draft (SRC-012, CR-011) — Admin only; applies to CUSTOMER accounts, never to an admin or to oneself.
+- Block needs a reason (3 to 300 chars, admin-only). Blocking revokes refresh tokens, disconnects sockets, and blocks login, refresh, password reset and new orders. The customer sees one generic message, never the reason. Unblock may carry a reason.
+- Update accepts first name, last name and phone (+966 mobile) only; any other field is a 422. The admin never sets or sees passwords; no response contains a hash. Email change is out of scope. Concurrent edit gives 409 `STALE_UPDATE`.
+- Delete is a soft delete. It is refused (409 `CUSTOMER_HAS_OPEN_ORDERS`) when the customer has a PENDING or CONFIRMED order, and the admin must send the customer's exact email (`confirmEmail`). On success, in one transaction: name, email (freed, so the person can register again), phone and avatar are anonymised, addresses, cart, wishlist and notifications are removed, all sessions are revoked and sockets disconnected, the password is replaced by an unusable one. Orders are kept with their address snapshot (sales and VAT record).
+- Targeting an admin or oneself is refused (404 for a non-customer id, 403 `FORBIDDEN_TARGET` for the self or admin case).
+- Who and when are stored on the user for block and delete; one log line per action (`customer.block`, `customer.unblock`, `customer.update`, `customer.delete`) with actor id, target id, action, time and changed field names only; no personal data in logs.
+
+### 5.10 Favourites (FAV) — SRC-008.8–10 (CR-007)
+
+**FAV-01 Favourites** · draft — Customers save products as favourites with a heart toggle on product cards and the product page.
+- Given I am a guest, When I tap a heart, Then the product id is stored in this browser only (localStorage, max 100) and the header heart count updates.
+- Given I log in, When login completes, Then the guest list is merged into my account list (union: existing account items first, then guest items in saved order; cap 100; unpublished or unknown products skipped) and the local list is cleared **only after** the merge succeeded; on failure it stays and a retry is offered.
+- Given I am logged in as a customer, When I toggle a heart, Then the account list changes per product (add and remove are idempotent) and is the same on every device.
+- Given a favourited product is unpublished or deleted, Then it is not shown and not counted.
+- Given my list has 100 items, When I add another, Then I see a localized "favourites full" message.
+- The favourites page lists my favourites as a card grid with remove and an empty state. Favourites on the account are for customers only; an admin session keeps a guest (localStorage) list that is never merged.
+
 ## 6. Non-functional
 
 - NFR-01 Security: helmet, CORS allow-list, zod validation on every input, argon2id password hashing (cost from env), OTPs stored hashed, login lockout, session cap, CSRF protection for cookie requests, rate limit on auth routes (MongoDB-backed store, ADR-012), no secrets in repo (ADR-011).
@@ -193,4 +244,4 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 
 ## 7. Release criteria (MVP)
 
-All `draft`→`approved` requirements implemented with passing tests (see `05-delivery/test-plan.md`), en/ar parity check passed, client UAT sign-off.
+All `draft`→`approved` requirements implemented with passing tests (see `05-delivery/test-plan.md`), en/ar parity check passed, client UAT sign-off. The design-token AA contrast test (UI-02) is green.

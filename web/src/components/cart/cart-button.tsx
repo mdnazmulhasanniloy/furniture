@@ -1,0 +1,157 @@
+"use client";
+
+import { AnimatePresence, motion } from "framer-motion";
+import { ShoppingBag, X } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+
+import { CartContents } from "@/components/cart/cart-contents";
+import { Button } from "@/components/ui/button";
+import { Link } from "@/i18n/navigation";
+import type { Locale } from "@/i18n/routing";
+import { useAuthStore } from "@/lib/auth/store";
+import { cartCount, closeDrawer, openDrawer, setCartConfig, useCartStore } from "@/lib/cart/store";
+import type { CartConfig } from "@/lib/cart/types";
+import { formatNumber } from "@/lib/format";
+import { useDialogA11y } from "@/lib/use-dialog-a11y";
+import { useMotionPrefs } from "@/lib/use-motion-prefs";
+
+/** Header cart link (still a real link to /cart) with a count badge; click opens the drawer. */
+export function CartButton({ config }: { config?: CartConfig }) {
+  const t = useTranslations();
+  const locale = useLocale() as Locale;
+  const status = useAuthStore((s) => s.status);
+  const user = useAuthStore((s) => s.user);
+  const server = status === "authenticated" && user?.role === "CUSTOMER";
+  const count = useCartStore((s) => cartCount(s, server));
+  const open = useCartStore((s) => s.drawerOpen);
+  const addedTick = useCartStore((s) => s.addedTick);
+  const [initialTick] = useState(addedTick);
+  const stockLimit = useCartStore((s) => s.stockLimit);
+  const [initialLimitTick] = useState(stockLimit.tick);
+  const trigger = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    if (config) setCartConfig(config);
+  }, [config]);
+
+  // Add-to-cart feedback (CR-007): a toast with a "View cart" action next to the fly-to-cart animation.
+  useEffect(() => {
+    if (addedTick === initialTick) return;
+    toast.success(t("cart.added"), {
+      id: "cart-added",
+      action: { label: t("cart.viewCart"), onClick: () => openDrawer() },
+    });
+  }, [addedTick, initialTick, t]);
+
+  // Nothing was added because the cart already holds the available stock (QA 2026-11-24 item 3).
+  useEffect(() => {
+    if (stockLimit.tick === initialLimitTick) return;
+    toast.error(
+      t("cart.stockLimit", {
+        stock: formatNumber(stockLimit.stock, locale),
+        inCart: formatNumber(stockLimit.inCart, locale),
+      }),
+      { id: "cart-stock-limit" },
+    );
+  }, [stockLimit, initialLimitTick, t, locale]);
+
+  return (
+    <>
+      <Button asChild variant="ghost" size="icon" data-testid="cart-link" className="relative">
+        <Link
+          ref={trigger}
+          href="/cart"
+          aria-label={t("nav.cart")}
+          aria-haspopup="dialog"
+          onClick={(e) => {
+            if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+            e.preventDefault();
+            openDrawer();
+          }}
+        >
+          <ShoppingBag aria-hidden />
+          {count > 0 ? (
+            <span
+              data-testid="cart-count"
+              className="absolute -end-1 -top-1 min-w-4 rounded-full bg-primary px-1 text-center text-[10px] font-semibold leading-4 text-primary-foreground"
+            >
+              <span aria-hidden>{count > 99 ? "99+" : count}</span>
+              <span className="sr-only">{t("cart.badgeLabel", { count })}</span>
+            </span>
+          ) : null}
+        </Link>
+      </Button>
+      <span role="status" aria-live="polite" className="sr-only">
+        {addedTick !== initialTick ? t("cart.added") : ""}
+      </span>
+      <AnimatePresence>
+        {open ? (
+          <Drawer
+            key="cart-drawer"
+            onClose={() => {
+              closeDrawer();
+              trigger.current?.focus();
+            }}
+          />
+        ) : null}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function Drawer({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("cart");
+  const { reduced, rtl } = useMotionPrefs();
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(true, panelRef);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onCloseRef.current();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+  return (
+    <motion.div
+      className="fixed inset-0 z-50"
+      data-testid="cart-drawer"
+      initial={reduced ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={reduced ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <button
+        type="button"
+        aria-label={t("close")}
+        tabIndex={-1}
+        className="absolute inset-0 bg-foreground/40"
+        onClick={onClose}
+      />
+      <motion.div
+        ref={panelRef}
+        // The panel slides in from the end side: right in LTR, left in RTL.
+        initial={reduced ? false : { x: rtl ? "-100%" : "100%" }}
+        animate={{ x: 0 }}
+        exit={reduced ? { x: 0 } : { x: rtl ? "-100%" : "100%" }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cart-drawer-title"
+        className="absolute inset-y-0 end-0 flex w-96 max-w-[90vw] flex-col gap-3 bg-background p-4 shadow-float"
+      >
+        <div className="flex justify-end">
+          <Button ref={closeRef} variant="ghost" size="icon" aria-label={t("close")} onClick={onClose}>
+            <X aria-hidden />
+          </Button>
+        </div>
+        <CartContents variant="drawer" onNavigate={onClose} />
+      </motion.div>
+    </motion.div>
+  );
+}

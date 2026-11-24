@@ -124,7 +124,7 @@ beforeAll(async () => {
     env: { ...process.env },
     stdio: 'pipe',
   });
-  hash = await hashPassword('Passw0rdOne');
+  hash = await hashPassword('Passw0rdOne!');
   // Silence the ORD-04 consumers: a real transport is never configured in tests.
   setTransport(nodemailer.createTransport({ jsonTransport: true }));
 });

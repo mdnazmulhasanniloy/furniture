@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   DeleteObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -116,18 +117,23 @@ export interface ImageAsset {
   width?: number;
   height?: number;
   alt?: { en: string; ar: string };
+  /** Banner focal point in percent (CR-011); both or neither. */
+  focalX?: number;
+  focalY?: number;
 }
 
 /** The server always recomputes `url` from `key`; a key outside `furnixa/{env}/` is rejected (422). */
 export function buildImageAsset(
   key: string,
-  extra: Pick<ImageAsset, 'width' | 'height' | 'alt'> = {},
+  extra: Pick<ImageAsset, 'width' | 'height' | 'alt' | 'focalX' | 'focalY'> = {},
 ): ImageAsset {
   if (!isValidKey(key)) throw uploadNotAllowed('Invalid image key');
   const asset: ImageAsset = { key, url: publicUrlFor(key) };
   if (extra.width !== undefined) asset.width = extra.width;
   if (extra.height !== undefined) asset.height = extra.height;
   if (extra.alt !== undefined) asset.alt = extra.alt;
+  if (extra.focalX !== undefined) asset.focalX = extra.focalX;
+  if (extra.focalY !== undefined) asset.focalY = extra.focalY;
   return asset;
 }
 
@@ -211,6 +217,51 @@ export async function deleteObjects(
     }),
   );
   return { deleted, failed };
+}
+
+// ---------------------------------------------------------------- server-side put / list (tooling)
+
+/**
+ * Server-side upload of an already validated image (used by the demo-data tooling; the API itself only presigns).
+ * The caller owns validation of type and size; the key must be a valid key inside `furnixa/{env}/`.
+ */
+export async function putObject(
+  key: string,
+  body: Uint8Array,
+  contentType: AllowedContentType,
+): Promise<void> {
+  if (!isValidKey(key)) throw uploadNotAllowed('Invalid image key');
+  await getS3().send(
+    new PutObjectCommand({
+      Bucket: r2Config().bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      ContentLength: body.byteLength,
+    }),
+  );
+}
+
+/** All object keys under `prefix` (follows pagination). */
+export async function listKeys(prefix: string): Promise<string[]> {
+  const keys: string[] = [];
+  let token: string | undefined;
+  do {
+    const res: {
+      Contents?: { Key?: string }[];
+      IsTruncated?: boolean;
+      NextContinuationToken?: string;
+    } = await getS3().send(
+      new ListObjectsV2Command({
+        Bucket: r2Config().bucket,
+        Prefix: prefix,
+        ContinuationToken: token,
+      }),
+    );
+    for (const o of res.Contents ?? []) if (o.Key) keys.push(o.Key);
+    token = res.IsTruncated ? res.NextContinuationToken : undefined;
+  } while (token);
+  return keys;
 }
 
 // ---------------------------------------------------------------- attach / release / sync

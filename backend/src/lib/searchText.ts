@@ -1,3 +1,5 @@
+import type { Prisma } from '@prisma/client';
+
 /**
  * Arabic-aware product search (T-010, owner 2026-11-22). `Product.searchText` is recomputed on every
  * create/patch (and by the seed) from the title; the public `q` goes through the same normalisation,
@@ -36,4 +38,49 @@ export function buildSearchText(title: { en: string; ar: string }): string {
  */
 export function escapeRegex(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** "sofas" -> "sofa", "benches" -> "bench", "chairs" -> "chair". Latin only, words of 4+ letters; Arabic is left alone. */
+export function stem(word: string): string {
+  if (!/^[a-z]{4,}$/.test(word)) return word;
+  if (/(ses|xes|zes|ches|shes)$/.test(word)) return word.slice(0, -2);
+  if (word.endsWith('ss') || !word.endsWith('s')) return word;
+  return word.slice(0, -1);
+}
+
+/**
+ * Caps on the public search (owner 2026-11-24): each word becomes an OR of six `$regex` conditions, so the
+ * query length and the number of words are both limited and anything beyond is 422 (see `publicListQuery`).
+ */
+export const MAX_SEARCH_LENGTH = 100;
+export const MAX_SEARCH_WORDS = 6;
+
+/** The words `searchWhere` will look for: normalised, blanks dropped. */
+export function searchTerms(q: string): string[] {
+  return normalizeSearch(q).split(' ').filter(Boolean);
+}
+
+/**
+ * Public product search (QA 2026-11-24): every word of the query must be found (AND), a word may be found in its
+ * plural/singular form (OR), and in the title text, the description, the category name or the material, in both
+ * languages. All strings are regex-escaped (Prisma passes `contains` to $regex unescaped on MongoDB).
+ */
+export function searchWhere(q: string): Prisma.ProductWhereInput {
+  const words = searchTerms(q);
+  return {
+    AND: words.map((word) => {
+      const variants = [...new Set([word, stem(word)])].map(escapeRegex);
+      const hit = { mode: 'insensitive' as const };
+      return {
+        OR: variants.flatMap((v) => [
+          { searchText: { contains: v, ...hit } },
+          { description: { is: { en: { contains: v, ...hit } } } },
+          { description: { is: { ar: { contains: v, ...hit } } } },
+          { category: { is: { name: { is: { en: { contains: v, ...hit } } } } } },
+          { category: { is: { name: { is: { ar: { contains: v, ...hit } } } } } },
+          { material: { contains: v, ...hit } },
+        ]),
+      };
+    }),
+  };
 }

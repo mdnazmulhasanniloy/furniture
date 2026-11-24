@@ -88,7 +88,7 @@ beforeAll(async () => {
     env: { ...process.env },
     stdio: 'pipe',
   });
-  hash = await hashPassword('Passw0rdOne');
+  hash = await hashPassword('Passw0rdOne!');
 });
 beforeEach(async () => {
   await prisma.address.deleteMany();

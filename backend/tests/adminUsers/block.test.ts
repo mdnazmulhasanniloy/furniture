@@ -30,7 +30,7 @@ import {
 
 const env = getEnv();
 const app = createApp();
-const PASSWORD = 'Passw0rdOne';
+const PASSWORD = 'Passw0rdOne!';
 const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
 
 let server: TestSocketServer;
@@ -71,7 +71,8 @@ const blockCustomer = (adminToken: string, id: string, isBlocked = true) =>
   request(app)
     .patch(`/api/v1/admin/customers/${id}/block`)
     .set(auth(adminToken))
-    .send({ isBlocked });
+    // CR-011 (ADM-17): blocking a customer needs a reason
+    .send(isBlocked ? { isBlocked, reason: 'Blocked by the test suite' } : { isBlocked });
 
 const blockAdminReq = (adminToken: string, id: string, isBlocked = true) =>
   request(app).patch(`/api/v1/admin/admins/${id}/block`).set(auth(adminToken)).send({ isBlocked });

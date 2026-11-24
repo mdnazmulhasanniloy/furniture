@@ -1,0 +1,629 @@
+{
+  "_note": "Curated Pexels photos used by the demo-data seed. Every entry lists its source page, photographer and licence (Pexels License, https://www.pexels.com/license/). Demo use only.",
+  "images": [
+    {
+      "id": "sofas-1",
+      "theme": "sofas",
+      "pageUrl": "https://www.pexels.com/photo/modern-living-room-with-sofa-6438748/",
+      "photographer": "Max Vakhtbovych",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/6438748/pexels-photo-6438748.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Modern living room with blue sofa, ottoman and natural light",
+        "ar": "غرفة معيشة عصرية مع أريكة زرقاء وبوف وإضاءة طبيعية"
+      }
+    },
+    {
+      "id": "sofas-2",
+      "theme": "sofas",
+      "pageUrl": "https://www.pexels.com/photo/modern-apartment-with-stylish-couch-and-creative-decorative-elements-4846097/",
+      "photographer": "Rachel Claire",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/4846097/pexels-photo-4846097.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Green velvet sofa with round table in elegant living room",
+        "ar": "أريكة مخمل خضراء مع طاولة مستديرة في غرفة معيشة أنيقة"
+      }
+    },
+    {
+      "id": "sofas-3",
+      "theme": "sofas",
+      "pageUrl": "https://www.pexels.com/photo/contemporary-stylish-living-room-with-cozy-sofas-6969866/",
+      "photographer": "Max Vakhtbovych",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/6969866/pexels-photo-6969866.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Gray sofas and coffee tables in contemporary living room",
+        "ar": "أرائك رمادية وطاولات قهوة في غرفة معيشة عصرية"
+      }
+    },
+    {
+      "id": "sofas-4",
+      "theme": "sofas",
+      "pageUrl": "https://www.pexels.com/photo/comfortable-sofa-placed-in-stylish-living-room-7214171/",
+      "photographer": "Max Vakhtbovych",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/7214171/pexels-photo-7214171.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Sofa in modern daylit living room with contemporary decor",
+        "ar": "أريكة في غرفة معيشة عصرية مضاءة بضوء النهار"
+      }
+    },
+    {
+      "id": "sofas-5",
+      "theme": "sofas",
+      "pageUrl": "https://www.pexels.com/photo/cozy-living-room-with-sofa-5825527/",
+      "photographer": "Charlotte May",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/5825527/pexels-photo-5825527.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Blue couch in spacious living room with warm lighting",
+        "ar": "أريكة زرقاء في غرفة معيشة واسعة بإضاءة دافئة"
+      }
+    },
+    {
+      "id": "sofas-6",
+      "theme": "sofas",
+      "pageUrl": "https://www.pexels.com/photo/a-sofa-in-a-living-room-11833895/",
+      "photographer": "Engin Akyurt",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/11833895/pexels-photo-11833895.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Elegant grey sofa with plush cushions in contemporary living room",
+        "ar": "أريكة رمادية أنيقة بوسائد ناعمة في غرفة معيشة عصرية"
+      }
+    },
+    {
+      "id": "armchairs-1",
+      "theme": "armchairs",
+      "pageUrl": "https://www.pexels.com/photo/colorful-interior-wallpaper-blender-10718894/",
+      "photographer": "Yusuf P",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/10718894/pexels-photo-10718894.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Stylish armchair and potted plant in a wooden niche",
+        "ar": "كرسي بذراعين أنيق ونبتة في كوة خشبية"
+      }
+    },
+    {
+      "id": "armchairs-2",
+      "theme": "armchairs",
+      "pageUrl": "https://www.pexels.com/photo/armchair-in-corner-of-room-5490306/",
+      "photographer": "Rachel Claire",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/5490306/pexels-photo-5490306.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Wooden armchair with orange cushion in bright modern room",
+        "ar": "كرسي بذراعين خشبي بوسادة برتقالية في غرفة عصرية مشرقة"
+      }
+    },
+    {
+      "id": "armchairs-3",
+      "theme": "armchairs",
+      "pageUrl": "https://www.pexels.com/photo/cozy-armchair-with-cushion-in-modern-interior-29508373/",
+      "photographer": "Bahram BP",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/29508373/pexels-photo-29508373.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Comfortable armchair with soft cushion in modern living room",
+        "ar": "كرسي بذراعين مريح بوسادة ناعمة في غرفة معيشة عصرية"
+      }
+    },
+    {
+      "id": "armchairs-4",
+      "theme": "armchairs",
+      "pageUrl": "https://www.pexels.com/photo/brown-and-white-armchair-1148955/",
+      "photographer": "EVG Kowalievska",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/1148955/pexels-photo-1148955.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Vintage-style armchair with lamp and side table",
+        "ar": "كرسي بذراعين كلاسيكي مع مصباح وطاولة جانبية"
+      }
+    },
+    {
+      "id": "armchairs-5",
+      "theme": "armchairs",
+      "pageUrl": "https://www.pexels.com/photo/studio-interior-with-armchair-and-pouf-near-living-green-wall-6585744/",
+      "photographer": "Max Vakhtbovych",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/6585744/pexels-photo-6585744.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Armchair and pouf beside a green plant wall",
+        "ar": "كرسي بذراعين وبوف بجانب جدار نباتي أخضر"
+      }
+    },
+    {
+      "id": "dining-tables-1",
+      "theme": "dining-tables",
+      "pageUrl": "https://www.pexels.com/photo/photograph-of-a-brown-wooden-table-with-wooden-chairs-8113036/",
+      "photographer": "Rachel Claire",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/8113036/pexels-photo-8113036.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Rustic wooden dining table with chairs in warm tones",
+        "ar": "طاولة طعام خشبية ريفية مع كراسي بألوان دافئة"
+      }
+    },
+    {
+      "id": "dining-tables-2",
+      "theme": "dining-tables",
+      "pageUrl": "https://www.pexels.com/photo/wooden-dining-table-and-chairs-beside-the-windows-4044798/",
+      "photographer": "Curtis Adams",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/4044798/pexels-photo-4044798.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Bright dining area with rustic table and large windows",
+        "ar": "ركن طعام مشرق مع طاولة ريفية ونوافذ كبيرة"
+      }
+    },
+    {
+      "id": "dining-tables-3",
+      "theme": "dining-tables",
+      "pageUrl": "https://www.pexels.com/photo/photo-of-wooden-table-near-window-3935313/",
+      "photographer": "Curtis Adams",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/3935313/pexels-photo-3935313.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Wooden dining table and chairs in bright kitchen by window",
+        "ar": "طاولة طعام خشبية وكراسي في مطبخ مشرق بجانب النافذة"
+      }
+    },
+    {
+      "id": "dining-tables-4",
+      "theme": "dining-tables",
+      "pageUrl": "https://www.pexels.com/photo/elegant-round-dining-table-with-chairs-placed-in-spacious-kitchen-7195598/",
+      "photographer": "Max Vakhtbovych",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/7195598/pexels-photo-7195598.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Round dining table with chairs under chandelier in spacious kitchen",
+        "ar": "طاولة طعام مستديرة مع كراسي تحت ثريا في مطبخ واسع"
+      }
+    },
+    {
+      "id": "dining-tables-5",
+      "theme": "dining-tables",
+      "pageUrl": "https://www.pexels.com/photo/white-dining-table-and-chairs-in-a-kitchen-6021777/",
+      "photographer": "Ksenia Chernaya",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/6021777/pexels-photo-6021777.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "White dining table and chairs in minimalist kitchen with wood accents",
+        "ar": "طاولة طعام بيضاء وكراسي في مطبخ بسيط بلمسات خشبية"
+      }
+    },
+    {
+      "id": "dining-chairs-1",
+      "theme": "dining-chairs",
+      "pageUrl": "https://www.pexels.com/photo/empty-white-chairs-beside-table-2995012/",
+      "photographer": "Tiana",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/2995012/pexels-photo-2995012.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Sunlit minimalist dining room with round table and white chairs",
+        "ar": "غرفة طعام بسيطة مشمسة مع طاولة مستديرة وكراسي بيضاء"
+      }
+    },
+    {
+      "id": "dining-chairs-2",
+      "theme": "dining-chairs",
+      "pageUrl": "https://www.pexels.com/photo/empty-table-and-wooden-chairs-around-18177054/",
+      "photographer": "Tranmautritam",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/18177054/pexels-photo-18177054.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Minimalist table with wooden chairs in a bright room",
+        "ar": "طاولة بسيطة مع كراسي خشبية في غرفة مشرقة"
+      }
+    },
+    {
+      "id": "dining-chairs-3",
+      "theme": "dining-chairs",
+      "pageUrl": "https://www.pexels.com/photo/modern-dining-room-interior-with-furniture-at-home-6436755/",
+      "photographer": "Max Vakhtbovych",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/6436755/pexels-photo-6436755.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Minimalist dining room with modern chairs and hexagonal wall tiles",
+        "ar": "غرفة طعام بسيطة مع كراسي عصرية وبلاط جداري سداسي"
+      }
+    },
+    {
+      "id": "dining-chairs-4",
+      "theme": "dining-chairs",
+      "pageUrl": "https://www.pexels.com/photo/stylish-kitchen-interior-and-set-dining-table-7018405/",
+      "photographer": "Max Vakhtbovych",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/7018405/pexels-photo-7018405.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Minimalist kitchen with round dining table and pastel chairs",
+        "ar": "مطبخ بسيط مع طاولة طعام مستديرة وكراسي بألوان هادئة"
+      }
+    },
+    {
+      "id": "dining-chairs-5",
+      "theme": "dining-chairs",
+      "pageUrl": "https://www.pexels.com/photo/chairs-and-a-table-against-the-wall-6008071/",
+      "photographer": "Mo Eid",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/6008071/pexels-photo-6008071.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Two pink chairs and a table on patterned floor",
+        "ar": "كرسيان ورديان وطاولة على أرضية منقوشة"
+      }
+    },
+    {
+      "id": "beds-1",
+      "theme": "beds",
+      "pageUrl": "https://www.pexels.com/photo/white-pillows-on-a-bed-3682240/",
+      "photographer": "Castorly Stock",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/3682240/pexels-photo-3682240.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Modern bedroom bed with clean white bedding and pillows",
+        "ar": "سرير حديث في غرفة نوم بفراش ووسائد بيضاء نظيفة"
+      }
+    },
+    {
+      "id": "beds-2",
+      "theme": "beds",
+      "pageUrl": "https://www.pexels.com/photo/cozy-minimalist-bedroom-with-large-windows-37323045/",
+      "photographer": "Letícia Alvares",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/37323045/pexels-photo-37323045.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Stylish bedroom with cozy bed and large vintage windows",
+        "ar": "غرفة نوم أنيقة بسرير مريح ونوافذ كبيرة"
+      }
+    },
+    {
+      "id": "beds-3",
+      "theme": "beds",
+      "pageUrl": "https://www.pexels.com/photo/cozy-comfortable-bed-11036444/",
+      "photographer": "Karl Solano",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/11036444/pexels-photo-11036444.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Serene bedroom with fluffy pillows and a cozy white bed",
+        "ar": "غرفة نوم هادئة بوسائد ناعمة وسرير أبيض مريح"
+      }
+    },
+    {
+      "id": "beds-4",
+      "theme": "beds",
+      "pageUrl": "https://www.pexels.com/photo/white-pillow-on-bed-beside-potted-plant-12277124/",
+      "photographer": "dada _design",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/12277124/pexels-photo-12277124.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Bedroom with white bedding and a greenery vase on wooden nightstand",
+        "ar": "غرفة نوم بفراش أبيض ومزهرية خضراء على طاولة خشبية"
+      }
+    },
+    {
+      "id": "beds-5",
+      "theme": "beds",
+      "pageUrl": "https://www.pexels.com/photo/white-bedding-sheets-in-bedroom-13042771/",
+      "photographer": "Yena Kwon",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/13042771/pexels-photo-13042771.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Minimalist white bedding on a bed in an apartment",
+        "ar": "فراش أبيض بسيط على سرير في شقة"
+      }
+    },
+    {
+      "id": "beds-6",
+      "theme": "beds",
+      "pageUrl": "https://www.pexels.com/photo/view-of-pillows-on-the-bed-12200060/",
+      "photographer": "Aless Mikhalenko",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/12200060/pexels-photo-12200060.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Black iron headboard bed with white pillows and sheets",
+        "ar": "سرير بإطار حديد أسود مع وسائد وشراشف بيضاء"
+      }
+    },
+    {
+      "id": "wardrobes-1",
+      "theme": "wardrobes",
+      "pageUrl": "https://www.pexels.com/photo/white-wardrobe-in-spacious-room-6301178/",
+      "photographer": "Max Vakhtbovych",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/6301178/pexels-photo-6301178.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Sleek white wardrobe with orchid decor in minimalist interior",
+        "ar": "خزانة ملابس بيضاء أنيقة مع زهرة أوركيد في مساحة بسيطة"
+      }
+    },
+    {
+      "id": "wardrobes-2",
+      "theme": "wardrobes",
+      "pageUrl": "https://www.pexels.com/photo/luxury-modern-walk-in-wardrobe-design-30465909/",
+      "photographer": "Raumplus India",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/30465909/pexels-photo-30465909.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Modern walk-in wardrobe with glass doors in spacious bedroom",
+        "ar": "خزانة ملابس حديثة بأبواب زجاجية في غرفة نوم واسعة"
+      }
+    },
+    {
+      "id": "wardrobes-3",
+      "theme": "wardrobes",
+      "pageUrl": "https://www.pexels.com/photo/white-big-closet-and-comfy-bed-in-light-bedroom-6527064/",
+      "photographer": "Max Vakhtbovych",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/6527064/pexels-photo-6527064.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Bright bedroom with white wardrobe, bed and bedside table",
+        "ar": "غرفة نوم مشرقة مع خزانة بيضاء وسرير وطاولة جانبية"
+      }
+    },
+    {
+      "id": "wardrobes-4",
+      "theme": "wardrobes",
+      "pageUrl": "https://www.pexels.com/photo/modern-bedroom-with-big-wardrobe-6438761/",
+      "photographer": "Max Vakhtbovych",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/6438761/pexels-photo-6438761.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Bedroom with large wardrobe, blue accent wall and cozy bedding",
+        "ar": "غرفة نوم بخزانة كبيرة وجدار أزرق وفراش مريح"
+      }
+    },
+    {
+      "id": "office-desks-1",
+      "theme": "office-desks",
+      "pageUrl": "https://www.pexels.com/photo/modern-workspace-with-laptop-and-books-on-desk-36123565/",
+      "photographer": "Letícia Alvares",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/36123565/pexels-photo-36123565.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Minimal white desk with wooden legs, laptop, coffee and books",
+        "ar": "مكتب أبيض بسيط بأرجل خشبية مع لابتوب وقهوة وكتب"
+      }
+    },
+    {
+      "id": "office-desks-2",
+      "theme": "office-desks",
+      "pageUrl": "https://www.pexels.com/photo/modern-home-office-with-green-plant-decor-28461033/",
+      "photographer": "AEN Studio",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/28461033/pexels-photo-28461033.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Home office with desk, chair and green plants near window",
+        "ar": "مكتب منزلي مع كرسي ونباتات خضراء قرب النافذة"
+      }
+    },
+    {
+      "id": "office-desks-3",
+      "theme": "office-desks",
+      "pageUrl": "https://www.pexels.com/photo/modern-minimalist-home-office-desk-setup-30047570/",
+      "photographer": "AJ Ahamad",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/30047570/pexels-photo-30047570.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Minimal home office desk with laptop, decor and books",
+        "ar": "مكتب منزلي بسيط مع لابتوب وديكور وكتب"
+      }
+    },
+    {
+      "id": "office-desks-4",
+      "theme": "office-desks",
+      "pageUrl": "https://www.pexels.com/photo/minimalist-home-office-desk-setup-with-computer-31726763/",
+      "photographer": "AEN Studio",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/31726763/pexels-photo-31726763.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Sunlit minimalist home office desk with computer and keyboard",
+        "ar": "مكتب منزلي بسيط مشمس مع كمبيوتر ولوحة مفاتيح"
+      }
+    },
+    {
+      "id": "office-desks-5",
+      "theme": "office-desks",
+      "pageUrl": "https://www.pexels.com/photo/elegant-modern-home-office-setup-with-minimalist-design-31726545/",
+      "photographer": "AEN Studio",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/31726545/pexels-photo-31726545.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Stylish home office with desk, monitor, tablet and plants",
+        "ar": "مكتب منزلي أنيق مع شاشة وجهاز لوحي ونباتات"
+      }
+    },
+    {
+      "id": "decor-lighting-1",
+      "theme": "decor-lighting",
+      "pageUrl": "https://www.pexels.com/photo/modern-lamp-on-a-ceiling-reflecting-in-mirror-11312206/",
+      "photographer": "Pew Nguyen",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/11312206/pexels-photo-11312206.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Glass pendant light reflected in a mirror in stylish interior",
+        "ar": "مصباح معلق زجاجي ينعكس في مرآة داخل ديكور أنيق"
+      }
+    },
+    {
+      "id": "decor-lighting-2",
+      "theme": "decor-lighting",
+      "pageUrl": "https://www.pexels.com/photo/pendant-lamp-turned-on-2043569/",
+      "photographer": "Dalila Dalprat",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/2043569/pexels-photo-2043569.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Retro light bulb in geometric pendant fixture against brick wall",
+        "ar": "مصباح كلاسيكي في تركيبة هندسية معلقة أمام جدار طوب"
+      }
+    },
+    {
+      "id": "decor-lighting-3",
+      "theme": "decor-lighting",
+      "pageUrl": "https://www.pexels.com/photo/skymningen-pendant-lamp-13613289/",
+      "photographer": "Alex Urezkov",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/13613289/pexels-photo-13613289.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "portrait",
+      "description": {
+        "en": "Contemporary pendant lamps hanging from ceiling in minimalist interior",
+        "ar": "مصابيح معلقة عصرية من السقف في ديكور بسيط"
+      }
+    },
+    {
+      "id": "decor-lighting-4",
+      "theme": "decor-lighting",
+      "pageUrl": "https://www.pexels.com/photo/two-copper-colored-pendant-lamps-2123435/",
+      "photographer": "Cats Coming",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/2123435/pexels-photo-2123435.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Vintage-style hanging light bulbs in a minimalist white room",
+        "ar": "مصابيح معلقة بطراز كلاسيكي في غرفة بيضاء بسيطة"
+      }
+    },
+    {
+      "id": "decor-lighting-5",
+      "theme": "decor-lighting",
+      "pageUrl": "https://www.pexels.com/photo/ceramic-vases-on-a-white-surface-7119222/",
+      "photographer": "Ivan S",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/7119222/pexels-photo-7119222.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Two handcrafted textured ceramic vases on a white surface",
+        "ar": "مزهريتان خزفيتان مصنوعتان يدويا على سطح أبيض"
+      }
+    },
+    {
+      "id": "decor-lighting-6",
+      "theme": "decor-lighting",
+      "pageUrl": "https://www.pexels.com/photo/minimalist-decoration-in-nude-home-interior-6952331/",
+      "photographer": "kaboompics",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/6952331/pexels-photo-6952331.jpeg?auto=compress&cs=tinysrgb&w=1600",
+      "orientation": "landscape",
+      "description": {
+        "en": "Minimalist ceramic vases collection on a white surface",
+        "ar": "مجموعة مزهريات خزفية بسيطة على سطح أبيض"
+      }
+    },
+    {
+      "id": "hero-desktop-1",
+      "theme": "hero-desktop",
+      "pageUrl": "https://www.pexels.com/photo/modern-living-room-interior-with-couch-and-floor-lamp-6970077/",
+      "photographer": "Max Vakhtbovych",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/6970077/pexels-photo-6970077.jpeg?auto=compress&cs=tinysrgb&w=1920",
+      "orientation": "landscape",
+      "description": {
+        "en": "Bright modern living room with sofa, lamp and warm yellow tones",
+        "ar": "غرفة معيشة عصرية مشرقة مع أريكة ومصباح بدرجات صفراء دافئة"
+      }
+    },
+    {
+      "id": "hero-desktop-2",
+      "theme": "hero-desktop",
+      "pageUrl": "https://www.pexels.com/photo/elegant-dining-room-with-natural-light-39404254/",
+      "photographer": "Curtis Adams",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/39404254/pexels-photo-39404254.jpeg?auto=compress&cs=tinysrgb&w=1920",
+      "orientation": "landscape",
+      "description": {
+        "en": "Bright dining room with wooden table, chandelier and garden view",
+        "ar": "غرفة طعام مشرقة بطاولة خشبية وثريا وإطلالة على الحديقة"
+      }
+    },
+    {
+      "id": "hero-desktop-3",
+      "theme": "hero-desktop",
+      "pageUrl": "https://www.pexels.com/photo/a-bed-with-white-linen-in-a-bedroom-8583859/",
+      "photographer": "Curtis Adams",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/8583859/pexels-photo-8583859.jpeg?auto=compress&cs=tinysrgb&w=1920",
+      "orientation": "landscape",
+      "description": {
+        "en": "Bright bedroom with white bedding, ceiling fan and large windows",
+        "ar": "غرفة نوم مشرقة بمفروشات بيضاء ومروحة سقف ونوافذ واسعة"
+      }
+    },
+    {
+      "id": "hero-mobile-1",
+      "theme": "hero-mobile",
+      "pageUrl": "https://www.pexels.com/photo/modern-minimalist-living-room-interior-design-28991200/",
+      "photographer": "Jonathan Goncalves",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/28991200/pexels-photo-28991200.jpeg?auto=compress&cs=tinysrgb&w=1000",
+      "orientation": "portrait",
+      "description": {
+        "en": "Bright living room with cozy sofa and elegant plant",
+        "ar": "غرفة معيشة مشرقة بأريكة مريحة ونبتة أنيقة"
+      }
+    },
+    {
+      "id": "hero-mobile-2",
+      "theme": "hero-mobile",
+      "pageUrl": "https://www.pexels.com/photo/photo-of-a-dining-table-12127444/",
+      "photographer": "Mikhail Konetski",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/12127444/pexels-photo-12127444.jpeg?auto=compress&cs=tinysrgb&w=1000",
+      "orientation": "portrait",
+      "description": {
+        "en": "Modern dining room with pendant lighting and set table",
+        "ar": "غرفة طعام عصرية بإضاءة معلقة وطاولة مجهزة"
+      }
+    },
+    {
+      "id": "hero-mobile-3",
+      "theme": "hero-mobile",
+      "pageUrl": "https://www.pexels.com/photo/bedroom-interior-design-15404863/",
+      "photographer": "Eugenia Remark",
+      "licence": "Pexels License",
+      "imageUrl": "https://images.pexels.com/photos/15404863/pexels-photo-15404863.jpeg?auto=compress&cs=tinysrgb&w=1000",
+      "orientation": "portrait",
+      "description": {
+        "en": "Bright airy bedroom with sunlight and white bedding",
+        "ar": "غرفة نوم مشرقة وهادئة مع ضوء الشمس ومفروشات بيضاء"
+      }
+    }
+  ]
+}

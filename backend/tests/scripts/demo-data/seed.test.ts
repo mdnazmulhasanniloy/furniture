@@ -260,7 +260,7 @@ describe('T-078 · demo catalogue counts and invariants', () => {
     expect(banners.filter((b) => b.startsAt && b.startsAt > now)).toHaveLength(1);
   });
 
-  it('T-078 · the seven home sections exist, their config passes the CMS schema and testimonials are marked demo', async () => {
+  it('T-078 · the seven home sections exist, their config passes the CMS schema and no placeholder testimonials are seeded', async () => {
     const sections = await prisma.homeSection.findMany({ orderBy: { sortOrder: 'asc' } });
     expect(sections.map((s) => s.type).sort()).toEqual(
       [
@@ -300,13 +300,9 @@ describe('T-078 · demo catalogue counts and invariants', () => {
     const list = (
       t.config as { testimonials: { name: string; quote: { en: string; ar: string } }[] }
     ).testimonials;
-    expect(list.length).toBeGreaterThan(0);
-    for (const x of list) {
-      expect(x.name).toContain('Demo customer');
-      expect(x.name).toContain('عميل تجريبي');
-      expect(x.quote.en).toMatch(/DEMO/);
-      expect(x.quote.ar).toContain('تجريبي');
-    }
+    // QA 2026-11-24: no fake reviews ship; the section is empty (hidden on the storefront) until real ones are added
+    expect(list).toEqual([]);
+    expect(JSON.stringify(t)).not.toMatch(/DEMO|تجريبي/);
     const featured = sections.find((s) => s.type === 'FEATURED_PRODUCTS')!;
     expect((featured.config as { productIds: string[] }).productIds).toHaveLength(8);
     const lookSection = sections.find((s) => s.type === 'SHOP_THE_LOOK')!;

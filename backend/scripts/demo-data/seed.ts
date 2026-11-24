@@ -307,7 +307,7 @@ export async function seedDemoData(prisma: PrismaClient, ctx: SeedContext): Prom
     },
     {
       type: 'TESTIMONIALS',
-      title: { en: 'What customers say (demo)', ar: 'آراء العملاء (تجريبي)' },
+      title: { en: 'What customers say', ar: 'آراء العملاء' },
       subtitle: null,
       config: { testimonials: TESTIMONIALS },
     },

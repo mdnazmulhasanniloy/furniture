@@ -626,29 +626,11 @@ export const BANNERS: DemoBanner[] = [
   },
 ];
 
-export const TESTIMONIALS = [
-  {
-    name: 'Demo customer / عميل تجريبي',
-    quote: {
-      en: '[DEMO] Replace with a real customer review before launch.',
-      ar: '[تجريبي] استبدل هذا برأي عميل حقيقي قبل الإطلاق.',
-    },
-  },
-  {
-    name: 'Demo customer / عميل تجريبي',
-    quote: {
-      en: '[DEMO] Placeholder review: delivery and condition were as described.',
-      ar: '[تجريبي] رأي مؤقت: التوصيل والحالة كما هو موصوف.',
-    },
-  },
-  {
-    name: 'Demo customer / عميل تجريبي',
-    quote: {
-      en: '[DEMO] Placeholder review: great value for pre-owned furniture.',
-      ar: '[تجريبي] رأي مؤقت: قيمة ممتازة مقابل الأثاث المستعمل.',
-    },
-  },
-];
+/**
+ * No placeholder reviews are seeded (QA 2026-11-24: fake testimonials must never ship). The section exists so the
+ * admin can add real reviews; the storefront hides a testimonials section that has none.
+ */
+export const TESTIMONIALS: { name: string; quote: { en: string; ar: string } }[] = [];
 
 export interface DemoCustomer {
   firstName: string;

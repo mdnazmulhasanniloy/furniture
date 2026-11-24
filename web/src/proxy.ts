@@ -8,7 +8,11 @@ const handleI18nRouting = createIntlMiddleware(routing);
 export default function proxy(request: NextRequest) {
   // I18N-01 / ADR-002 amendment: `/` goes to the default locale (ar) regardless of the
   // browser's Accept-Language, unless the visitor chose a locale before (NEXT_LOCALE).
-  if (request.nextUrl.pathname === "/" && !request.cookies.has("NEXT_LOCALE")) {
+  // The cookie must hold a supported locale: a stale/empty value must not fall through
+  // to next-intl's Accept-Language detection.
+  const chosen = request.cookies.get("NEXT_LOCALE")?.value;
+  const hasChosenLocale = !!chosen && (routing.locales as readonly string[]).includes(chosen);
+  if (request.nextUrl.pathname === "/" && !hasChosenLocale) {
     const url = request.nextUrl.clone();
     url.pathname = `/${routing.defaultLocale}`;
     return NextResponse.redirect(url);

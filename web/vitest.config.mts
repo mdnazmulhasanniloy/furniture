@@ -6,5 +6,6 @@ export default defineConfig({
   test: {
     include: ["src/**/*.test.{ts,tsx}"],
     environment: "node",
+    server: { deps: { inline: ["next-intl"] } },
   },
 });

@@ -191,7 +191,8 @@ Sentence case, plain words, real furniture vocabulary (sofa, wardrobe, dining ta
 | Hero sentence | New pieces and pre-owned furniture with a clear condition grade, delivered to your door. You pay when it arrives. | قطع جديدة وأخرى مستعملة بدرجة حالة واضحة، تصلك إلى باب بيتك، وتدفع عند الاستلام. |
 | Actions | Shop new / Shop pre-owned | تسوّق الجديد / تسوّق المستعمل |
 | Condition report title | Condition report | تقرير الحالة |
-| Grade, draft (needs owner approval) | Like new: used a few times, no marks we could find. | بحالة الجديد: استُخدمت مرات قليلة ولا نجد فيها أي علامات. |
+| Grade wording (approved by the owner 2026-11-24, Arabic edited) | Like new: used a few times, no marks we could find. | استُخدمت مرات قليلة ولم نجد فيها أي علامات. |
+| Grade wording, Fair | Used, with clear signs of wear. Read our notes for the details. | مستعملة وعليها علامات استخدام واضحة. اقرأ ملاحظاتنا لمعرفة التفاصيل. |
 
 ## 9. RTL rules
 

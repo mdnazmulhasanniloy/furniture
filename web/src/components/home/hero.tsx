@@ -41,7 +41,7 @@ export function Hero({ banners }: { banners: Banner[] }) {
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
       if (cancelled) return;
       gsap.registerPlugin(ScrollTrigger);
-      const dir = document.documentElement.dir === "rtl" ? -1 : 1;
+      const dir = document.documentElement.dir === "rtl" ? -1 : 1; // mirror x offsets in RTL
       const mm = gsap.matchMedia();
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         gsap.from(el.querySelectorAll("[data-hero-line]"), {
@@ -52,6 +52,12 @@ export function Hero({ banners }: { banners: Banner[] }) {
           stagger: 0.12,
           ease: "power2.out",
         });
+        // Slow image zoom, started only now (after load and hydration), so it never delays the LCP image.
+        gsap.fromTo(
+          el.querySelectorAll("[data-hero-image] img"),
+          { scale: 1 },
+          { scale: 1.08, duration: 16, ease: "none" },
+        );
         const image = el.querySelector("[data-hero-image]");
         if (image) {
           gsap.to(image, {
@@ -129,7 +135,7 @@ export function Hero({ banners }: { banners: Banner[] }) {
           ) : null}
           <CtaLink
             href={banner.ctaHref}
-            className="shimmer relative inline-flex h-11 w-fit items-center justify-center overflow-hidden rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="shimmer relative inline-flex h-11 w-fit items-center justify-center overflow-hidden rounded-md bg-gold px-8 text-sm font-medium text-gold-foreground shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span data-hero-line>{ctaLabel || t("cta")}</span>
           </CtaLink>

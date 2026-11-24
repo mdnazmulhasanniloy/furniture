@@ -30,6 +30,11 @@
           "body": "Pay at checkout and we deliver the piece to your address."
         }
       }
+    },
+    "contact": {
+      "title": "Questions? Talk to us",
+      "text": "Our team answers by email, phone and WhatsApp.",
+      "whatsapp": "WhatsApp"
     }
   },
   "lang": {

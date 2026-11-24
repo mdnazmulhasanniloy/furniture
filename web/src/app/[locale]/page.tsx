@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { ContactStrip } from "@/components/home/contact-strip";
 import { Hero } from "@/components/home/hero";
+import { HomeReveals } from "@/components/home/home-reveals";
 import { HomeSections } from "@/components/home/home-sections";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
-import { getHome } from "@/lib/api/public";
+import { getHome, getSettings } from "@/lib/api/public";
 import { alternatesFor } from "@/lib/seo";
 
 export async function generateMetadata({
@@ -22,7 +24,7 @@ export default async function HomePage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations();
-  const { banners, sections } = await getHome();
+  const [{ banners, sections }, settings] = await Promise.all([getHome(), getSettings()]);
 
   return (
     <main>
@@ -41,6 +43,8 @@ export default async function HomePage({
         </div>
       )}
       <HomeSections sections={sections} locale={locale as Locale} />
+      <ContactStrip settings={settings} />
+      <HomeReveals />
     </main>
   );
 }

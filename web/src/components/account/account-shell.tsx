@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 
+import { AosInit } from "@/components/aos-init";
 import { Link, useRouter } from "@/i18n/navigation";
 import { useAuthStore } from "@/lib/auth/store";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ export function AccountShell({
   const ready = status === "authenticated" && user?.role === "CUSTOMER";
   return (
     <main className="mx-auto max-w-4xl px-4 py-8" data-testid="account-page">
+      <AosInit />
       <h1 className="font-display text-2xl font-semibold">{t("title")}</h1>
       <nav aria-label={t("title")} className="mt-4 flex gap-1 overflow-x-auto border-b border-border">
         {TABS.map((x) => (
@@ -50,7 +52,7 @@ export function AccountShell({
           </Link>
         ))}
       </nav>
-      <div className="mt-6">
+      <div className="mt-6" data-aos-group>
         {ready ? (
           children
         ) : status === "authenticated" ? (

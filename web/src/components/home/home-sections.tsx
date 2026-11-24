@@ -2,6 +2,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 import { CtaLink } from "@/components/home/cta-link";
+import { ImagePlaceholder } from "@/components/brand";
 import { HowResale } from "@/components/home/how-resale";
 import { ConnectedProductCard } from "@/components/favourites/connected-card";
 import { Link } from "@/i18n/navigation";
@@ -28,6 +29,7 @@ function SectionShell({
   return (
     <section
       data-testid={`home-section-${section.type}`}
+      data-reveal
       aria-labelledby={`home-${section.id}`}
       className="mx-auto max-w-7xl px-4 py-12"
     >
@@ -100,8 +102,10 @@ function SectionBody({ section, locale }: { section: HomeSection; locale: Locale
                       sizes="(min-width: 768px) 25vw, 50vw"
                       className="object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                     />
-                  ) : null}
-                  <span className="absolute inset-x-0 bottom-0 bg-foreground/55 p-3 text-sm font-medium text-primary-foreground">
+                  ) : (
+                    <ImagePlaceholder name={t("home.brand")} />
+                  )}
+                  <span className="absolute inset-x-0 bottom-0 border-t-2 border-gold bg-primary/90 p-3 text-sm font-medium text-primary-foreground">
                     {pick(c.name, locale)}
                   </span>
                 </Link>
@@ -117,6 +121,7 @@ function SectionBody({ section, locale }: { section: HomeSection; locale: Locale
       return (
         <section
           data-testid="home-section-PROMO_BANNER"
+          data-reveal
           aria-label={title}
           className="mx-auto max-w-7xl px-4 py-12"
         >

@@ -71,7 +71,8 @@
     "CUSTOMER_HAS_OPEN_ORDERS": "This customer has pending or confirmed orders. Finish or cancel them first.",
     "FORBIDDEN_TARGET": "Admins cannot be changed here.",
     "CUSTOMER_DELETED": "This customer was deleted.",
-    "CONFIRM_EMAIL_MISMATCH": "The email you typed does not match."
+    "CONFIRM_EMAIL_MISMATCH": "The email you typed does not match.",
+    "PASSWORD_TOO_WEAK": "Your password needs: At least 8 characters, One uppercase letter, One lowercase letter, One number, One special character (e.g. ! @ # $)"
   },
   "orders": {
     "newOrderToast": "New order {orderNo} · {count} items",
@@ -178,10 +179,18 @@
     "inviteTitle": "Accept your invitation",
     "code": "6-digit code",
     "newPassword": "New password",
-    "passwordRule": "At least 8 characters, with a letter and a number.",
     "invalidCode": "Enter the 6-digit code from your invitation email.",
     "inviteSubmit": "Set password and sign in",
-    "inviteHint": "Ask the administrator who invited you to send a new invitation."
+    "inviteHint": "Ask the administrator who invited you to send a new invitation.",
+    "rules": {
+      "title": "Your password needs",
+      "length": "At least {{n}} characters",
+      "upper": "One uppercase letter",
+      "lower": "One lowercase letter",
+      "digit": "One number",
+      "symbol": "One special character (e.g. ! @ # $)"
+    },
+    "passwordWeak": "Your password needs: At least 8 characters, One uppercase letter, One lowercase letter, One number, One special character (e.g. ! @ # $)"
   },
   "shell": {
     "collapseSidebar": "Collapse sidebar",

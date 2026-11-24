@@ -312,10 +312,10 @@ describe.each([
     stubApi((c) => (c.path === "/auth/accept-invite" ? json({ accessToken: "at-i", user: adminUser }) : undefined));
     mount("/accept-invite?email=new%40furnixa.test");
     expect((screen.getByLabelText(msgs.auth.email) as HTMLInputElement).value).toBe("new@furnixa.test");
-    await fill("123456", "Passw0rdOK");
+    await fill("123456", "Passw0rdOK!");
     expect(await screen.findByTestId("sidebar")).toBeTruthy();
     const call = calls.find((c) => c.path === "/auth/accept-invite")!;
-    expect(call.body).toEqual({ email: "new@furnixa.test", code: "123456", password: "Passw0rdOK" });
+    expect(call.body).toEqual({ email: "new@furnixa.test", code: "123456", password: "Passw0rdOK!" });
     expect(call.path).not.toContain("123456");
     expect(authStore.get().accessToken).toBe("at-i");
   });
@@ -323,7 +323,7 @@ describe.each([
   it("AUTH-02 · Arabic-Indic digits typed on an Arabic keyboard are accepted and sent as ASCII", async () => {
     stubApi((c) => (c.path === "/auth/accept-invite" ? json({ accessToken: "at-i", user: adminUser }) : undefined));
     mount("/accept-invite?email=new%40furnixa.test");
-    await fill("١٢٣٤٥٦", "Passw0rdOK");
+    await fill("١٢٣٤٥٦", "Passw0rdOK!");
     expect(await screen.findByTestId("sidebar")).toBeTruthy();
     expect((calls.find((c) => c.path === "/auth/accept-invite")!.body as { code: string }).code).toBe("123456");
   });
@@ -339,7 +339,7 @@ describe.each([
   it("AUTH-02 · 400 OTP_INVALID shows a generic message plus a hint to ask for a new invite", async () => {
     stubApi((c) => (c.path === "/auth/accept-invite" ? json({ code: "OTP_INVALID" }, 400) : undefined));
     mount("/accept-invite?email=new%40furnixa.test");
-    await fill("123456", "Passw0rdOK");
+    await fill("123456", "Passw0rdOK!");
     expect((await screen.findByTestId("invite-error")).textContent).toContain(msgs.errors.OTP_INVALID);
     expect(screen.getByTestId("invite-hint").textContent).toBe(msgs.auth.inviteHint);
   });
@@ -347,7 +347,7 @@ describe.each([
   it("AUTH-02 · 422 keeps the typed code usable (form not reset, no new-invite hint)", async () => {
     stubApi((c) => (c.path === "/auth/accept-invite" ? json({ code: "VALIDATION_ERROR" }, 422) : undefined));
     mount("/accept-invite?email=new%40furnixa.test");
-    await fill("123456", "Passw0rdOK");
+    await fill("123456", "Passw0rdOK!");
     expect((await screen.findByTestId("invite-error")).textContent).toContain(msgs.errors.VALIDATION_ERROR);
     expect((screen.getByLabelText(msgs.auth.code) as HTMLInputElement).value).toBe("123456");
     expect(screen.queryByTestId("invite-hint")).toBeNull();

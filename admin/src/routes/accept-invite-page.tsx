@@ -4,6 +4,9 @@ import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Navigate, useNavigate, useSearchParams } from "react-router";
 import { z } from "zod";
+
+import { PasswordRules } from "@/components/password-rules";
+import { isStrongPassword } from "@/lib/password-policy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/errors";
@@ -13,16 +16,12 @@ import { useAuth } from "@/lib/auth/use-auth";
 import { toAsciiDigits } from "@/lib/utils";
 import { PublicFrame } from "./public-frame";
 
-// api-spec accept-invite: 6-digit code, password 8-128 chars with a letter and a number (PRD AUTH-03 rule).
+// api-spec accept-invite: 6-digit code, and the one password policy (src/lib/password-policy.ts, owner
+// 2026-11-24), the same file the API enforces. The live checklist under the field shows which rule is unmet.
 const schema = z.object({
   email: z.string().trim().email("invalidEmail"),
   code: z.string().regex(/^[0-9]{6}$/, "invalidCode"),
-  password: z
-    .string()
-    .min(8, "passwordRule")
-    .max(128, "passwordRule")
-    .regex(/[A-Za-z]/, "passwordRule")
-    .regex(/[0-9]/, "passwordRule"),
+  password: z.string().max(128, "passwordWeak").refine(isStrongPassword, "passwordWeak"),
 });
 type Values = z.infer<typeof schema>;
 
@@ -36,11 +35,14 @@ export function AcceptInvitePage() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { email: params.get("email") ?? "", code: "", password: "" },
   });
+
+  const password = watch("password"); // drives the live checklist
 
   if (auth.status === "authenticated") return <Navigate to="/" replace />;
 
@@ -104,9 +106,12 @@ export function AcceptInvitePage() {
             aria-describedby="pw-rule"
             {...register("password")}
           />
-          <span id="pw-rule" className={errors.password ? "text-destructive" : "text-muted-foreground"}>
-            {t("auth.passwordRule")}
-          </span>
+          <PasswordRules value={password} id="pw-rule" />
+          {errors.password && (
+            <span role="alert" className="text-destructive">
+              {t(`auth.${errors.password.message}`)}
+            </span>
+          )}
         </div>
         {serverError && (
           <div role="alert" data-testid="invite-error" className="text-sm text-destructive">

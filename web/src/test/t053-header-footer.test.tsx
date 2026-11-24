@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import ar from "../../messages/ar.json";
 import en from "../../messages/en.json";
 
-const state = vi.hoisted(() => ({ locale: "en" as "en" | "ar" }));
+const state = vi.hoisted(() => ({ locale: "en" as "en" | "ar", path: "/" }));
 const locales = { en, ar } as const;
 
 vi.mock("next-intl/server", () => ({
@@ -18,7 +18,7 @@ vi.mock("@/i18n/navigation", () => ({
     <a href={href} {...rest}>{children}</a>
   ),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => "/",
+  usePathname: () => state.path,
 }));
 vi.mock("next/navigation", () => ({ useParams: () => ({}) }));
 
@@ -54,7 +54,47 @@ describe.each(["en", "ar"] as const)("UI-01 · header and footer v2 (%s)", (loca
     const footer = screen.getByRole("contentinfo");
     expect(footer.className).toContain("bg-primary");
     expect(footer.className).toContain("text-secondary");
-    expect(footer.className).not.toMatch(/shadow|border/);
+    expect(footer.className).not.toMatch(/shadow/);
+    // the one decoration is a champagne hairline on top (ADR-018: decorative, never text)
+    expect(footer.className).toContain("border-t-2");
+    expect(footer.className).toContain("border-champagne");
+    expect(footer.className).toContain("mt-[var(--band-gap)]");
+  });
+
+  it(`UI-04 · the header floats transparent over the hero on the home page and turns solid after scrolling (${locale})`, () => {
+    state.path = "/";
+    render(
+      <NextIntlClientProvider locale={state.locale} messages={locales[state.locale]}>
+        <SiteHeader categories={[]} />
+      </NextIntlClientProvider>,
+    );
+    const header = screen.getByTestId("site-header");
+    expect(header.className).toContain("fixed");
+    expect(header.className).toContain("bg-transparent");
+    expect(header.className).toContain("hdr-light");
+    expect(header.getAttribute("data-over-hero")).toBe("true");
+    Object.defineProperty(window, "scrollY", { value: 120, configurable: true });
+    fireEvent.scroll(window);
+    expect(header.className).toContain("bg-background");
+    expect(header.className).not.toContain("bg-transparent");
+    expect(header.className).not.toContain("hdr-light");
+    Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
+    fireEvent.scroll(window);
+    expect(header.className).toContain("bg-transparent");
+  });
+
+  it(`UI-04 · on every other page the header is the solid sticky header, even at the top (${locale})`, () => {
+    state.path = "/shop";
+    render(
+      <NextIntlClientProvider locale={state.locale} messages={locales[state.locale]}>
+        <SiteHeader categories={[]} />
+      </NextIntlClientProvider>,
+    );
+    const header = screen.getByTestId("site-header");
+    expect(header.className).toContain("sticky");
+    expect(header.className).toContain("bg-background");
+    expect(header.className).not.toContain("hdr-light");
+    state.path = "/";
   });
 
   it(`UI-01 · the footer lists active cities in sort order, localized (${locale})`, async () => {

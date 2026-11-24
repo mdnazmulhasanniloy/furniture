@@ -194,9 +194,18 @@ body {
   margin-top: var(--band-gap);
   padding-block: var(--band-gap);
 }
-.band-end {
-  padding-bottom: var(--band-gap);
+/* Header over the hero (UI-04): light text on the transparent header. Search box, popovers and the mobile menu
+   keep their own colours (they sit on paper). The hero carries a top scrim so this stays readable. */
+.hdr-light {
+  color: var(--primary-foreground);
 }
+.hdr-light :is(a, button, span, svg, p):not([role="search"] *, [role="dialog"] *, [data-testid="mega-panel"] *) {
+  color: var(--primary-foreground);
+}
+.hdr-light :is(a, button):not([role="search"] *, [role="dialog"] *, [data-testid="mega-panel"] *):hover {
+  background-color: color-mix(in srgb, var(--primary-foreground) 16%, transparent);
+}
+
 /* Rails: no native scrollbar (arrow buttons and keyboard stay), snap kept. */
 .rail-scroll {
   scrollbar-width: none;

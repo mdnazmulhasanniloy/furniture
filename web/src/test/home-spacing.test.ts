@@ -23,6 +23,6 @@ describe("UI-04 · one section spacing scale on the home page", () => {
       expect(src, f).not.toContain("max-w-7xl");
       expect(src, f).toMatch(/\bband(?:-fill)?\b/);
     }
-    expect(read("app/[locale]/page.tsx")).toContain("band-end");
+    expect(read("components/layout/site-footer.tsx")).toContain("mt-[var(--band-gap)]"); // the page end gap comes from the footer
   });
 });

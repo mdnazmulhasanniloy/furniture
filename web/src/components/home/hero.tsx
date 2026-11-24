@@ -152,6 +152,8 @@ function Slides({ slides, testId }: { slides: Slide[]; testId: string }) {
               </div>
               {/* Scrim: ink at 60 to 80 % behind the text block keeps white text above 4.5:1 on any photo. */}
               <div aria-hidden className="absolute inset-x-0 bottom-0 h-[70%] bg-gradient-to-t from-foreground/80 via-foreground/60 via-55% to-transparent" />
+              {/* Top scrim: keeps the light header text readable over any photo (header sits over the hero). */}
+              <div aria-hidden className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-foreground/60 to-transparent" />
               <div className="container-wide absolute inset-x-0 bottom-0 pb-24 md:pb-28">
                 <div className="max-w-2xl">
                   {active ? (

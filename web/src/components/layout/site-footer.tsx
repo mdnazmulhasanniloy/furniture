@@ -34,18 +34,18 @@ export async function SiteFooter({ settings }: { settings: SiteSettings | null }
     .map((c) => pick(c.name, locale) || c.code);
 
   return (
-    <footer className="mt-20 bg-primary text-secondary">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:px-8">
+    <footer className="mt-[var(--band-gap)] border-t-2 border-champagne bg-primary text-secondary">
+      <div className="container-wide grid gap-10 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
-          <p className="font-display text-2xl font-semibold">{t("home.brand")}</p>
-          <p className="measure mt-3 max-w-xs text-sm">{t("footer.about")}</p>
-          <p data-testid="footer-cod" className="mt-4 max-w-xs text-sm">
+          <p className="font-display text-3xl font-bold">{t("home.brand")}</p>
+          <p className="measure mt-3 max-w-xs text-base">{t("footer.about")}</p>
+          <p data-testid="footer-cod" className="mt-4 max-w-xs text-base">
             {t("footer.cod")}
           </p>
         </div>
         <div>
-          <h2 className="font-display text-sm font-semibold">{t("footer.contact")}</h2>
-          <ul className="mt-3 space-y-1.5 text-sm">
+          <h2 className="font-display text-lg font-bold">{t("footer.contact")}</h2>
+          <ul className="mt-4 space-y-2 text-base">
             {settings?.contactEmail && (
               <li>
                 <a href={`mailto:${settings.contactEmail}`} className={linkCls}>
@@ -75,16 +75,16 @@ export async function SiteFooter({ settings }: { settings: SiteSettings | null }
           )}
         </div>
         <div>
-          <h2 className="font-display text-sm font-semibold">{t("footer.cities")}</h2>
-          <ul data-testid="footer-cities" className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+          <h2 className="font-display text-lg font-bold">{t("footer.cities")}</h2>
+          <ul data-testid="footer-cities" className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-base">
             {cities.map((c) => (
               <li key={c}>{c}</li>
             ))}
           </ul>
         </div>
         <div>
-          <h2 className="font-display text-sm font-semibold">{t("footer.explore")}</h2>
-          <ul className="mt-3 space-y-1.5 text-sm">
+          <h2 className="font-display text-lg font-bold">{t("footer.explore")}</h2>
+          <ul className="mt-4 space-y-2 text-base">
             <li>
               <Link href="/shop" className={linkCls}>{t("nav.shop")}</Link>
             </li>

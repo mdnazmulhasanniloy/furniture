@@ -13,11 +13,12 @@ import { FavouritesLink } from "@/components/favourites/favourites-link";
 import { AccountActions } from "@/components/layout/account-menu";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
-import { Link, useRouter } from "@/i18n/navigation";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import type { Category } from "@/lib/api/public";
 import type { CartConfig } from "@/lib/cart/types";
 import { pick } from "@/lib/pick";
 import { useDialogA11y } from "@/lib/use-dialog-a11y";
+import { cn } from "@/lib/utils";
 
 type Props = { categories: Category[]; logoUrl?: string | null; cartConfig?: CartConfig };
 
@@ -280,11 +281,33 @@ function MobileNav({ categories }: { categories: Category[] }) {
   );
 }
 
+/**
+ * ADR-018 / UI-04: on the home page the header floats over the hero, transparent with light text, and turns solid
+ * after the first scroll. Everywhere else it is the solid sticky header. The hero has a top scrim behind it.
+ */
 export function SiteHeader({ categories, logoUrl, cartConfig }: Props) {
   const t = useTranslations();
+  const pathname = usePathname();
+  const overHero = pathname === "/";
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  const light = overHero && !scrolled;
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background">
-      <div className="relative mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 md:gap-4 md:px-8">
+    <header
+      data-testid="site-header"
+      data-over-hero={light}
+      className={cn(
+        "top-0 z-40 w-full border-b transition-colors duration-200",
+        overHero ? "fixed inset-x-0" : "sticky",
+        light ? "hdr-light border-transparent bg-transparent" : "border-border bg-background",
+      )}
+    >
+      <div className="container-wide relative flex h-16 items-center gap-2 md:h-20 md:gap-4">
         <MobileNav categories={categories} />
         <Link href="/" className="font-display text-2xl font-semibold text-primary">
           {logoUrl ? (

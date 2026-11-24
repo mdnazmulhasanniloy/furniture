@@ -231,6 +231,12 @@ describe.each(["en", "ar"] as const)("UI-04 · hero carousel (%s)", (locale) => 
     expect([...hero.querySelectorAll("img")].every((i) => i.getAttribute("alt") === "")).toBe(true);
   });
 
+  it(`UI-04 · the hero has a top scrim so the light header text over it stays readable (${locale})`, () => {
+    wrap(locale, <Hero banners={[banner("1")]} />);
+    const scrim = screen.getByTestId("home-hero").querySelector(".bg-gradient-to-b");
+    expect(scrim?.className).toContain("from-foreground/60");
+  });
+
   it(`UI-04 · the hero has a branded gradient behind the photo, never a plain dark void (${locale})`, () => {
     wrap(locale, <Hero banners={[banner("1")]} />);
     const cls = screen.getByTestId("home-hero").className;

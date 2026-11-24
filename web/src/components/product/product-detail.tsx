@@ -47,7 +47,7 @@ export async function ProductDetailView({
   const category = product.category ? pick(product.category.name, locale) : "";
 
   return (
-    <main className="mx-auto max-w-7xl px-4 pb-24 pt-6 md:px-8 md:pt-8 lg:pb-12">
+    <main className="container-wide pb-24 pt-6 md:pt-8 lg:pb-0">
       <nav aria-label={t("product.breadcrumb.label")} data-testid="breadcrumb">
         <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
           <li>
@@ -73,7 +73,7 @@ export async function ProductDetailView({
         </ol>
       </nav>
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:gap-16">
+      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:gap-14">
         <Gallery images={product.images ?? []} title={title} locale={locale} />
 
         {/* Sticky buy box on desktop; on mobile the bottom bar (StickyBuyBar) follows the inline button. */}
@@ -87,12 +87,12 @@ export async function ProductDetailView({
             {soldOut ? <Badge variant="soldOut">{t("badge.soldOut")}</Badge> : null}
           </div>
           <div className="flex items-start justify-between gap-3">
-            <h1 className="text-4xl font-semibold">{title}</h1>
+            <h1 className="text-3xl md:text-4xl">{title}</h1>
             <ProductHeart product={product} />
           </div>
 
           <p className="flex flex-wrap items-baseline gap-3">
-            <span className="text-2xl font-semibold" data-testid="price">
+            <span className="text-3xl font-semibold" data-testid="price">
               <Price halalas={product.price} locale={locale} />
             </span>
             {hasCompare ? (
@@ -120,8 +120,8 @@ export async function ProductDetailView({
 
           <AddToCartBox product={product} locale={locale} />
 
-          <section aria-labelledby="deliv-h" className="border-t border-border pt-5 text-sm">
-            <h2 id="deliv-h" className="font-semibold">
+          <section aria-labelledby="deliv-h" className="rounded-lg bg-blush p-4 text-base text-blush-foreground">
+            <h2 id="deliv-h" className="font-sans text-base font-semibold">
               {t("product.delivery.title")}
             </h2>
             <p className="mt-1">{t("product.delivery.body")}</p>

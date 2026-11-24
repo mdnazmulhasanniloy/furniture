@@ -11,7 +11,7 @@ import { pick } from "@/lib/pick";
 const SWIPE_PX = 40;
 
 /**
- * PROD-02 gallery: a 4:5 image on sand (photo multiplied onto it, square corners), a row of thumbnails
+ * PROD-02 gallery: a 4:5 image on sand (photo multiplied onto it, 8 px corners), a row of thumbnails
  * under it, prev/next buttons, swipe on touch, click-to-zoom on desktop (pointer position moves the image).
  */
 export function Gallery({
@@ -32,7 +32,7 @@ export function Gallery({
   if (total === 0) {
     return (
       <div
-        className="flex aspect-[4/5] items-center justify-center bg-muted text-sm text-muted-foreground"
+        className="flex aspect-[4/5] items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground"
         data-testid="gallery-empty"
       >
         {t("noImage")}
@@ -61,7 +61,7 @@ export function Gallery({
     >
       <div className="relative min-w-0 flex-1">
         <div
-          className="relative aspect-[4/5] overflow-hidden bg-muted"
+          className="relative aspect-[4/5] overflow-hidden rounded-lg bg-muted"
           data-testid="gallery-main"
           onTouchStart={(e) => {
             touchX.current = e.touches[0]?.clientX ?? null;
@@ -143,7 +143,7 @@ export function Gallery({
                 onClick={() => go(i)}
                 aria-label={t("thumb", { n: i + 1, total })}
                 aria-current={i === index ? "true" : undefined}
-                className={`relative block size-16 overflow-hidden border-2 bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:size-20 ${
+                className={`relative block size-16 overflow-hidden rounded-sm border-2 bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:size-24 ${
                   i === index ? "border-primary" : "border-transparent"
                 }`}
               >

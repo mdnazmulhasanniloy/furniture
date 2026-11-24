@@ -34,7 +34,7 @@ export default async function ProductPage({ params }: Props) {
   if (result.status === "error") {
     const t = await getTranslations("product");
     return (
-      <main className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+      <main className="container-wide py-8">
         <p
           role="alert"
           className="bg-muted p-6 text-center text-sm"

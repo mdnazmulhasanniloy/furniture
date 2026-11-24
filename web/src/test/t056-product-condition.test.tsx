@@ -91,12 +91,12 @@ describe.each(["en", "ar"] as const)("PROD-02 · product page v2 (%s)", (locale)
     expect(within(box).getByTestId("add-to-cart")).toBeTruthy();
   });
 
-  it(`UI-01 · gallery: 4:5 square-cornered image on sand, thumbnails under it, no shadows (${locale})`, () => {
+  it(`UI-01 · gallery: 4:5 image on sand with 8 px corners (ADR-018), thumbnails under it, no shadows (${locale})`, () => {
     wrap(locale, <Gallery images={imgs} title="T" locale={locale} />);
     const main = screen.getByTestId("gallery-main");
     expect(main.className).toContain("aspect-[4/5]");
     expect(main.className).toContain("bg-muted");
-    expect(main.className).not.toMatch(/rounded/);
+    expect(main.className).toContain("rounded-lg");
     expect(main.querySelector("img")!.className).toContain("mix-blend-multiply");
     const section = main.closest("section")!;
     expect(section.className).not.toContain("flex-row");

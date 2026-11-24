@@ -108,6 +108,11 @@ function stubApi() {
         list = [...list, row as unknown as (typeof list)[number]];
         return json(row, 201);
       }
+      if (path === "/admin/banners/order" && method === "PUT") {
+        const ids = (body as { ids: string[] }).ids;
+        list = ids.map((id, i) => ({ ...list.find((b) => b.id === id)!, sortOrder: i + 1 }));
+        return new Response(null, { status: 204 });
+      }
       const m = /^\/admin\/banners\/([^/?]+)$/.exec(path);
       if (m && method === "PATCH") {
         const cur = list.find((b) => b.id === m[1])!;
@@ -223,6 +228,7 @@ describe.each([
     mount();
     await screen.findByTestId("banners-table");
     fireEvent.click(screen.getByTestId("banner-new"));
+    await screen.findByTestId("banner-editor");
   };
   const fillBasics = () => {
     fireEvent.click(screen.getByRole("tab", { name: new RegExp(`^${msgs.common.english}`) }));
@@ -282,7 +288,6 @@ describe.each([
     expect(puts[0].headers).toEqual({ "Content-Type": "image/webp" });
     altDesktop("Hero", "بطل");
     fill(b.form.ctaHref, "https://example.com/sale");
-    fill(b.form.sortOrder, "3");
     fireEvent.click(screen.getByTestId("banner-save"));
     await waitFor(() => expect(writes()).toHaveLength(1));
     const body = writes()[0].body as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -291,12 +296,13 @@ describe.each([
     expect(body.subtitle).toBeNull();
     expect(body.ctaLabel).toBeNull();
     expect(body.ctaHref).toBe("https://example.com/sale");
-    expect(body.sortOrder).toBe(3);
+    expect(body.sortOrder).toBe(3); // a new banner goes last (the highest order + 1); dragging changes it
     expect(body.imageDesktop).toEqual({ key: "furnixa/test/2026/11/new-1.webp", alt: { en: "Hero", ar: "بطل" } });
     expect(body.imageMobile).toBeUndefined();
     expect(JSON.stringify(body)).not.toContain("secret");
     expect(document.body.textContent).not.toContain("secret-presigned-put");
-    await waitFor(() => expect(screen.queryByTestId("banner-dialog")).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId("banner-editor")).toBeNull()); // back on the list after saving
+    expect(await screen.findByTestId("banners-table")).toBeTruthy();
   });
 
   it("ADM-06 · an unsafe CTA link is refused before any request", async () => {
@@ -327,6 +333,7 @@ describe.each([
     mount();
     await screen.findByTestId("banners-table");
     fireEvent.click(screen.getByRole("button", { name: b.editNamed.replace("{name}", base()[0].title[L]) }));
+    await screen.findByTestId("banner-editor");
     fireEvent.click(screen.getByRole("tab", { name: new RegExp(`^${msgs.common.english}`) }));
     fill(b.form.titleEn, "Winter sale 2");
     fill(b.form.startsAt, "2026-12-01T09:30");
@@ -346,11 +353,12 @@ describe.each([
     const rows = await screen.findAllByTestId("banner-row");
     expect(within(rows[0]).getByTestId("banner-has-mobile")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: b.editNamed.replace("{name}", base()[0].title[L]) }));
+    await screen.findByTestId("banner-editor");
     fireEvent.click(screen.getByRole("button", { name: b.form.removeMobile }));
     fireEvent.click(screen.getByTestId("banner-save"));
     await waitFor(() => expect(writes()).toHaveLength(1));
     expect(writes()[0].body.imageMobile).toBeNull();
-    await waitFor(() => expect(screen.queryByTestId("banner-dialog")).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId("banner-editor")).toBeNull());
     await waitFor(() => expect(within(screen.getAllByTestId("banner-row")[0]).queryByTestId("banner-has-mobile")).toBeNull());
   });
 
@@ -358,6 +366,7 @@ describe.each([
     mount();
     await screen.findByTestId("banners-table");
     fireEvent.click(screen.getByRole("button", { name: b.editNamed.replace("{name}", base()[0].title[L]) }));
+    await screen.findByTestId("banner-editor");
     fireEvent.click(screen.getByRole("button", { name: b.form.removeDesktop }));
     fireEvent.click(screen.getByTestId("banner-save"));
     expect((await screen.findByTestId("banner-form-error")).textContent).toBe(b.form.desktopRequired);
@@ -373,6 +382,7 @@ describe.each([
     mount();
     await screen.findByTestId("banners-table");
     fireEvent.click(screen.getByRole("button", { name: b.editNamed.replace("{name}", base()[0].title[L]) }));
+    await screen.findByTestId("banner-editor");
     fireEvent.click(screen.getByRole("tab", { name: new RegExp(`^${msgs.common.english}`) }));
     fill(b.form.titleEn, "My edit");
     failNext = { status: 409, code: "STALE_UPDATE" };
@@ -394,6 +404,7 @@ describe.each([
     mount();
     await screen.findByTestId("banners-table");
     fireEvent.click(screen.getByRole("button", { name: b.editNamed.replace("{name}", base()[0].title[L]) }));
+    await screen.findByTestId("banner-editor");
     failNext = { status: 422, code: "UPLOAD_NOT_ALLOWED" };
     fireEvent.click(screen.getByTestId("banner-save"));
     const err = await screen.findByTestId("banner-form-error");
@@ -420,56 +431,152 @@ describe.each([
     await waitFor(() => expect(screen.getAllByTestId("banner-row")).toHaveLength(1));
   });
 
-  it("ADM-06 · the live preview follows the typed copy and its own en/ar toggle, with the right direction", async () => {
+  it("ADM-06 · the editor is a page with Content, Image, Button link and Schedule, and no sort-order field", async () => {
     await openNew();
-    fillBasics();
+    for (const id of ["content", "image", "link", "schedule"]) expect(screen.getByTestId(`banner-section-${id}`)).toBeTruthy();
+    expect(screen.getByTestId("banner-section-content").textContent).toContain(b.section.content);
+    expect(screen.getByTestId("banner-section-image").textContent).toContain(b.section.image);
+    expect(screen.getByTestId("banner-section-link").textContent).toContain(b.section.link);
+    expect(screen.getByTestId("banner-section-schedule").textContent).toContain(b.section.schedule);
+    expect(screen.queryByLabelText(/sort order|ترتيب العرض/i)).toBeNull();
+    // two columns from lg: the form on one side, a sticky live preview on the other
+    const form = screen.getByTestId("banner-editor").querySelector("form")!;
+    expect(form.className).toContain("lg:grid-cols-");
+    expect(screen.getByTestId("banner-preview").className).toContain("lg:sticky");
+  });
+
+  it("ADM-06 · the live preview follows the typed copy and the language tab, with the right direction", async () => {
+    await openNew();
+    fillBasics(); // ends on the Arabic tab
     const preview = screen.getByTestId("banner-preview");
-    fireEvent.click(within(preview).getByRole("button", { name: msgs.common.english }));
-    expect(within(preview).getByTestId("banner-preview-title").textContent).toBe("Sale");
-    expect(within(preview).getByTestId("banner-preview-title").closest("[dir]")?.getAttribute("dir")).toBe("ltr");
-    fireEvent.click(within(preview).getByRole("button", { name: msgs.common.arabic }));
-    expect(within(preview).getByTestId("banner-preview-title").textContent).toBe("تخفيض");
-    expect(within(preview).getByTestId("banner-preview-title").closest("[dir]")?.getAttribute("dir")).toBe("rtl");
+    expect(within(preview).getByTestId("hero-preview-title").textContent).toBe("تخفيض");
+    expect(within(preview).getByTestId("hero-preview").getAttribute("dir")).toBe("rtl");
+    fireEvent.click(screen.getByRole("tab", { name: new RegExp(`^${msgs.common.english}`) }));
+    expect(within(preview).getByTestId("hero-preview-title").textContent).toBe("Sale");
+    expect(within(preview).getByTestId("hero-preview").getAttribute("dir")).toBe("ltr");
+    expect(within(preview).getByRole("heading", { name: b.preview.title })).toBeTruthy();
   });
 
-  it("UI-01 · the editor hints that the middle of the image shows inside the web hero arch", async () => {
-    await openNew();
-    expect(screen.getByTestId("banner-image-hint").textContent).toBe(b.form.imageHint);
-    expect(screen.getByTestId("banner-crop-hint").textContent).toBe(b.form.cropHint);
-    // no image yet: nothing to crop
-    expect(screen.queryByTestId("banner-crop-desktop")).toBeNull();
-  });
-
-  it("UI-01 · the preview centre-crops each stored image into a 4:5 arch (desktop and mobile)", async () => {
+  it("ADM-06 · the preview has a desktop and a mobile view that use their own photo, falling back to the desktop one", async () => {
     mount();
     await screen.findByTestId("banners-table");
     fireEvent.click(screen.getByRole("button", { name: b.editNamed.replace("{name}", base()[0].title[L]) }));
     const preview = await screen.findByTestId("banner-preview");
-    const desktop = within(preview).getByTestId("banner-crop-desktop");
-    const mobile = within(preview).getByTestId("banner-crop-mobile");
-    expect(within(desktop).getByTestId("banner-crop-desktop-mask").className).toContain("aspect-[4/5]");
-    const img = desktop.querySelector("img")!;
-    expect(img.getAttribute("src")).toBe("https://cdn.test/d1.webp");
-    expect(img.className).toContain("object-cover");
-    expect(img.className).toContain("object-center"); // same as the web hero: the middle is what shows
-    expect(mobile.querySelector("img")!.getAttribute("src")).toBe("https://cdn.test/m1.webp");
-    expect(desktop.textContent).toBe(b.form.cropDesktop);
-    expect(mobile.textContent).toBe(b.form.cropMobile);
-    // the mask is the symmetric arch path in bounding-box units
-    const maskId = /url\(#([^)]+)\)/.exec(within(desktop).getByTestId("banner-crop-desktop-mask").getAttribute("style") ?? "")![1];
-    const clip = desktop.querySelector(`clipPath[id="${maskId}"]`)!;
-    expect(clip.getAttribute("clipPathUnits")).toBe("objectBoundingBox");
-    expect(clip.querySelector("path")!.getAttribute("d")).toBe("M0 1 V0.5 C0 0.22 0.3 0.1 0.5 0 C0.7 0.1 1 0.22 1 0.5 V1 Z");
+    const frame = () => within(preview).getByTestId("hero-preview");
+    expect(frame().getAttribute("data-device")).toBe("desktop");
+    expect(within(preview).getByTestId("hero-preview-image").getAttribute("src")).toBe("https://cdn.test/d1.webp");
+    fireEvent.click(within(preview).getByRole("button", { name: b.preview.mobile }));
+    expect(frame().getAttribute("data-device")).toBe("mobile");
+    expect(frame().className).toContain("aspect-[2/3]");
+    expect(within(preview).getByTestId("hero-preview-image").getAttribute("src")).toBe("https://cdn.test/m1.webp");
+    fireEvent.click(within(preview).getByRole("button", { name: b.preview.desktop }));
+    expect(frame().className).toContain("aspect-[16/9]");
+    // a banner without a mobile photo shows the desktop photo in the mobile view
+    fireEvent.click(within(screen.getByTestId("banner-editor")).getByRole("link", { name: b.title }));
+    await screen.findByTestId("banners-table");
+    fireEvent.click(screen.getByRole("button", { name: b.editNamed.replace("{name}", base()[1].title[L]) }));
+    const p2 = await screen.findByTestId("banner-preview");
+    fireEvent.click(within(p2).getByRole("button", { name: b.preview.mobile }));
+    expect(within(p2).getByTestId("hero-preview-image").getAttribute("src")).toBe("https://cdn.test/d2.webp");
   });
 
-  it("UI-01 · the preview puts the copy on the start side and keeps it flat (no dark overlay, no border)", async () => {
+  it("ADM-06 · the preview is the storefront slide: photo, bottom scrim, text at the start, one button, no arch", async () => {
     await openNew();
     fillBasics();
-    const frame = screen.getByTestId("banner-preview-frame");
-    expect(frame.className).toContain("bg-muted");
-    expect(frame.className).not.toMatch(/border|rounded|shadow/);
-    expect(frame.innerHTML).not.toContain("bg-foreground/70");
-    expect(frame.firstElementChild!.querySelector('[data-testid="banner-preview-title"]')).not.toBeNull();
+    const frame = screen.getByTestId("hero-preview");
+    expect(frame.innerHTML).toContain("from-foreground/80"); // same scrim as the storefront hero
+    expect(frame.className).toContain("bg-foreground");
+    expect(frame.innerHTML).not.toMatch(/clip-?path|arch/i);
+    expect(screen.getByTestId("hero-preview-empty").textContent).toBe(b.form.desktopRequired);
+  });
+
+  it("ADM-06 · the focal point: click the photo, the preview follows, the save carries focalX and focalY; reset clears it", async () => {
+    mount();
+    await screen.findByTestId("banners-table");
+    fireEvent.click(screen.getByRole("button", { name: b.editNamed.replace("{name}", base()[0].title[L]) }));
+    await screen.findByTestId("banner-editor");
+    const picker = screen.getByTestId("banner-focal-desktop");
+    const surface = within(picker).getByTestId("banner-focal-desktop-surface");
+    vi.spyOn(surface, "getBoundingClientRect").mockReturnValue({ left: 10, top: 20, width: 200, height: 100, right: 210, bottom: 120, x: 10, y: 20, toJSON: () => ({}) } as DOMRect);
+    fireEvent.click(surface, { clientX: 60, clientY: 70 }); // 25% across, 50% down
+    expect(within(picker).getByTestId("banner-focal-desktop-value").textContent).toBe("25% / 50%");
+    expect(within(screen.getByTestId("banner-preview")).getByTestId("hero-preview-image").style.objectPosition).toBe("25% 50%");
+    fireEvent.click(screen.getByTestId("banner-save"));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0].body.imageDesktop).toMatchObject({ key: "furnixa/test/2026/11/d1.webp", focalX: 25, focalY: 50 });
+    expect(writes()[0].body.imageMobile).toBeUndefined(); // unchanged
+  });
+
+  it("ADM-06 · the focal marker moves with the arrow keys (Shift = 10) and resets with Escape; reset sends the photo without a focal point", async () => {
+    mount();
+    await screen.findByTestId("banners-table");
+    fireEvent.click(screen.getByRole("button", { name: b.editNamed.replace("{name}", base()[0].title[L]) }));
+    await screen.findByTestId("banner-editor");
+    const marker = screen.getByTestId("banner-focal-desktop-marker");
+    fireEvent.keyDown(marker, { key: "ArrowRight" });
+    fireEvent.keyDown(marker, { key: "ArrowDown", shiftKey: true });
+    expect(screen.getByTestId("banner-focal-desktop-value").textContent).toBe("51% / 60%");
+    fireEvent.keyDown(marker, { key: "Escape" });
+    expect(screen.getByTestId("banner-focal-desktop-value").textContent).toBe("50% / 50%");
+    // set one, save, then clear it on a banner that has one stored
+    fireEvent.keyDown(marker, { key: "ArrowLeft" });
+    fireEvent.click(screen.getByTestId("banner-save"));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect((writes()[0].body.imageDesktop as { focalX: number }).focalX).toBe(49);
+  });
+
+  it("ADM-06 · clearing a stored focal point re-sends the photo without focalX and focalY", async () => {
+    list = base().map((x, i) => (i === 0 ? { ...x, imageDesktop: { ...x.imageDesktop, focalX: 30, focalY: 70 } as typeof x.imageDesktop } : x));
+    mount();
+    await screen.findByTestId("banners-table");
+    fireEvent.click(screen.getByRole("button", { name: b.editNamed.replace("{name}", base()[0].title[L]) }));
+    await screen.findByTestId("banner-editor");
+    expect(screen.getByTestId("banner-focal-desktop-value").textContent).toBe("30% / 70%");
+    fireEvent.click(screen.getByTestId("banner-focal-desktop-reset"));
+    fireEvent.click(screen.getByTestId("banner-save"));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0].body.imageDesktop).toEqual({ key: "furnixa/test/2026/11/d1.webp", alt: { en: "Alt d1", ar: "بديل d1" } });
+  });
+
+  it("ADM-06 · reorder: the move buttons PUT the full id list, the list updates, the ends are disabled", async () => {
+    mount();
+    const rows = await screen.findAllByTestId("banner-row");
+    expect(screen.getByTestId("banners-hint").textContent).toBe(b.reorder.hint);
+    expect(within(rows[0]).getByTestId("banner-handle")).toBeTruthy();
+    expect((within(rows[0]).getByTestId("banner-up") as HTMLButtonElement).disabled).toBe(true);
+    expect((within(rows[1]).getByTestId("banner-down") as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(within(rows[0]).getByRole("button", { name: new RegExp(`^${b.moveDown}`) }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0]).toEqual({ method: "PUT", path: "/admin/banners/order", body: { ids: ["b2", "b1"] } });
+    await waitFor(() => expect(screen.getAllByTestId("banner-row")[0].textContent).toContain(base()[1].title[L]));
+  });
+
+  it("ADM-06 · a failed reorder shows a localized error and the list falls back to the server order", async () => {
+    mount();
+    const rows = await screen.findAllByTestId("banner-row");
+    failNext = { status: 422, code: "VALIDATION_ERROR" };
+    fireEvent.click(within(rows[0]).getByRole("button", { name: new RegExp(`^${b.moveDown}`) }));
+    expect((await screen.findByTestId("banners-row-error")).textContent).toBe(msgs.errors.VALIDATION_ERROR);
+    expect(document.body.textContent).not.toContain("Raw English API text");
+    await waitFor(() => expect(screen.getAllByTestId("banner-row")[0].textContent).toContain(base()[0].title[L]));
+  });
+
+  it("ADM-06 · the empty state explains the default slides and offers a New banner button", async () => {
+    list = [];
+    mount();
+    const empty = await screen.findByTestId("banners-empty");
+    expect(empty.textContent).toContain(b.empty);
+    fireEvent.click(within(empty).getByRole("button", { name: b.new }));
+    expect(await screen.findByTestId("banner-editor")).toBeTruthy();
+  });
+
+  it("ADM-06 · delete confirmation uses the approved wording", async () => {
+    mount();
+    await screen.findByTestId("banners-table");
+    fireEvent.click(screen.getByRole("button", { name: b.deleteNamed.replace("{name}", base()[1].title[L]) }));
+    const dlg = screen.getByTestId("banner-delete-dialog");
+    expect(dlg.textContent).toContain(b.delete.title);
+    expect(dlg.textContent).toContain(b.delete.body);
   });
 
   it("ADM-06 · the page follows the UI direction and dark mode uses token classes only", async () => {

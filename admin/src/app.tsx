@@ -4,6 +4,7 @@ import { Route, Routes } from "react-router";
 import { restoreSession } from "@/lib/auth/flows";
 import { AdminsPage } from "@/routes/admins-page";
 import { AcceptInvitePage } from "@/routes/accept-invite-page";
+import { BannerEditorPage } from "@/routes/banner-editor-page";
 import { BannersPage } from "@/routes/banners-page";
 import { PagesPage } from "@/routes/pages-page";
 import { SectionsPage } from "@/routes/sections-page";
@@ -46,6 +47,8 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
           <Route path="/products/:id" element={<ProductEditorPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/banners" element={<BannersPage />} />
+          <Route path="/banners/new" element={<BannerEditorPage />} />
+          <Route path="/banners/:id" element={<BannerEditorPage />} />
           <Route path="/pages" element={<PagesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/sections" element={<SectionsPage />} />

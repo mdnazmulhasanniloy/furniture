@@ -269,7 +269,7 @@
     "edit": "Edit banner",
     "loading": "Loading banners…",
     "retry": "Retry",
-    "empty": "No banners yet.",
+    "empty": "No banners yet. The home page shows the default slides until you add one.",
     "hasMobile": "Mobile image set",
     "from": "From",
     "to": "Until",
@@ -277,13 +277,10 @@
     "toggleActive": "Active: {name}",
     "editNamed": "Edit {name}",
     "deleteNamed": "Delete {name}",
-    "deleteTitle": "Delete banner",
-    "deleteBody": "Delete “{name}” and both of its images permanently? This cannot be undone.",
     "col": {
       "image": "Image",
       "title": "Title",
       "schedule": "Schedule",
-      "sort": "Sort order",
       "status": "Status",
       "active": "Active",
       "actions": "Actions"
@@ -307,7 +304,6 @@
       "startsAt": "Starts",
       "endsAt": "Ends",
       "scheduleHint": "Saudi Arabia time (Riyadh). Leave empty for no limit.",
-      "sortOrder": "Sort order",
       "active": "Active (shown on the website)",
       "imageDesktop": "Desktop image (required)",
       "imageMobile": "Mobile image (optional)",
@@ -321,7 +317,6 @@
       "hrefInvalid": "Use a path starting with a single / or a full https:// address.",
       "dateInvalid": "Enter a valid date and time.",
       "endBeforeStart": "The end must be after the start.",
-      "sortInvalid": "Enter a whole number, 0 or more.",
       "hasErrors": "has errors",
       "desktopRequired": "Add a desktop image.",
       "altRequired": "Each image needs alt text in both English and Arabic.",
@@ -329,8 +324,32 @@
       "reload": "Reload the latest version",
       "cropDesktop": "Desktop",
       "cropMobile": "Mobile",
-      "cropHint": "The home hero shows the middle of the image inside an arch (portrait, 4:5). The edges are cropped, so keep the subject in the centre.",
-      "imageHint": "Landscape images are fine: only the middle part shows in the home hero arch, see the preview below."
+      "imageHint": "Use a wide photo: the home hero fills the screen. Set the focal point so the subject is never cropped, and check both previews."
+    },
+    "preview": {
+      "title": "Live preview",
+      "desktop": "Desktop",
+      "mobile": "Mobile"
+    },
+    "section": {
+      "content": "Content",
+      "image": "Image",
+      "link": "Button link",
+      "schedule": "Schedule"
+    },
+    "reorder": {
+      "hint": "Drag the handle to reorder, or use the move buttons."
+    },
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "delete": {
+      "title": "Delete this banner?",
+      "body": "This removes the banner from the home page. This cannot be undone."
+    },
+    "focal": {
+      "title": "Focal point",
+      "hint": "Click the photo to choose the part that must stay visible when it is cropped.",
+      "reset": "Reset to centre"
     }
   },
   "sections": {

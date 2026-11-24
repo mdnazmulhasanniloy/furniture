@@ -59,23 +59,24 @@ describe("UI-01 · admin stays calm (ADR-015 Q-3)", () => {
     expect(CSS).toMatch(/--shadow-soft:\s*0 10px 30px -12px rgb\(20 32 29/);
   });
 
-  it("UI-01 · the arch exists only in the banner crop preview; no GSAP, AOS or scroll reveals in the admin", () => {
+  it("UI-04 · the arch is gone from the admin too (ADR-018); no GSAP, AOS or scroll reveals", () => {
     const archUsers = files(SRC).filter((f) => /clipPath|clip-path|arch-crop|ARCH_PATH/.test(readFileSync(f, "utf8")));
-    expect(archUsers.map((f) => path.relative(SRC, f).replaceAll("\\", "/")).sort()).toEqual([
-      "components/arch-crop.tsx",
-      "routes/banners-page.tsx",
-    ]);
+    expect(archUsers.map((f) => path.relative(SRC, f).replaceAll("\\", "/")).sort()).toEqual([]);
     for (const f of files(SRC)) expect(readFileSync(f, "utf8"), f).not.toMatch(/from "gsap|from "aos|data-aos|data-reveal|\.shimmer/);
     expect(PKG.dependencies).not.toHaveProperty("gsap");
     expect(PKG.dependencies).not.toHaveProperty("aos");
   });
 
-  it("UI-01 · the crop hint strings exist in both languages and say the middle of the image shows", () => {
-    for (const k of ["cropHint", "imageHint", "cropDesktop", "cropMobile"] as const) {
+  it("UI-04 · the banner image hint and focal-point strings exist in both languages and mention the focal point", () => {
+    for (const k of ["imageHint", "cropDesktop", "cropMobile"] as const) {
       expect(en.banners.form[k]).toBeTruthy();
       expect(ar.banners.form[k]).toBeTruthy();
     }
-    expect(en.banners.form.cropHint).toMatch(/middle/i);
-    expect(en.banners.form.cropHint).toMatch(/4:5/);
+    for (const k of ["title", "hint", "reset"] as const) {
+      expect(en.banners.focal[k]).toBeTruthy();
+      expect(ar.banners.focal[k]).toBeTruthy();
+    }
+    expect(en.banners.form.imageHint).toMatch(/focal point/i);
+    expect(JSON.stringify(en.banners)).not.toMatch(/arch/i);
   });
 });

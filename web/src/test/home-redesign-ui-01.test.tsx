@@ -502,3 +502,29 @@ describe("UI-01 · removed v1 motion and blocks (ADR-015)", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe.each(["en", "ar"] as const)("ADM-06 · banner focal point on the hero (%s)", (locale) => {
+  it(`ADM-06 · the photo's focal point becomes object-position, one for desktop and one for mobile (${locale})`, () => {
+    const b = {
+      ...banner("1"),
+      imageDesktop: { url: "https://cdn.test/d.jpg", alt: { en: "a", ar: "أ" }, focalX: 30, focalY: 70 },
+      imageMobile: { url: "https://cdn.test/m.jpg", alt: { en: "a", ar: "أ" }, focalX: 10, focalY: 90 },
+    } as unknown as Banner;
+    wrap(locale, <Hero banners={[b]} />);
+    const img = screen.getByTestId("home-hero").querySelector("img")!;
+    expect(img.className).toContain("hero-img");
+    expect(img.style.getPropertyValue("--hero-pos-d")).toBe("30% 70%");
+    expect(img.style.getPropertyValue("--hero-pos-m")).toBe("10% 90%");
+  });
+
+  it(`ADM-06 · without a mobile photo the desktop focal point is used on mobile too, and none means the centre (${locale})`, () => {
+    const b = { ...banner("1"), imageDesktop: { url: "https://cdn.test/d.jpg", alt: { en: "a", ar: "أ" }, focalX: 20, focalY: 40 } } as unknown as Banner;
+    const { unmount } = wrap(locale, <Hero banners={[b]} />);
+    const img = screen.getByTestId("home-hero").querySelector("img")!;
+    expect(img.style.getPropertyValue("--hero-pos-m")).toBe("20% 40%");
+    unmount();
+    wrap(locale, <Hero banners={[banner("1")]} />);
+    const plain = screen.getByTestId("home-hero").querySelector("img")!;
+    expect(plain.style.getPropertyValue("--hero-pos-d")).toBe(""); // falls back to the CSS default: 50% 50%
+  });
+});

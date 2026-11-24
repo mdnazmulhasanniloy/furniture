@@ -21,7 +21,7 @@ export type AdminBanner = {
   updatedAt: string;
 };
 
-export type BannerImageWrite = { key: string; alt: LocalizedText };
+export type BannerImageWrite = { key: string; alt: LocalizedText; focalX?: number; focalY?: number };
 export type BannerWrite = {
   title?: LocalizedText;
   subtitle?: LocalizedText | null;
@@ -53,6 +53,15 @@ export function useSaveBanner() {
         ? api.patch<AdminBanner>(`/admin/banners/${encodeURIComponent(id)}`, body)
         : api.post<AdminBanner>("/admin/banners", body),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+/** PUT /admin/banners/order (CR-011): all-or-nothing; the list position becomes the hero slide order. */
+export function useReorderBanners() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => api.put<void>("/admin/banners/order", { ids }),
+    onSettled: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }
 
@@ -122,7 +131,7 @@ export function bannerState(b: Pick<AdminBanner, "isActive" | "startsAt" | "ends
 }
 
 // BannerInput limits: title en + ar required 1-120; subtitle <= 200 and ctaLabel <= 40 per locale
-// (a localized text needs both locales, so each is both-or-none); startsAt < endsAt; sortOrder integer >= 0.
+// (a localized text needs both locales, so each is both-or-none); startsAt < endsAt. The order is set by dragging (CR-011).
 // Message values are locale keys, translated by the form.
 export const bannerSchema = z
   .object({
@@ -138,7 +147,6 @@ export const bannerSchema = z
       .refine((v) => v === "" || isSafeHref(v), "banners.form.hrefInvalid"),
     startsAt: z.string(),
     endsAt: z.string(),
-    sortOrder: z.string().trim().regex(/^\d{1,9}$/, "banners.form.sortInvalid"),
     isActive: z.boolean(),
   })
   .superRefine((v, ctx) => {
@@ -155,3 +163,8 @@ export const bannerSchema = z
       ctx.addIssue({ code: "custom", path: ["endsAt"], message: "banners.form.endBeforeStart" });
   });
 export type BannerFormValues = z.infer<typeof bannerSchema>;
+
+/** A focal point from a stored image (null when unset). */
+export function focalOf(i: { focalX?: number | null; focalY?: number | null } | null | undefined): { x: number; y: number } | null {
+  return i && typeof i.focalX === "number" && typeof i.focalY === "number" ? { x: i.focalX, y: i.focalY } : null;
+}

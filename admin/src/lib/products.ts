@@ -16,6 +16,9 @@ export type StoredImage = {
   alt?: LocalizedText | null;
   width?: number | null;
   height?: number | null;
+  /** Banner focal point in percent (CR-011); null or absent = centre. */
+  focalX?: number | null;
+  focalY?: number | null;
 };
 export type Dimensions = { widthCm?: number; depthCm?: number; heightCm?: number; weightKg?: number };
 export type AdminProduct = {

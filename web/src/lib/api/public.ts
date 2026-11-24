@@ -76,6 +76,9 @@ export type ImageAsset = {
   alt?: LocalizedText | null;
   width?: number | null;
   height?: number | null;
+  /** Banner focal point in percent (CR-011): the part of the photo that must stay visible when it is cropped. */
+  focalX?: number | null;
+  focalY?: number | null;
 };
 
 export type Banner = {

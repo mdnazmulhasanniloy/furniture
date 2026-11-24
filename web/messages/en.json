@@ -276,7 +276,7 @@
     "INVALID_CREDENTIALS": "Incorrect email or password.",
     "RATE_LIMITED": "Too many attempts.",
     "ACCOUNT_LOCKED": "This account is temporarily locked.",
-    "ACCOUNT_BLOCKED": "This account has been blocked. Please contact support.",
+    "ACCOUNT_BLOCKED": "This account is unavailable. Please contact support.",
     "EMAIL_NOT_VERIFIED": "Please verify your email first.",
     "UNAUTHORIZED": "Please log in to continue.",
     "REFRESH_RACE": "Your session is being updated. Please try again.",

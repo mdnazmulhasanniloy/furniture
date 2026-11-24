@@ -25,9 +25,14 @@ type Slide = {
   title: string;
   line?: string;
   ctas: Cta[];
-  desktop: { src: string; alt: string };
-  mobile?: { src: string; alt: string } | null;
+  desktop: { src: string; alt: string; focal?: Focal };
+  mobile?: { src: string; alt: string; focal?: Focal } | null;
 };
+/** Focal point in percent; absent = centre. */
+type Focal = { x: number; y: number } | null;
+const focalOf = (i: { focalX?: number | null; focalY?: number | null } | null | undefined): Focal =>
+  i && typeof i.focalX === "number" && typeof i.focalY === "number" ? { x: i.focalX, y: i.focalY } : null;
+const pos = (f: Focal | undefined) => (f ? `${f.x}% ${f.y}%` : undefined);
 
 const SWIPE_PX = 48;
 const ctaCls = "h-12 px-8";
@@ -49,7 +54,8 @@ function SlidePicture({ slide, first, active }: { slide: Slide; first: boolean; 
         alt={d.alt}
         loading={first ? "eager" : "lazy"}
         fetchPriority={first ? "high" : undefined}
-        className="object-cover object-center"
+        className="hero-img object-cover object-center"
+        style={{ ...d.style, "--hero-pos-d": pos(slide.desktop.focal), "--hero-pos-m": pos(slide.mobile?.focal ?? slide.desktop.focal) } as React.CSSProperties}
       />
     </picture>
   );
@@ -271,8 +277,8 @@ export function Hero({ banners }: { banners: Banner[] }) {
       ctas: safe
         ? [{ href: b.ctaHref as string, label: pick(b.ctaLabel, locale) || t("shopNew") }]
         : [{ href: "/shop?type=new", label: t("shopNew") }],
-      desktop: { src: b.imageDesktop.url, alt },
-      mobile: b.imageMobile?.url ? { src: b.imageMobile.url, alt } : null,
+      desktop: { src: b.imageDesktop.url, alt, focal: focalOf(b.imageDesktop) },
+      mobile: b.imageMobile?.url ? { src: b.imageMobile.url, alt, focal: focalOf(b.imageMobile) } : null,
     };
   });
   return <Slides slides={slides} testId="home-hero" />;

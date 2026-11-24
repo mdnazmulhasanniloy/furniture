@@ -282,6 +282,15 @@ body {
     scale: 1.07;
   }
 }
+/* Banner focal point (CR-011): the mobile photo uses its own point below 768 px, the desktop photo above. */
+.hero-img {
+  object-position: var(--hero-pos-m, 50% 50%);
+}
+@media (min-width: 768px) {
+  .hero-img {
+    object-position: var(--hero-pos-d, 50% 50%);
+  }
+}
 .hero-bar-fill {
   transform-origin: left center;
 }

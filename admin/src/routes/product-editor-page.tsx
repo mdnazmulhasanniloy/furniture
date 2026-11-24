@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, type FieldErrors, type FieldPath } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
@@ -59,6 +59,20 @@ function ProductEditor({ product, onReload }: { product: AdminProduct | null; on
   const msg = (m?: string) => (m ? t(m) : undefined);
   const dirty = !done && (formState.isDirty || imageSig(images) !== initialSig);
   const guard = useUnsavedGuard(dirty);
+
+  // QA A2 (2026-11-24): the category <select> is registered while /admin/categories is still in flight,
+  // so react-hook-form applies the product's id to a select that has no matching <option> yet and the
+  // element falls back to the placeholder - the category looked unset, and because a select is read back
+  // from the DOM on blur, opening and leaving the field really did clear it ("This field is required" on
+  // save). Re-applying the loaded values once, as soon as the options exist, fixes both; `keepDirtyValues`
+  // keeps anything already typed.
+  const catsReady = cats.data !== undefined;
+  const applied = useRef(false);
+  useEffect(() => {
+    if (!catsReady || applied.current) return;
+    applied.current = true;
+    form.reset(toFormValues(product), { keepDirtyValues: true });
+  }, [catsReady, form, product]);
 
   const type = watch("type");
   const titleEn = watch("titleEn");

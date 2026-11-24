@@ -45,7 +45,10 @@ const baseProducts = () => [
 const cats = [
   { id: "c1", name: { en: "Sofas", ar: "أرائك" }, slug: "sofas", image: null, parentId: null, sortOrder: 1, isActive: true, productCount: 2 },
   { id: "c3", name: { en: "Lamps", ar: "مصابيح" }, slug: "lamps", image: null, parentId: null, sortOrder: 2, isActive: true, productCount: 0 },
+  // Child of c1, appended so the indexes above stay stable (QA A2 uses it).
+  { id: "c2", name: { en: "Armchairs", ar: "كراسي" }, slug: "armchairs", image: null, parentId: "c1", sortOrder: 1, isActive: true, productCount: 1 },
 ];
+const child = cats[2];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- request bodies are asserted field by field
 type Call = { method: string; path: string; body: Record<string, any> };
@@ -338,6 +341,39 @@ describe.each([
     expect(w.body.stock).toBe(5);
     expect(w.body.images).toEqual([{ key: imgA.key, alt: imgA.alt }, { key: imgB.key }]);
     await screen.findByTestId("products-table"); // returns to the list after saving
+  });
+
+  /**
+   * QA 2026-11-24 (A2). The category `<select>` is registered while the categories query is still in
+   * flight, so the product's id was applied to a select that had no matching `<option>` yet and the
+   * element fell back to the placeholder. The admin saw no category, and because react-hook-form reads
+   * a select back from the DOM on blur, merely opening and leaving the field turned the kept value into
+   * "" - the reported "This field is required" on save. Asserted on a product in a child category.
+   */
+  it("ADM-02 · edit pre-selects the product's category once the options load, child categories included (A2)", async () => {
+    products[0] = { ...products[0], categoryId: child.id };
+    mount("/products/p1");
+    await screen.findByRole("heading", { level: 1, name: p.editor.titleEdit });
+    await screen.findByRole("option", { name: `— ${child.name[L]}` }); // options arrive after the mount
+    const select = () => screen.getByLabelText(p.form.category) as HTMLSelectElement;
+    await waitFor(() => expect(select().value).toBe(child.id));
+    fireEvent.blur(select()); // the field the admin opened and left without choosing
+    save();
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0].body.categoryId).toBe(child.id);
+    expect(document.body.textContent).not.toContain(p.form.required);
+  });
+
+  it("ADM-02 · the category select keeps an edit made before the options loaded (A2)", async () => {
+    mount("/products/p1");
+    await screen.findByTestId("product-save");
+    fill(p.form.stock, "7"); // typed while /admin/categories is still in flight
+    await screen.findByRole("option", { name: `— ${child.name[L]}` });
+    expect((screen.getByLabelText(p.form.stock) as HTMLInputElement).value).toBe("7");
+    fill(p.form.category, child.id);
+    save();
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0].body).toMatchObject({ stock: 7, categoryId: child.id });
   });
 
   it("ADM-02 · 409 STALE_UPDATE shows the reload message by code, keeps the edits, and reload fetches the latest", async () => {

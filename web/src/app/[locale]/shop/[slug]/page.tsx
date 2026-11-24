@@ -34,10 +34,10 @@ export default async function ProductPage({ params }: Props) {
   if (result.status === "error") {
     const t = await getTranslations("product");
     return (
-      <main className="mx-auto max-w-7xl px-4 py-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 md:px-8">
         <p
           role="alert"
-          className="rounded-lg border border-border p-6 text-center text-sm"
+          className="bg-muted p-6 text-center text-sm"
           data-testid="product-error"
         >
           {t("loadError")}

@@ -342,9 +342,18 @@
     "increase": "Increase quantity",
     "cartSoon": "Adding to cart is coming soon.",
     "condition": {
-      "title": "Condition",
+      "title": "Condition report",
       "grade": "Grade",
-      "notes": "Condition notes"
+      "scale": "Condition grade scale",
+      "notes": "Our notes",
+      "closeups": "Close-ups",
+      "byline": "Photos and condition notes by Furnixa",
+      "grades": {
+        "NEW": "Unused, in its original condition.",
+        "LIKE_NEW": "Used a few times, no marks we could find.",
+        "GOOD": "Used, with light signs of wear.",
+        "FAIR": "Used, with clear signs of wear. Read our notes for the details."
+      }
     },
     "specs": {
       "title": "Specifications",
@@ -365,7 +374,11 @@
     },
     "related": "You may also like",
     "relatedLabel": "Related products",
-    "breadcrumb": "Breadcrumb"
+    "breadcrumb": {
+      "label": "Breadcrumb",
+      "home": "Home"
+    },
+    "buyBar": "Add to cart bar"
   },
   "account": {
     "title": "My account",

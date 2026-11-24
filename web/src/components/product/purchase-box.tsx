@@ -34,7 +34,7 @@ export function PurchaseBox({
             {t("product.quantity")}
           </span>
           <div
-            className="inline-flex items-center rounded-md border border-border"
+            className="inline-flex items-center rounded-sm border border-input"
             role="group"
             aria-labelledby="qty-label"
           >
@@ -68,7 +68,7 @@ export function PurchaseBox({
         disabled={soldOut || !onAdd}
         onClick={() => onAdd?.(qty)}
         aria-describedby={!soldOut && !onAdd ? "cart-soon" : undefined}
-        className="w-full rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+        className="h-12 w-full rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {soldOut ? t("badge.soldOut") : t("cart.addToCart")}
       </button>

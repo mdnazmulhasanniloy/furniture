@@ -11,8 +11,8 @@ import { pick } from "@/lib/pick";
 const SWIPE_PX = 40;
 
 /**
- * PROD-02 gallery: thumbnails on the start side (below the image on mobile), prev/next buttons,
- * swipe on touch, click-to-zoom on desktop (pointer position moves the zoomed image).
+ * PROD-02 gallery: a 4:5 image on sand (photo multiplied onto it, square corners), a row of thumbnails
+ * under it, prev/next buttons, swipe on touch, click-to-zoom on desktop (pointer position moves the image).
  */
 export function Gallery({
   images,
@@ -32,7 +32,7 @@ export function Gallery({
   if (total === 0) {
     return (
       <div
-        className="flex aspect-[4/3] items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground"
+        className="flex aspect-[4/5] items-center justify-center bg-muted text-sm text-muted-foreground"
         data-testid="gallery-empty"
       >
         {t("noImage")}
@@ -52,7 +52,7 @@ export function Gallery({
     <section
       aria-roledescription="carousel"
       aria-label={t("label")}
-      className="flex flex-col gap-3 md:flex-row-reverse"
+      className="flex flex-col gap-3"
       onKeyDown={(e) => {
         if (e.key === "ArrowRight") go(index + (rtl() ? -1 : 1));
         else if (e.key === "ArrowLeft") go(index + (rtl() ? 1 : -1));
@@ -61,7 +61,7 @@ export function Gallery({
     >
       <div className="relative min-w-0 flex-1">
         <div
-          className="relative aspect-[4/3] overflow-hidden rounded-lg bg-muted"
+          className="relative aspect-[4/5] overflow-hidden bg-muted"
           data-testid="gallery-main"
           onTouchStart={(e) => {
             touchX.current = e.touches[0]?.clientX ?? null;
@@ -93,7 +93,7 @@ export function Gallery({
             fill
             priority={index === 0}
             sizes="(min-width: 1024px) 50vw, 100vw"
-            className="object-cover motion-reduce:transition-none"
+            className="object-cover mix-blend-multiply motion-reduce:transition-none"
             style={
               zoom
                 ? { transform: "scale(2)", transformOrigin: `${zoom.x}% ${zoom.y}%` }
@@ -105,7 +105,7 @@ export function Gallery({
             onClick={() => setZoom(zoom ? null : { x: 50, y: 50 })}
             aria-pressed={zoom !== null}
             aria-label={zoom ? t("zoomOut") : t("zoomIn")}
-            className="absolute bottom-2 end-2 hidden rounded-full bg-card p-2 text-foreground shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:block"
+            className="absolute bottom-3 end-3 hidden size-9 items-center justify-center rounded-full bg-card text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex"
           >
             {zoom ? <ZoomOut className="size-4" aria-hidden /> : <ZoomIn className="size-4" aria-hidden />}
           </button>
@@ -115,7 +115,7 @@ export function Gallery({
                 type="button"
                 onClick={() => go(index - 1)}
                 aria-label={t("prev")}
-                className="absolute start-2 top-1/2 -translate-y-1/2 rounded-full bg-card p-2 shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="absolute start-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <ChevronLeft className="size-4 rtl:rotate-180" aria-hidden />
               </button>
@@ -123,7 +123,7 @@ export function Gallery({
                 type="button"
                 onClick={() => go(index + 1)}
                 aria-label={t("next")}
-                className="absolute end-2 top-1/2 -translate-y-1/2 rounded-full bg-card p-2 shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="absolute end-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-full bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <ChevronRight className="size-4 rtl:rotate-180" aria-hidden />
               </button>
@@ -134,7 +134,7 @@ export function Gallery({
       {total > 1 ? (
         <ul
           aria-label={t("thumbs")}
-          className="flex gap-2 overflow-x-auto md:w-20 md:flex-col md:overflow-y-auto md:overflow-x-visible"
+          className="flex gap-2 overflow-x-auto pb-1"
         >
           {images.map((img, i) => (
             <li key={`${img.url}-${i}`} className="shrink-0">
@@ -143,7 +143,7 @@ export function Gallery({
                 onClick={() => go(i)}
                 aria-label={t("thumb", { n: i + 1, total })}
                 aria-current={i === index ? "true" : undefined}
-                className={`relative block size-16 overflow-hidden rounded-md border-2 bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:size-20 ${
+                className={`relative block size-16 overflow-hidden border-2 bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:size-20 ${
                   i === index ? "border-primary" : "border-transparent"
                 }`}
               >

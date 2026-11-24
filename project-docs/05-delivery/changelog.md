@@ -1,5 +1,7 @@
 # Changelog
 
+## 2026-11-24 (web T-056 product page and condition report done)
+- **web T-056 (PROD-02): product page v2 and the pre-owned condition report.** Gallery on sand, sticky buy box, mobile bottom bar, condition report built only from real data; it never claims inspection (Q-2 default). Strings added (en, ar): `product.breadcrumb.*`, `product.buyBar`, `product.condition.*`. Owner: grade wording for New, Good and Fair is a draft; the seeded demo notes say "Inspected by our team." (see the task note).
 ## 2026-11-24 (web T-055 listing and product tile done)
 - **web T-055 (PROD-01, FAV-01): borderless product tile, listing restyle.** See the task note; no new strings. Heading base rules moved into `@layer base` so utilities can override them (affects every page, checked in the screenshots).
 ## 2026-11-24 (web T-054 home done)

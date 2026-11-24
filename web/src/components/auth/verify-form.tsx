@@ -102,7 +102,7 @@ export function VerifyForm() {
 
   return (
     <AuthShell>
-      <h1 className="font-display text-3xl">{t("verifyTitle")}</h1>
+      <h1 className="text-4xl font-semibold">{t("verifyTitle")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{t("verifyIntro")}</p>
       <p className="mt-1 mb-6 text-sm text-foreground">
         <bdi>{t("otpSent", { email: pending.email })}</bdi>
@@ -131,7 +131,7 @@ export function VerifyForm() {
             {tv("codeIncomplete")}
           </p>
         ) : null}
-        <Button type="submit" className="w-full" disabled={busy}>
+        <Button type="submit" className="h-12 w-full" disabled={busy}>
           {busy ? t("submitting") : t("verifySubmit")}
         </Button>
       </form>

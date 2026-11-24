@@ -1,5 +1,7 @@
 # Changelog
 
+## 2026-11-24 (web T-058 auth pages done; web redesign v2 complete)
+- **web T-058 (AUTH-01..04): arch image panel, flat form, OTP boxes.** No new strings. This closes the web side of CR-008 (T-052 to T-058). Final web screenshots are in `03-design/screens-v2/` (home, shop, shop pre-owned, product new and pre-owned, cart, login, register, forgot-password; 390 and 1440, /ar and /en). Not captured: checkout, success, verify and reset (they need a session or a pending sign-up; see the task notes). Admin T-079 follows.
 ## 2026-11-24 (web T-057 cart and checkout restyle done)
 - **web T-057 (CART-01, ORD-01): flat cart and checkout.** No new strings. Fixed the header nav wrapping "Pre-owned" at 1440 (T-053 regression). Checkout screenshots are pending a logged-in demo customer (see the task note).
 ## 2026-11-24 (web T-056 product page and condition report done)

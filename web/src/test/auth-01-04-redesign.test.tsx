@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -38,15 +38,57 @@ const wrap = (locale: Loc, ui: React.ReactNode) => {
 describe.each(["en", "ar"] as const)("AUTH-01 · redesigned auth screens (%s)", (locale) => {
   const m = locales[locale];
 
-  it(`AUTH-01 · split layout: wordmark, image placeholder panel and a gold accent line on the emerald caption (${locale})`, () => {
+  it(`UI-01 · auth v2: form on the start side, the third arch on a sand panel on the end side with a gold outline (${locale})`, () => {
     wrap(locale, <LoginForm />);
     expect(screen.getByTestId("auth-shell").className).toContain("lg:grid-cols-2");
-    expect(screen.getAllByTestId("wordmark")[0]!.textContent).toBe(m.home.brand);
+    // the header already carries the wordmark: the form side repeats nothing but the placeholder's own mark
+    expect(screen.getAllByTestId("wordmark")).toHaveLength(1);
     const panel = screen.getByTestId("auth-panel");
     expect(panel.getAttribute("aria-hidden")).toBe("true");
+    expect(panel.className).toContain("bg-muted");
+    expect(panel.className).toContain("hidden");
+    const arch = within(panel).getByTestId("arch");
+    expect(arch.className).toContain("aspect-[4/5]");
+    expect(within(panel).getByTestId("arch-outline")).toBeTruthy();
     expect(panel.querySelector('[data-testid="image-placeholder"]')).not.toBeNull();
-    expect(screen.getByTestId("auth-accent").className).toContain("bg-gold");
     expect(panel.textContent).toContain(m.auth.panelTitle);
+  });
+
+  it(`UI-01 · auth v2: the caption is plain text, no emerald slab and no gold accent line (${locale})`, () => {
+    wrap(locale, <LoginForm />);
+    const panel = screen.getByTestId("auth-panel");
+    expect(screen.queryByTestId("auth-accent")).toBeNull();
+    expect(panel.innerHTML).not.toMatch(/bg-primary|bg-gold|rounded-xl/);
+  });
+
+  it(`UI-01 · auth v2: on mobile a small 3:4 arch sits above the title and is hidden from lg up (${locale})`, () => {
+    wrap(locale, <LoginForm />);
+    const small = screen.getByTestId("auth-arch-small");
+    expect(small.className).toContain("lg:hidden");
+    expect(small.getAttribute("aria-hidden")).toBe("true");
+    expect(within(small).getByTestId("arch").className).toContain("aspect-[3/4]");
+    expect(within(small).queryByTestId("arch-outline")).toBeNull();
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(small.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it(`UI-01 · auth v2: arch used exactly twice on the page (panel and small mobile), never on the form (${locale})`, () => {
+    wrap(locale, <LoginForm />);
+    expect(screen.getAllByTestId("arch")).toHaveLength(2);
+    expect(document.querySelector("form")).not.toBeNull();
+    expect(document.querySelector("form [data-testid=arch]")).toBeNull();
+  });
+
+  it(`UI-01 · auth v2: 44 px fields with the sm radius, a 48 px full-width submit, flat alerts (${locale})`, () => {
+    wrap(locale, <LoginForm />);
+    const email = screen.getByLabelText(m.auth.email);
+    expect(email.className).toContain("h-11");
+    expect(email.className).toContain("rounded-sm");
+    expect(email.className).toContain("border-input");
+    const submit = screen.getByRole("button", { name: m.auth.login });
+    expect(submit.className).toContain("h-12");
+    expect(submit.className).toContain("w-full");
+    expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-4xl");
   });
 
   it(`AUTH-01 · login validates inline on blur and clears the error once fixed (${locale})`, () => {
@@ -89,6 +131,11 @@ describe.each(["en", "ar"] as const)("AUTH-01 · animated OTP boxes (%s)", (loca
     expect(screen.getByTestId("otp-1").getAttribute("data-filled")).toBe("true");
     expect(screen.getByTestId("otp-2").getAttribute("data-filled")).toBe("false");
     expect(screen.getByTestId("otp-group").getAttribute("dir")).toBe("ltr");
+    // v2: tall boxes with the sm radius; a filled box gets the emerald 1.5 px border
+    const first = screen.getByTestId("otp-0");
+    expect(first.className).toContain("h-14");
+    expect(first.className).toContain("rounded-sm");
+    expect(first.className).toContain("data-[filled=true]:border-primary");
   });
 
   it(`AUTH-01 · typing and pasting still fill the boxes, Arabic-Indic digits included (${locale})`, () => {

@@ -59,7 +59,7 @@ export function OtpInput({ value, onChange, disabled, invalid, label, groupLabel
           disabled={disabled}
           data-testid={`otp-${i}`}
           className={cn(
-            "h-12 w-10 rounded-md border border-input bg-card transition-colors data-[filled=true]:border-primary text-center text-lg font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 sm:w-12",
+            "h-14 w-10 rounded-sm border border-input bg-card transition-colors data-[filled=true]:border-primary data-[filled=true]:border-[1.5px] text-center text-lg font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 sm:w-12",
             invalid && "border-destructive",
           )}
           onChange={(e) => {

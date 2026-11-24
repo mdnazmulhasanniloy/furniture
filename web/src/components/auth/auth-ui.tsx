@@ -3,37 +3,44 @@
 import { useTranslations } from "next-intl";
 import { useId } from "react";
 
-import { ImagePlaceholder, Wordmark } from "@/components/brand";
+import { Arch } from "@/components/arch";
+import { ImagePlaceholder } from "@/components/brand";
 import { Input } from "@/components/ui/input";
 import { apiErrorMessage } from "@/lib/api/errors";
 import type { FieldError } from "@/lib/auth/validation";
 
 /**
- * Split layout (W-06, CR-007): form on the start side; from lg a large lifestyle image panel on the end
- * side (emerald placeholder until real photos exist, B-022) with an emerald caption panel that carries a
- * gold accent line. The panel is decorative (aria-hidden). Mirrors in RTL through grid order.
+ * Auth layout (W-06, ADR-015): the form on the start side; from lg a sand panel on the end side holds the
+ * third and last use of the arch (4:5, gold outline) with a plain caption under it. Below lg the form stands
+ * alone under a small arch. The panel is decorative (aria-hidden). Mirrors in RTL through grid order.
+ * The arch holds the flat sand placeholder until real photos exist (B-022).
  */
 export function AuthShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const t = useTranslations("auth");
   const tHome = useTranslations("home");
   return (
-    <main className="mx-auto grid min-h-[70vh] w-full max-w-6xl lg:grid-cols-2" data-testid="auth-shell">
-      <div className="flex items-center justify-center px-4 py-10 sm:px-8">
+    <main className="grid min-h-[70vh] w-full lg:grid-cols-2" data-testid="auth-shell">
+      <div className="flex items-center justify-center px-4 py-10 sm:px-8 lg:py-16">
         <div className="w-full max-w-md">
-          <Wordmark name={tHome("brand")} className="mb-8 text-2xl text-primary" />
+          <div aria-hidden data-testid="auth-arch-small" className="mb-6 lg:hidden">
+            <Arch ratio="3/4" className="w-14" />
+          </div>
           {children}
         </div>
       </div>
       <aside
         aria-hidden
         data-testid="auth-panel"
-        className="relative hidden overflow-hidden rounded-xl lg:m-6 lg:block"
+        className="hidden flex-col items-center justify-center gap-10 bg-muted px-10 py-16 lg:flex"
       >
-        <ImagePlaceholder name={tHome("brand")} className="absolute inset-0" />
-        <div className="absolute inset-x-0 bottom-0 bg-primary p-8 text-primary-foreground">
-          <span data-testid="auth-accent" className="mb-4 block h-0.5 w-14 bg-gold" />
-          <p className="font-display text-3xl">{t("panelTitle")}</p>
-          <p className="mt-2 text-sm">{t("panelText")}</p>
+        <div className="w-full max-w-sm">
+          <Arch ratio="4/5" outline>
+            <ImagePlaceholder name={tHome("brand")} className="bg-background" />
+          </Arch>
+        </div>
+        <div className="max-w-sm text-center">
+          <p className="text-2xl font-semibold">{t("panelTitle")}</p>
+          <p className="measure mt-2 text-muted-foreground">{t("panelText")}</p>
         </div>
       </aside>
     </main>
@@ -77,7 +84,7 @@ export function FormAlert({ error }: { error: unknown }) {
   const t = useTranslations("errors");
   if (!error) return null;
   return (
-    <p role="alert" className="rounded-md border border-destructive/40 bg-card p-3 text-sm text-destructive">
+    <p role="alert" className="border-s-[3px] border-destructive bg-muted p-3 text-sm text-destructive">
       {apiErrorMessage(t as unknown as Parameters<typeof apiErrorMessage>[0], error)}
     </p>
   );
@@ -85,7 +92,7 @@ export function FormAlert({ error }: { error: unknown }) {
 
 export function FormNotice({ children }: { children: React.ReactNode }) {
   return (
-    <p role="status" className="rounded-md border border-success/40 bg-card p-3 text-sm text-success-foreground">
+    <p role="status" className="border-s-[3px] border-success bg-muted p-3 text-sm text-success-foreground">
       {children}
     </p>
   );

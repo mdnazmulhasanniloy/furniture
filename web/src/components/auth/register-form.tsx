@@ -73,7 +73,7 @@ export function RegisterForm() {
 
   return (
     <AuthShell>
-      <h1 className="font-display text-3xl">{t("registerTitle")}</h1>
+      <h1 className="text-4xl font-semibold">{t("registerTitle")}</h1>
       <p className="mt-1 mb-6 text-sm text-muted-foreground">{t("registerIntro")}</p>
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         <FormAlert error={apiError} />
@@ -87,7 +87,7 @@ export function RegisterForm() {
           onChange={set("email")} onBlur={blur("email")} error={errors.email} />
         <Field label={t("password")} type="password" autoComplete="new-password" dir="ltr" maxLength={128}
           value={v.password} onChange={set("password")} onBlur={blur("password")} error={errors.password} hint={t("passwordHint")} />
-        <Button type="submit" className="w-full" disabled={busy}>
+        <Button type="submit" className="h-12 w-full" disabled={busy}>
           {busy ? t("submitting") : t("register")}
         </Button>
       </form>

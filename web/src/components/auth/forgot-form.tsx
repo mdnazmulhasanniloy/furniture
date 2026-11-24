@@ -42,13 +42,13 @@ export function ForgotForm() {
 
   return (
     <AuthShell>
-      <h1 className="font-display text-3xl">{t("forgotTitle")}</h1>
+      <h1 className="text-4xl font-semibold">{t("forgotTitle")}</h1>
       <p className="mt-1 mb-6 text-sm text-muted-foreground">{t("forgotIntro")}</p>
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         <FormAlert error={apiError} />
         <Field label={t("email")} type="email" autoComplete="email" dir="ltr" value={email}
           onChange={(e) => setEmail(e.target.value)} error={error} />
-        <Button type="submit" className="w-full" disabled={busy}>
+        <Button type="submit" className="h-12 w-full" disabled={busy}>
           {busy ? t("submitting") : t("sendCode")}
         </Button>
       </form>

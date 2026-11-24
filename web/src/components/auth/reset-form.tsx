@@ -55,13 +55,13 @@ export function ResetForm() {
 
   return (
     <AuthShell>
-      <h1 className="font-display text-3xl">{t("resetTitle")}</h1>
+      <h1 className="text-4xl font-semibold">{t("resetTitle")}</h1>
       <p className="mt-1 mb-6 text-sm text-muted-foreground">
         {carried ? <bdi>{t("resetIntro", { email: carried })}</bdi> : t("resetIntroNoEmail")}
       </p>
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         {invalidCode ? (
-          <p role="alert" className="rounded-md border border-destructive/40 bg-card p-3 text-sm text-destructive">
+          <p role="alert" className="border-s-[3px] border-destructive bg-muted p-3 text-sm text-destructive">
             {t("codeInvalidReset")}{" "}
             <Link href="/forgot-password" className="underline">
               {t("requestNewCode")}
@@ -90,7 +90,7 @@ export function ResetForm() {
         <Field label={t("newPassword")} type="password" autoComplete="new-password" dir="ltr" maxLength={128}
           value={password} onChange={(e) => setPassword(e.target.value)} error={errors.password}
           hint={t("passwordHint")} />
-        <Button type="submit" className="w-full" disabled={busy}>
+        <Button type="submit" className="h-12 w-full" disabled={busy}>
           {busy ? t("submitting") : t("resetSubmit")}
         </Button>
       </form>

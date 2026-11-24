@@ -58,7 +58,7 @@ export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
 
   return (
     <AuthShell>
-      <h1 className="font-display text-3xl">{t("loginTitle")}</h1>
+      <h1 className="text-4xl font-semibold">{t("loginTitle")}</h1>
       <p className="mt-1 mb-6 text-sm text-muted-foreground">{t("loginIntro")}</p>
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         {resetDone ? <FormNotice>{t("resetDone")}</FormNotice> : null}
@@ -80,7 +80,7 @@ export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
             {t("forgot")}
           </Link>
         </div>
-        <Button type="submit" className="w-full" disabled={busy}>
+        <Button type="submit" className="h-12 w-full" disabled={busy}>
           {busy ? t("submitting") : t("login")}
         </Button>
       </form>

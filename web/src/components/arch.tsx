@@ -30,7 +30,7 @@ export function Arch({
   outline = false,
   className,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   ratio?: "4/5" | "3/4";
   outline?: boolean;
   className?: string;

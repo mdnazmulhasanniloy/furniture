@@ -102,7 +102,7 @@ describe.each(["en", "ar"] as const)("UI-01 · header and footer v2 (%s)", (loca
     vi.unstubAllGlobals();
   });
 
-  it(`UI-04 · with no hero on the page the home header is solid, never transparent over content (${locale})`, () => {
+  it(`UI-04 · with no hero on the page the home header is solid, never transparent over content (${locale})`, async () => {
     state.path = "/";
     vi.stubGlobal(
       "IntersectionObserver",
@@ -117,6 +117,9 @@ describe.each(["en", "ar"] as const)("UI-01 · header and footer v2 (%s)", (loca
         <SiteHeader categories={[]} />
       </NextIntlClientProvider>,
     );
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
     expect(screen.getByTestId("site-header").className).toContain("bg-background");
     vi.unstubAllGlobals();
   });

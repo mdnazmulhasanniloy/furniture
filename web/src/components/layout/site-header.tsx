@@ -296,8 +296,9 @@ export function SiteHeader({ categories, logoUrl, cartConfig }: Props) {
   useEffect(() => {
     const hero = overHero ? document.querySelector("[data-hero]") : null;
     if (!hero || typeof IntersectionObserver === "undefined") {
-      setHeroVisible(false); // no hero to float over: solid
-      return;
+      // no hero to float over: solid (a frame later, so state is not set synchronously inside the effect)
+      const id = requestAnimationFrame(() => setHeroVisible(false));
+      return () => cancelAnimationFrame(id);
     }
     const headerHeight = ref.current?.getBoundingClientRect().height ?? 80;
     const io = new IntersectionObserver(([entry]) => setHeroVisible(!!entry?.isIntersecting), {

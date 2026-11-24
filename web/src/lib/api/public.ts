@@ -42,11 +42,15 @@ export type SiteSettings = {
   vat?: { vatRate: number; applyToDelivery?: boolean; pricesIncludeVat: boolean } | null;
 };
 
+/** A hung API must never hold the whole page (the layout awaits settings and categories): give up after this. */
+const API_TIMEOUT_MS = 5000;
+
 async function getJson<T>(path: string, tags: string[]): Promise<T | null> {
   try {
     const res = await fetch(`${API_ORIGIN}/api/v1${path}`, {
       headers: { Accept: "application/json" },
       next: { revalidate: 60, tags },
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     return (await res.json()) as T;
@@ -193,6 +197,7 @@ export async function getProduct(slug: string): Promise<ProductDetailResult> {
     const res = await fetch(`${API_ORIGIN}/api/v1/products/${encodeURIComponent(slug)}`, {
       headers: { Accept: "application/json" },
       next: { revalidate: 60, tags: [`product:${slug}`, "products", "settings"] },
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (res.status === 404) return { status: "not-found" };
     if (!res.ok) return { status: "error" };
@@ -232,6 +237,7 @@ export async function getPage(slug: string): Promise<StaticPageResult> {
     const res = await fetch(`${API_ORIGIN}/api/v1/cms/pages/${encodeURIComponent(slug)}`, {
       headers: { Accept: "application/json" },
       next: { revalidate: 60, tags: [`page:${slug}`] },
+      signal: AbortSignal.timeout(API_TIMEOUT_MS),
     });
     if (res.status === 404) return { status: "not-found" };
     if (!res.ok) return { status: "error" };

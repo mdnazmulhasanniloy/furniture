@@ -12,6 +12,7 @@ import { authRouter } from './modules/auth/routes.js';
 import { createCronRouter } from './modules/cron/routes.js';
 import { dashboardRouter } from './modules/dashboard/routes.js';
 import { cartRouter } from './modules/cart/routes.js';
+import { wishlistRouter } from './modules/wishlist/routes.js';
 import { adminCategoriesRouter, categoriesRouter } from './modules/categories/routes.js';
 import {
   adminBannersRouter,
@@ -84,6 +85,7 @@ export function createApp(arg: Env | CreateAppOptions = {}) {
 
   const v1 = Router();
   v1.use('/auth', authRouter);
+  v1.use('/me/wishlist', wishlistRouter);
   v1.use('/me', meRouter);
   v1.use('/cart', cartRouter);
   v1.use('/orders', ordersRouter);

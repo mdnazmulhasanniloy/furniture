@@ -465,6 +465,35 @@ it('NFR-01 · CMS routes conform (banners, sections, pages, settings, home)', as
   });
 });
 
+it('NFR-01 · wishlist routes conform', async () => {
+  const w = '/me/wishlist';
+  await call('put', w + '/{productId}', {
+    status: 200,
+    path: w + '/' + productId,
+    token: customerToken,
+  });
+  await call('get', w, { status: 200, token: customerToken });
+  await call('post', w + '/merge', {
+    status: 200,
+    token: customerToken,
+    body: { productIds: [productId] },
+  });
+  await call('put', w + '/{productId}', {
+    status: 404,
+    path: w + '/000000000000000000000000',
+    token: customerToken,
+  });
+  await call('post', w + '/merge', { status: 422, token: customerToken, body: {} });
+  await call('delete', w + '/{productId}', {
+    status: 200,
+    path: w + '/' + productId,
+    token: customerToken,
+  });
+  await call('delete', w, { status: 204, token: customerToken });
+  await call('get', w, { status: 403, token: adminToken });
+  await call('get', w, { status: 401 });
+});
+
 it('NFR-01 · cart, order and dashboard routes conform', async () => {
   await call('put', '/cart/items', {
     status: 200,

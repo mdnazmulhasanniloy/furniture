@@ -717,7 +717,7 @@ paths:
       summary: Add one product to my favourites (FAV-01)
       description: |
         Idempotent add: adding a product that is already saved returns 200 with the unchanged list. Unknown or
-        non-PUBLISHED product -> 404 `PRODUCT_NOT_FOUND`. A 101st distinct product -> 409
+        non-PUBLISHED product -> 404 `NOT_FOUND`. A 101st distinct product -> 409
         `WISHLIST_LIMIT_REACHED` (max 100). Concurrent writes that keep conflicting after 3 attempts -> 409
         `WISHLIST_CONFLICT` (client retries). No request body.
       responses:
@@ -726,8 +726,8 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/Wishlist' } } }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error', description: Not a customer }
-        '404': { $ref: '#/components/responses/Error', description: `PRODUCT_NOT_FOUND` (unknown or not PUBLISHED) }
-        '409': { $ref: '#/components/responses/Error', description: `WISHLIST_LIMIT_REACHED` (max 100) or `WISHLIST_CONFLICT` (concurrent writes, retry) }
+        '404': { $ref: '#/components/responses/Error', description: "`NOT_FOUND` (unknown or not PUBLISHED)" }
+        '409': { $ref: '#/components/responses/Error', description: "`WISHLIST_LIMIT_REACHED` (max 100) or `WISHLIST_CONFLICT` (concurrent writes, retry)" }
     delete:
       tags: [Wishlist]
       summary: Remove one product from my favourites (FAV-01)
@@ -738,7 +738,7 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/Wishlist' } } }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error', description: Not a customer }
-        '409': { $ref: '#/components/responses/Error', description: `WISHLIST_CONFLICT` (concurrent writes, retry) }
+        '409': { $ref: '#/components/responses/Error', description: "`WISHLIST_CONFLICT` (concurrent writes, retry)" }
   /me/wishlist/merge:
     post:
       tags: [Wishlist]
@@ -775,8 +775,8 @@ paths:
                   truncated: { type: integer, description: Valid ids dropped by the 100 cap }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error', description: Not a customer }
-        '409': { $ref: '#/components/responses/Error', description: `WISHLIST_CONFLICT` (concurrent writes, retry) }
-        '422': { $ref: '#/components/responses/Error', description: VALIDATION_ERROR (body not {productIds: string[≤100]}) }
+        '409': { $ref: '#/components/responses/Error', description: "`WISHLIST_CONFLICT` (concurrent writes, retry)" }
+        '422': { $ref: '#/components/responses/Error', description: "VALIDATION_ERROR (body is not {productIds: string[] with at most 100 entries})" }
 
   # ---------------- ORDERS ----------------
   /orders:

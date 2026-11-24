@@ -96,10 +96,16 @@ describe('NFR-01 · sanitize-html ≥2.18.0 advisory regressions (T-029, ADR-013
 });
 
 describe('ADM-06 · isSafeHref rejects control-character protocol-relative tricks', () => {
-  it.each(['/\t/evil.com', '/\n/evil.com', '/\r/evil.com', '/\u0000/evil.com', '//evil.com', '/\\evil.com', 'javascript:alert(1)', 'http://x.com'])(
-    'rejects %j',
-    (v) => expect(isSafeHref(v)).toBe(false),
-  );
+  it.each([
+    '/\t/evil.com',
+    '/\n/evil.com',
+    '/\r/evil.com',
+    '/\u0000/evil.com',
+    '//evil.com',
+    '/\\evil.com',
+    'javascript:alert(1)',
+    'http://x.com',
+  ])('rejects %j', (v) => expect(isSafeHref(v)).toBe(false));
   it('keeps same-site paths and https URLs', () => {
     expect(isSafeHref('/shop?type=new')).toBe(true);
     expect(isSafeHref('https://example.com/x')).toBe(true);

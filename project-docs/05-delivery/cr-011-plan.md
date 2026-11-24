@@ -296,3 +296,31 @@ Owner approved: transparent header, auth pages (B-039 closed), shop the look, li
 3. **Card clean-up:** at most one badge (sold out, then the pre-owned grade, then the percentage off, a bare number so no new copy); no "New", no "Featured"; tighter name-to-price gap; the seed no longer adds "(Pre-owned)" to names (the running database keeps its names until reseeded or edited).
 4. **Listing:** "Sort by" cannot wrap; the sticky filter sidebar has a thin quiet scrollbar and tighter spacing.
 5. **Transfer:** image qualities 60 (cards, tiles, look photo) and 70 (hero) are now allowed and used. /en 1440 is 846 KB (line 913), /ar 1440 975 KB (1082), /en 390 629 KB, /ar 390 806 KB; LCP 960 and 936 ms mobile, 128 and 120 ms desktop; CLS 0.0305 and 0.0122 mobile.
+
+## 15. Checkpoint 3 result (2026-11-24): STOP for owner review
+
+Built: backend T-104 (customer management) and T-105 (banner reorder and focal point), admin T-106 (banners) and T-107 (customers). Screenshots: `03-design/screens-v7/` (56 JPEGs, en and ar, 1440 and 390 px: banners list, delete confirmation, empty state, editor with the desktop and the mobile preview, new banner; customers list, deleted filter, detail, blocked detail, deleted detail, block, edit and delete dialogs). They were taken against the live admin with every API call answered locally by the test browser, so nothing reached the real API or database.
+
+**Checks:** backend 953 tests (70 files), admin 440 tests, web 623 tests, 98 e2e tests earlier in the session, lint, typecheck, i18n all pass. Conformance test extended for the new operations.
+
+**Backend rules, each with an `ADM-17 · ...` test (tests/adminUsers/customer-management.test.ts, 27 tests):** block needs a reason of 3 to 300 characters; reason, when and by whom are stored and shown to admins only; block revokes refresh tokens, disconnects sockets, refuses login, refresh, reset codes and new orders with one generic response; unblock clears the fields to explicit null; update takes name and phone only (+966, null clears, anything else is 422, optimistic concurrency); delete is a soft delete with anonymisation, refuses PENDING or CONFIRMED orders, needs the exact email, keeps orders and their address snapshot, frees the email, removes addresses, cart, wishlist, notifications and OTPs, revokes sessions; an admin can never block, edit or delete themselves (403 FORBIDDEN_TARGET) or another admin (404); non-admins are refused; one audit log line per action with ids and field names only; the status filter works and rule 8 is covered (documents created without the new fields still count as not deleted). Banners: `PUT /admin/banners/order` is all-or-nothing and revalidates `home`; `focalX`/`focalY` are stored, returned and applied on the web hero (object-position, one per photo).
+
+**Decisions and things to know**
+- **Open orders rule:** I followed your words: only PENDING and CONFIRMED block a delete. A customer with an order PROCESSING or OUT_FOR_DELIVERY can be deleted (the order is kept). Say if you want those two to block as well.
+- **Unblock reason:** accepted but not stored (the plan said optional; nothing in the model holds it, and the log line must not carry it).
+- **Reorder bumps `updatedAt`** of the banners, so an editor that was open before a reorder gets the existing "this banner was changed, reload" message once on save.
+- **Existing database:** the running database has no value for the new fields (they read as not blocked, not deleted) and no focal points; nothing was migrated or reseeded.
+
+**New or changed copy to approve (everything else is from the approved tables)**
+| Key | en | ar |
+|---|---|---|
+| `banners.focal.title` | Focal point | نقطة التركيز |
+| `banners.focal.hint` | Click the photo to choose the part that must stay visible when it is cropped. | انقر على الصورة لتحديد الجزء الذي يجب أن يبقى ظاهرًا عند القص. |
+| `banners.focal.reset` | Reset to centre | إعادة إلى المنتصف |
+| `banners.form.imageHint` (replaces the old arch hint) | Use a wide photo: the home hero fills the screen. Set the focal point so the subject is never cropped, and check both previews. | استخدم صورة عريضة: الصفحة الرئيسية تملأ الشاشة بالصورة. حدّد نقطة التركيز كي لا يُقصّ الموضوع، وراجع المعاينتين. |
+| `customers.firstName` / `lastName` | First name / Last name | الاسم الأول / اسم العائلة |
+| `customers.blockedReasonLabel` | Block reason | سبب الحظر |
+| `errors.CUSTOMER_DELETED` | This customer was deleted. | تم حذف هذا العميل. |
+| `errors.CONFIRM_EMAIL_MISMATCH` | The email you typed does not match. | البريد الذي كتبته لا يطابق. |
+
+The approved `customers.error.openOrders` and `customers.error.adminTarget` texts are used as the admin's `errors.CUSTOMER_HAS_OPEN_ORDERS` and `errors.FORBIDDEN_TARGET` messages (the admin maps error codes to `errors.*`), so there are no separate `customers.error.*` keys.

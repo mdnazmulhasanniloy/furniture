@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (CR-011 Checkpoint 3 built: STOP for review)
+- Backend T-104 (customer management: block with a reason, update, soft delete and anonymise, status filter, guards, audit log lines; ADM-17 tests) and T-105 (banner reorder, focal point); admin T-106 (banners list and editor with live preview) and T-107 (customers). Spec and data model first. Screenshots in `03-design/screens-v7`. New copy listed in `cr-011-plan.md` section 15. Nothing pushed; no data command run.
+
 ## 2026-11-24 (CR-011 checkpoint 2 review fixes)
 - Header solid by IntersectionObserver; one add-to-cart rule on cards; one badge per card, no New or Featured; Sort by on one line and a thin sidebar scrollbar; image qualities 60 and 70 (transfer back under the line); rail arrows say Previous / Next; seed product names without "(Pre-owned)". Screenshots retaken in `screens-v6`. Plan section 14.
 

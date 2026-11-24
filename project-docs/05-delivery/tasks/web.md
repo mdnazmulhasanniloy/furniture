@@ -149,9 +149,11 @@ Order: T-046 first, then T-047, T-049 (and backend T-031, admin T-077), then T-0
 
 Order: T-052, T-053, then T-054 to T-058. Each task: plan, screenshots at 390 and 1440 in /ar and /en with demo data, critique and "remove one accessory", tests en + ar, typecheck/lint/i18n/build/e2e/AA gate, one commit. Screenshots in `03-design/screens-v2/`.
 
-### T-052 Foundation v2: tokens, fonts, Arch, cleanup · todo
+### T-052 Foundation v2: tokens, fonts, Arch, cleanup · done
 - Req: UI-01, UI-02 · Depends: — · Docs: `design-system.md`, `adr/ADR-015`
 - Done: v2 tokens (paper/ink/emerald/sand/stone, price, muted-foreground), Readex Pro + IBM Plex per locale (width axis if next/font accepts it), `Arch` component (clipPath + gold outline), AA tests updated, v1 leftovers removed (`.shimmer`, `.pattern-emerald`, `AosInit`, `HomeReveals`, `template.tsx`, `aos` dependency).
+- Closed 2026-11-24: Web 427 tests, typecheck, lint, i18n 361 keys, build, e2e 68/68. Built: v2 tokens in `globals.css` (paper, ink, sand, stone, date gold decorative, price `#7A5E22`, stone text `#5C6360`), Readex Pro (`HEXP` width axis accepted by next/font) + IBM Plex Sans / Plex Sans Arabic per locale, `components/arch.tsx` (`ArchDefs` clipPath, `Arch` with optional gold outline offset by logical `end`), `.type-hero` / `.measure`, AA tests updated; removed `.shimmer`, `.pattern-emerald`, marquee, `AosInit`, `HomeReveals`, `template.tsx`, `aos` + `@types/aos`; hero CTA is plain emerald, testimonials are static quotes; CLAUDE.md stack and motion rule updated. The session was interrupted mid-task: the uncommitted tree was reviewed against this plan, two e2e font-family regexes (`IBM_Plex_Sans` vs the audited `IBM Plex Sans`) and stale `aos` test mocks were fixed.
+- Screenshots (390 and 1440, /ar and /en, reduced motion): `03-design/screens-v2/t052-*.png`. Critique: the page still has the v1 layout (full-bleed hero, card tiles with borders, bento rows, grey promo banner, contact strip), which is T-053/T-054/T-055 work; what T-052 changes is visible and right (Readex headings, Plex body, paper/sand, no shimmer, no gold CTA). Accessory removed: hero CTA shimmer and the testimonial marquee. Missing-image tiles are flat sand, not the emerald pattern; the sand square in the Pre-owned row looks empty and should get a quieter placeholder in T-055. Demo data used was the existing `furniture_dev` data (not reset, see changelog).
 
 ### T-053 Header and footer · todo
 - Req: UI-01, ADM-09 · Depends: T-052

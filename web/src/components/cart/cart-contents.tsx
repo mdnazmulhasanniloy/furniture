@@ -148,7 +148,7 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
       {lines.length > 0 ? (
         <>
         <div
-          className={`space-y-2 text-sm ${variant === "page" ? "rounded-lg border border-border bg-card p-4 shadow-card" : "border-t border-border pt-3"}`}
+          className={`space-y-2 text-sm ${variant === "page" ? "border-t border-border pt-4" : "border-t border-border pt-3"}`}
           data-testid="cart-summary"
         >
           {threshold ? (

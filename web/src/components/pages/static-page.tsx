@@ -1,4 +1,3 @@
-import { AosInit } from "@/components/aos-init";
 import type { StaticPage } from "@/lib/api/public";
 import { pick } from "@/lib/pick";
 
@@ -14,11 +13,10 @@ export function StaticPageView({ page, locale }: { page: StaticPage; locale: str
   const html = pick(page.content, locale);
   return (
     <main className="mx-auto max-w-3xl px-4 py-10" data-testid="static-page">
-      <AosInit />
       <article>
         <h1 className="font-display text-3xl font-semibold">{pick(page.title, locale)}</h1>
         {/* ADR-013: the backend sanitises page HTML on every write (allowlist); the storefront renders it as stored. */}
-        <div className={PROSE} data-aos-group data-testid="static-page-content" dangerouslySetInnerHTML={{ __html: html }} />
+        <div className={PROSE} data-testid="static-page-content" dangerouslySetInnerHTML={{ __html: html }} />
       </article>
     </main>
   );

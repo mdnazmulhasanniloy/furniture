@@ -23,7 +23,7 @@ export function FavouritesLink() {
           <span
             data-testid="favourites-count"
             aria-hidden
-            className="absolute -end-1 -top-1 min-w-4 rounded-full bg-gold px-1 text-center text-[10px] font-semibold leading-4 text-gold-foreground"
+            className="absolute -end-1 -top-1 min-w-4 rounded-full bg-primary px-1 text-center text-[10px] font-semibold leading-4 text-primary-foreground"
           >
             {count > 99 ? "99+" : count}
           </span>

@@ -15,9 +15,9 @@ test.describe("I18N-01 — language routing, dir and RTL", () => {
     const html = page.locator("html");
     await expect(html).toHaveAttribute("lang", "ar");
     await expect(html).toHaveAttribute("dir", "rtl");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      messages.ar.home.tagline,
-    );
+    // The home h1 comes from admin banners when the API has data, so check the layout strings instead.
+    await expect(page.getByText(messages.ar.nav.skip)).toBeAttached();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/[؀-ۿ]/);
   });
 
   test("I18N-01: /en renders <html lang='en' dir='ltr'> with English strings", async ({
@@ -27,9 +27,8 @@ test.describe("I18N-01 — language routing, dir and RTL", () => {
     const html = page.locator("html");
     await expect(html).toHaveAttribute("lang", "en");
     await expect(html).toHaveAttribute("dir", "ltr");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      messages.en.home.tagline,
-    );
+    await expect(page.getByText(messages.en.nav.skip)).toBeAttached();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/[A-Za-z]/);
   });
 
   test("I18N-01: shadcn/Radix DropdownMenu aligns to the right in /ar (RTL)", async ({

@@ -20,7 +20,7 @@ export function AppToaster() {
         unstyled: true,
         classNames: {
           toast:
-            "flex w-[22rem] max-w-[calc(100vw-2rem)] items-center gap-3 rounded-lg border border-border bg-card p-3 text-sm text-card-foreground shadow-card",
+            "flex w-[22rem] max-w-[calc(100vw-2rem)] items-center gap-3 rounded-lg border border-border bg-card p-3 text-sm text-card-foreground shadow-float",
           title: "font-medium",
           actionButton:
             "ms-auto rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

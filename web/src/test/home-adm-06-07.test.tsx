@@ -154,7 +154,7 @@ describe.each(["en", "ar"] as const)("ADM-07 · sections (%s)", (locale) => {
     expect(container.querySelector('[data-testid^="home-section-"]')).toBeNull();
   });
 
-  it("ADM-07 · promo banner renders when resolved; marquee duplicate is aria-hidden", () => {
+  it("ADM-07 · promo banner renders when resolved; testimonials are quiet static quotes", () => {
     wrap(
       locale,
       <HomeSections
@@ -163,14 +163,14 @@ describe.each(["en", "ar"] as const)("ADM-07 · sections (%s)", (locale) => {
       />,
     );
     expect(screen.getByTestId("home-section-PROMO_BANNER")).toBeTruthy();
-    const marquee = screen.getByTestId("marquee");
-    expect(within(marquee).getAllByRole("listitem", { hidden: true })).toHaveLength(2);
-    expect(marquee.querySelectorAll('[aria-hidden="true"]')).toHaveLength(1);
+    const quotes = screen.getByTestId("testimonials");
+    expect(within(quotes).getAllByRole("listitem")).toHaveLength(1);
+    expect(quotes.querySelectorAll('[aria-hidden="true"]')).toHaveLength(0); // no duplicated marquee track
   });
 });
 
 describe.each(["en", "ar"] as const)("UI-01 · motion (%s)", (locale) => {
-  it("UI-01 · reduced motion: content stays visible, marquee uses reduced-motion classes", () => {
+  it("UI-01 · reduced motion: content stays visible and testimonials never animate", () => {
     vi.stubGlobal("matchMedia", (q: string) => ({
       matches: q.includes("reduce"),
       media: q,
@@ -191,12 +191,9 @@ describe.each(["en", "ar"] as const)("UI-01 · motion (%s)", (locale) => {
         ]}
       />,
     );
-    const marquee = screen.getByTestId("marquee");
-    expect(marquee.querySelector("ul")!.className).toContain("motion-safe:animate-marquee");
-    expect(marquee.className).toContain("motion-safe:overflow-hidden");
-    expect(marquee.querySelector('[aria-hidden="true"]')!.className).toContain(
-      "motion-reduce:hidden",
-    );
+    const quotes = screen.getByTestId("testimonials");
+    expect(quotes.className).not.toMatch(/animate|marquee/);
+    expect(quotes.querySelectorAll('[aria-hidden="true"]')).toHaveLength(0);
     vi.unstubAllGlobals();
   });
 

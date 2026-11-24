@@ -58,7 +58,7 @@ export function CartButton({ config }: { config?: CartConfig }) {
           {count > 0 ? (
             <span
               data-testid="cart-count"
-              className="absolute -end-1 -top-1 min-w-4 rounded-full bg-gold px-1 text-center text-[10px] font-semibold leading-4 text-gold-foreground"
+              className="absolute -end-1 -top-1 min-w-4 rounded-full bg-primary px-1 text-center text-[10px] font-semibold leading-4 text-primary-foreground"
             >
               <span aria-hidden>{count > 99 ? "99+" : count}</span>
               <span className="sr-only">{t("cart.badgeLabel", { count })}</span>
@@ -126,7 +126,7 @@ function Drawer({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="cart-drawer-title"
-        className="absolute inset-y-0 end-0 flex w-96 max-w-[90vw] flex-col gap-3 bg-background p-4 shadow-card"
+        className="absolute inset-y-0 end-0 flex w-96 max-w-[90vw] flex-col gap-3 bg-background p-4 shadow-float"
       >
         <div className="flex justify-end">
           <Button ref={closeRef} variant="ghost" size="icon" aria-label={t("close")} onClick={onClose}>

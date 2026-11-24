@@ -15,8 +15,8 @@ export const badgeVariants = cva(
       variant: {
         new: "bg-primary text-primary-foreground",
         preowned: "bg-secondary text-secondary-foreground",
-        featured: "bg-gold text-gold-foreground",
-        soldOut: "bg-muted text-muted-foreground",
+        featured: "border border-primary bg-card text-primary",
+        soldOut: "border border-foreground bg-card text-foreground",
         warning: "bg-warning/15 text-warning-foreground",
         success: "bg-success/15 text-success-foreground",
         destructive: "bg-destructive/10 text-destructive",

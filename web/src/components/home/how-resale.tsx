@@ -51,7 +51,6 @@ export function HowResale() {
     <section
       ref={root}
       data-testid="how-resale"
-      data-reveal
       aria-labelledby="how-resale-title"
       className="bg-muted py-16 md:flex md:min-h-screen md:items-center"
     >

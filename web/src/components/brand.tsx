@@ -20,17 +20,14 @@ export function Wordmark({ name, className }: { name: string; className?: string
   );
 }
 
-/** Missing-image placeholder (B-022): emerald pattern with the wordmark. Fills its (sized) parent. */
+/** Missing-image placeholder (B-022): a flat sand block with the wordmark. No pattern, no gradient. */
 export function ImagePlaceholder({ name, className }: { name: string; className?: string }) {
   return (
     <div
       role="img"
       aria-label={name}
       data-testid="image-placeholder"
-      className={cn(
-        "pattern-emerald flex size-full items-center justify-center text-primary-foreground",
-        className,
-      )}
+      className={cn("flex size-full items-center justify-center bg-muted text-muted-foreground", className)}
     >
       <Wordmark name={name} className="text-xl" />
     </div>

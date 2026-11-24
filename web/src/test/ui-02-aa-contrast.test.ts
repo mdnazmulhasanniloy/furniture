@@ -67,8 +67,11 @@ describe("UI-02 · AA contrast on the design tokens (ADR-014)", () => {
   it("UI-02 · the parser reads the token block and the brief's values", () => {
     expect(Object.keys(TOKENS).length).toBeGreaterThan(15);
     expect(TOKENS.primary).toBe("#0f4c45");
-    expect(TOKENS.gold).toBe("#c8a24a");
-    expect(TOKENS.price).toBe("#86672a");
+    expect(TOKENS.gold).toBe("#b8913a");
+    expect(TOKENS.price).toBe("#7a5e22");
+    expect(TOKENS.foreground).toBe("#14201d");
+    expect(TOKENS.muted).toBe("#efe9dd"); // sand backs images and chips, never the page
+    expect(TOKENS.background).toBe("#ffffff");
     expect(TOKENS.accent).toBeUndefined();
   });
 
@@ -103,7 +106,7 @@ describe("UI-02 · AA contrast on the design tokens (ADR-014)", () => {
     expect(ratio(tok("gold"), tok("background"))).toBeLessThan(AA);
   });
 
-  const buttonVariantNames = ["default", "destructive", "outline", "secondary", "gold", "ghost", "link"] as const;
+  const buttonVariantNames = ["default", "destructive", "outline", "secondary", "ghost", "link"] as const;
   it.each(buttonVariantNames)("UI-02 · Button variant %s text is at least 4.5:1", (variant) => {
     const classes = buttonVariants({ variant });
     for (const r of variantRatios(classes)) expect(r, `${variant}: ${classes}`).toBeGreaterThanOrEqual(AA);
@@ -123,17 +126,18 @@ describe("UI-02 · AA contrast on the design tokens (ADR-014)", () => {
     for (const r of variantRatios(classes)) expect(r, `${variant}: ${classes}`).toBeGreaterThanOrEqual(AA);
   });
 
-  it("UI-02 · the owner's badge pairs are used: New primary/white, Pre-owned secondary, Featured gold", () => {
+  it("UI-02 · badge pairs: New emerald/white, Pre-owned sand/ink, Featured emerald outline, Sold out ink outline", () => {
     expect(pairOf(badgeVariants({ variant: "new" }))).toEqual({ bg: { name: "primary", alpha: 1 }, fg: "primary-foreground" });
     expect(pairOf(badgeVariants({ variant: "preowned" }))).toEqual({ bg: { name: "secondary", alpha: 1 }, fg: "secondary-foreground" });
-    expect(pairOf(badgeVariants({ variant: "featured" }))).toEqual({ bg: { name: "gold", alpha: 1 }, fg: "gold-foreground" });
+    expect(pairOf(badgeVariants({ variant: "featured" })).fg).toBe("primary");
+    expect(pairOf(badgeVariants({ variant: "soldOut" })).fg).toBe("foreground");
   });
 
-  it("UI-02 · meaningful graphics are at least 3:1 (ring, form-field border, free-delivery bar)", () => {
-    for (const s of SURFACES) {
-      expect(ratio(tok("ring"), tok(s)), `ring on ${s}`).toBeGreaterThanOrEqual(3);
-      expect(ratio(tok("input"), tok(s)), `input on ${s}`).toBeGreaterThanOrEqual(3);
-    }
+  it("UI-02 · meaningful graphics are at least 3:1 (ring on all surfaces; form-field border on paper only; free-delivery bar)", () => {
+    for (const s of SURFACES) expect(ratio(tok("ring"), tok(s)), `ring on ${s}`).toBeGreaterThanOrEqual(3);
+    // Fields sit on paper only (2.97:1 on sand), see ADR-015.
+    for (const s of ["background", "card"]) expect(ratio(tok("input"), tok(s)), `input on ${s}`).toBeGreaterThanOrEqual(3);
+    expect(ratio(tok("input"), tok("muted"))).toBeLessThan(3);
     for (const s of ["background", "muted"]) {
       expect(ratio(tok("gold-strong"), tok(s)), `gold-strong on ${s}`).toBeGreaterThanOrEqual(3);
     }

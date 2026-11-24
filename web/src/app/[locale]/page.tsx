@@ -3,7 +3,6 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { ContactStrip } from "@/components/home/contact-strip";
 import { Hero } from "@/components/home/hero";
-import { HomeReveals } from "@/components/home/home-reveals";
 import { HomeSections } from "@/components/home/home-sections";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
@@ -44,7 +43,6 @@ export default async function HomePage({
       )}
       <HomeSections sections={sections} locale={locale as Locale} />
       <ContactStrip settings={settings} />
-      <HomeReveals />
     </main>
   );
 }

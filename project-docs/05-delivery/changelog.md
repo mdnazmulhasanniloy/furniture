@@ -1,5 +1,7 @@
 # Changelog
 
+## 2026-11-24 (web T-052 foundation v2 done)
+- **web T-052 (UI-01, UI-02): foundation v2.** v2 tokens, Readex Pro + IBM Plex per locale (HEXP axis works), `Arch` component, AA tests updated, v1 leftovers removed (AOS, shimmer, pattern-emerald, marquee, HomeReveals, page template). Decision (autopilot) — owner to confirm: screenshots use the data already in `furniture_dev` (a hosted MongoDB Atlas database per `backend/.env`); `npm run demo:reset --confirm` was NOT run against it because it deletes data on a hosted database.
 ## 2026-11-24 (CR-008 redesign v2, docs)
 - **CR-008 (owner 2026-11-24, SRC-009).** Najdi arch visual identity replaces the look of CR-007 (ADR-015 Accepted, supersedes the visual parts of ADR-014; contrast rules stay). Design-system rewritten (paper/ink/emerald/sand/stone, date gold decorative, Readex Pro + IBM Plex, arch clip-path, quiet motion). Contrast corrections: text stone `#5C6360`, price `#7A5E22`, fields on paper only. Tasks: web T-052..T-058, admin T-079. Q-2 default: the condition report never claims inspection. Removed: AOS, scroll reveals, page transition, marquee, contact strip on home.
 

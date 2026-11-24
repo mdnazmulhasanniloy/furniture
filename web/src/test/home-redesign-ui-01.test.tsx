@@ -31,16 +31,10 @@ const gsapMock = vi.hoisted(() => ({
 }));
 vi.mock("gsap", () => ({ gsap: gsapMock, default: gsapMock }));
 vi.mock("gsap/ScrollTrigger", () => ({ ScrollTrigger: {} }));
-const aosInit = vi.hoisted(() => vi.fn());
-vi.mock("aos", () => ({ default: { init: aosInit } }));
-vi.mock("aos/dist/aos.css", () => ({}));
 
-import { AosInit } from "@/components/aos-init";
 import { ContactStrip } from "@/components/home/contact-strip";
 import { Hero } from "@/components/home/hero";
-import { HomeReveals } from "@/components/home/home-reveals";
 import { HomeSections } from "@/components/home/home-sections";
-import Template from "@/app/[locale]/template";
 import type { Banner, HomeSection } from "@/lib/api/public";
 
 const messages = { en, ar } as const;
@@ -64,7 +58,6 @@ const allowMotion = () => {
 
 beforeEach(() => {
   Object.values(gsapMock).forEach((f) => typeof f === "function" && "mockClear" in f && (f as ReturnType<typeof vi.fn>).mockClear());
-  aosInit.mockClear();
   allowMotion();
 });
 afterEach(() => {
@@ -86,11 +79,11 @@ const banner = (id: string): Banner =>
 describe.each(["en", "ar"] as const)("UI-01 · home redesign (%s)", (locale) => {
   const m = messages[locale];
 
-  it(`UI-01 · the hero CTA is a gold button (${locale})`, () => {
+  it(`UI-01 · the hero CTA is an emerald button (no shimmer) (${locale})`, () => {
     wrap(locale, <Hero banners={[banner("1")]} />);
     const cta = screen.getByRole("link", { name: /Shop|تسوق/ });
-    expect(cta.className).toContain("bg-gold");
-    expect(cta.className).toContain("text-gold-foreground");
+    expect(cta.className).toContain("bg-primary");
+    expect(cta.className).not.toContain("shimmer");
   });
 
   it(`UI-01 · hero: slow zoom starts after mount and the text stagger mirrors in RTL (${locale})`, async () => {
@@ -109,39 +102,6 @@ describe.each(["en", "ar"] as const)("UI-01 · home redesign (%s)", (locale) => 
     await new Promise((r) => setTimeout(r, 30));
     expect(gsapMock.fromTo).not.toHaveBeenCalled();
     expect(gsapMock.from).not.toHaveBeenCalled();
-  });
-
-  it(`UI-01 · section reveals run once per element and move vertically only (no RTL overflow) (${locale})`, async () => {
-    wrap(
-      locale,
-      <>
-        <div data-reveal />
-        <div data-reveal />
-        <HomeReveals />
-      </>,
-    );
-    await waitFor(() => expect(gsapMock.from).toHaveBeenCalledTimes(2));
-    const vars = gsapMock.from.mock.calls[0]![1] as { x?: number; y: number; opacity: number; scrollTrigger: { once: boolean } };
-    expect(vars.x).toBeUndefined();
-    expect(vars.y).toBeGreaterThan(0);
-    expect(vars.scrollTrigger.once).toBe(true);
-  });
-
-  it(`UI-01 · section reveals are skipped under reduced motion (${locale})`, async () => {
-    reduce();
-    wrap(locale, <><div data-reveal /><HomeReveals /></>);
-    await new Promise((r) => setTimeout(r, 30));
-    expect(gsapMock.from).not.toHaveBeenCalled();
-  });
-
-  it(`UI-01 · every home section, How resale works and the contact strip carry the reveal marker (${locale})`, () => {
-    const sections: HomeSection[] = [
-      { id: "s1", type: "FEATURED_PRODUCTS", title: { en: "F", ar: "ف" }, products: [{ id: "p1", slug: "p-1", title: { en: "A", ar: "أ" }, type: "NEW", condition: "NEW", price: 100, stock: 1, images: [] }] } as unknown as HomeSection,
-    ];
-    wrap(locale, <><HomeSections sections={sections} locale={locale} /><ContactStrip settings={{ contactEmail: "a@b.co" }} /></>);
-    expect(screen.getByTestId("home-section-FEATURED_PRODUCTS").hasAttribute("data-reveal")).toBe(true);
-    expect(screen.getByTestId("how-resale").hasAttribute("data-reveal")).toBe(true);
-    expect(screen.getByTestId("contact-strip").hasAttribute("data-reveal")).toBe(true);
   });
 
   it(`UI-01 · a category without an image gets the emerald placeholder tile (${locale})`, () => {
@@ -176,34 +136,21 @@ describe.each(["en", "ar"] as const)("UI-01 · home redesign (%s)", (locale) => 
     expect(screen.queryByTestId("contact-whatsapp")).toBeNull();
     expect(screen.getByTestId("contact-email")).toBeTruthy();
   });
+});
 
-  it(`UI-01 · page transition is enter-only, transform-only and never starts with opacity 0 (${locale})`, () => {
-    wrap(locale, <Template><p>page</p></Template>);
-    const el = screen.getByTestId("page-transition");
-    expect(el.style.opacity).toBe("");
-    expect(screen.getByText("page")).toBeTruthy();
-  });
-
-  it(`UI-01 · AOS: only blocks below the first screen are marked, and only after mount (${locale})`, async () => {
-    const again = wrap(
-      locale,
-      <>
-        <div data-aos-group>
-          <p data-testid="top2">top</p>
-          <p data-testid="low2" ref={(el) => { if (el) el.getBoundingClientRect = () => ({ top: 5000 }) as DOMRect; }}>low</p>
-        </div>
-        <AosInit />
-      </>,
-    );
-    await waitFor(() => expect(aosInit).toHaveBeenCalledWith(expect.objectContaining({ once: true, offset: 80, duration: 600 })));
-    expect(again.container.querySelector('[data-testid="low2"]')!.getAttribute("data-aos")).toBe("fade-up");
-    expect(again.container.querySelector('[data-testid="top2"]')!.hasAttribute("data-aos")).toBe(false);
-  });
-
-  it(`UI-01 · AOS is not started under reduced motion (${locale})`, async () => {
-    reduce();
-    wrap(locale, <><div data-aos-group><p>x</p></div><AosInit /></>);
-    await new Promise((r) => setTimeout(r, 30));
-    expect(aosInit).not.toHaveBeenCalled();
+describe("UI-01 · removed v1 motion (ADR-015)", () => {
+  it("UI-01 · no AOS, scroll reveals, page transition, marquee or shimmer remain in the source", async () => {
+    const { existsSync, readFileSync, readdirSync } = await import("node:fs");
+    const path = await import("node:path");
+    const src = path.resolve(import.meta.dirname, "..");
+    for (const gone of ["components/aos-init.tsx", "components/home/home-reveals.tsx", "app/[locale]/template.tsx"]) {
+      expect(existsSync(path.join(src, gone)), gone).toBe(false);
+    }
+    const files = (d: string): string[] =>
+      readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? (e.name === "test" ? [] : files(path.join(d, e.name))) : /\.(tsx?|css)$/.test(e.name) ? [path.join(d, e.name)] : [],
+      );
+    const offenders = files(src).filter((f) => /from "aos"|data-aos|data-reveal|animate-marquee|\.shimmer|pattern-emerald/.test(readFileSync(f, "utf8")));
+    expect(offenders).toEqual([]);
   });
 });

@@ -29,7 +29,6 @@ function SectionShell({
   return (
     <section
       data-testid={`home-section-${section.type}`}
-      data-reveal
       aria-labelledby={`home-${section.id}`}
       className="mx-auto max-w-7xl px-4 py-12"
     >
@@ -121,7 +120,6 @@ function SectionBody({ section, locale }: { section: HomeSection; locale: Locale
       return (
         <section
           data-testid="home-section-PROMO_BANNER"
-          data-reveal
           aria-label={title}
           className="mx-auto max-w-7xl px-4 py-12"
         >
@@ -149,26 +147,18 @@ function SectionBody({ section, locale }: { section: HomeSection; locale: Locale
       );
     }
     case "TESTIMONIALS": {
+      // Quiet, static quotes (ADR-015): large text, no cards, no marquee.
       const items = section.config!.testimonials!;
-      const card = (item: (typeof items)[number], key: string, hidden: boolean) => (
-        <li
-          key={key}
-          aria-hidden={hidden || undefined}
-          className={`w-72 shrink-0 rounded-lg border border-border bg-card p-5 ${hidden ? "motion-reduce:hidden" : ""}`}
-        >
-          <blockquote className="text-sm">{pick(item.quote, locale)}</blockquote>
-          <p className="mt-3 text-sm font-medium">{item.name}</p>
-        </li>
-      );
       return (
         <SectionShell section={section} locale={locale}>
-          {/* Marquee: CSS-only; under reduced motion it stops and scrolls manually. */}
-          <div className="overflow-x-auto motion-safe:overflow-hidden" data-testid="marquee">
-            <ul className="flex w-max gap-4 motion-safe:animate-marquee">
-              {items.map((item, i) => card(item, `a${i}`, false))}
-              {items.map((item, i) => card(item, `b${i}`, true))}
-            </ul>
-          </div>
+          <ul className="grid gap-10 md:grid-cols-3" data-testid="testimonials">
+            {items.map((item, i) => (
+              <li key={i}>
+                <blockquote className="measure text-lg leading-relaxed">{pick(item.quote, locale)}</blockquote>
+                <p className="mt-3 text-sm text-muted-foreground">{item.name}</p>
+              </li>
+            ))}
+          </ul>
         </SectionShell>
       );
     }

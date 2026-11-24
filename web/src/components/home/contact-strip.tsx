@@ -22,7 +22,6 @@ export function ContactStrip({ settings }: { settings: SiteSettings | null }) {
   return (
     <section
       data-testid="contact-strip"
-      data-reveal
       aria-labelledby="contact-strip-title"
       className="bg-primary text-primary-foreground"
     >

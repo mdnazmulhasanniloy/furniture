@@ -135,7 +135,7 @@ export function Hero({ banners }: { banners: Banner[] }) {
           ) : null}
           <CtaLink
             href={banner.ctaHref}
-            className="shimmer relative inline-flex h-11 w-fit items-center justify-center overflow-hidden rounded-md bg-gold px-8 text-sm font-medium text-gold-foreground shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="relative inline-flex h-11 w-fit items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span data-hero-line>{ctaLabel || t("cta")}</span>
           </CtaLink>

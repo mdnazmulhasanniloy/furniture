@@ -69,57 +69,40 @@ test.describe("UI-01 — tokens, fonts and locale-scoped preloads", () => {
     });
   }
 
-  test("UI-01: /en headings use Fraunces, body uses Manrope", async ({ page }) => {
+  test("UI-01: /en headings use Readex Pro, body uses IBM Plex Sans", async ({ page }) => {
     await page.goto("/en");
-    const h1Font = await page
-      .locator("h1")
-      .evaluate((el) => getComputedStyle(el).fontFamily);
-    const bodyFont = await page.evaluate(
-      () => getComputedStyle(document.body).fontFamily,
-    );
-    expect(h1Font).toMatch(/Fraunces/i);
-    expect(bodyFont).toMatch(/Manrope/i);
+    const h1Font = await page.locator("h1").first().evaluate((el) => getComputedStyle(el).fontFamily);
+    const bodyFont = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+    expect(h1Font).toMatch(/Readex/i);
+    expect(bodyFont).toMatch(/IBM[_ ]?Plex[_ ]?Sans/i);
+    expect(bodyFont).not.toMatch(/Arabic/i);
   });
 
-  test("UI-01: /ar headings use Noto Kufi Arabic, body uses IBM Plex Sans Arabic", async ({
-    page,
-  }) => {
+  test("UI-01: /ar headings use Readex Pro, body uses IBM Plex Sans Arabic", async ({ page }) => {
     await page.goto("/ar");
-    const h1Font = await page
-      .locator("h1")
-      .evaluate((el) => getComputedStyle(el).fontFamily);
-    const bodyFont = await page.evaluate(
-      () => getComputedStyle(document.body).fontFamily,
-    );
-    expect(h1Font).toMatch(/Noto[_ ]?Kufi/i);
+    const h1Font = await page.locator("h1").first().evaluate((el) => getComputedStyle(el).fontFamily);
+    const bodyFont = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
+    expect(h1Font).toMatch(/Readex/i);
     expect(bodyFont).toMatch(/Plex[_ ]?Sans[_ ]?Arabic/i);
   });
 
-  test("UI-01: /en downloads/preloads only Latin fonts (no Arabic font files)", async ({
-    page,
-  }) => {
+  test("UI-01: /en downloads/preloads only Latin fonts (no Arabic font family)", async ({ page }) => {
     const audit = await fontNetworkAudit(page, "/en");
     expect(audit.downloadedFamilies.length).toBeGreaterThan(0);
     for (const family of audit.downloadedFamilies) {
-      expect(family).toMatch(/Fraunces|Manrope/i);
-      expect(family).not.toMatch(/Kufi|Plex/i);
+      expect(family).toMatch(/Readex|IBM[_ ]Plex[_ ]Sans/i);
+      expect(family).not.toMatch(/Arabic/i);
     }
-    for (const family of audit.preloadedFamilies) {
-      expect(family).not.toMatch(/Kufi|Plex/i);
-    }
+    for (const family of audit.preloadedFamilies) expect(family).not.toMatch(/Arabic/i);
   });
 
-  test("UI-01: /ar downloads/preloads only Arabic fonts (no Latin display font)", async ({
-    page,
-  }) => {
+  test("UI-01: /ar downloads/preloads no Latin-only body font (IBM Plex Sans without Arabic)", async ({ page }) => {
     const audit = await fontNetworkAudit(page, "/ar");
     expect(audit.downloadedFamilies.length).toBeGreaterThan(0);
     for (const family of audit.downloadedFamilies) {
-      expect(family).toMatch(/Kufi|Plex/i);
-      expect(family).not.toMatch(/Fraunces|Manrope/i);
+      expect(family).toMatch(/Readex|Plex[_ ]Sans[_ ]Arabic/i);
+      expect(family).not.toMatch(/IBM[_ ]Plex[_ ]Sans(?![_ ]Arabic)/i);
     }
-    for (const family of audit.preloadedFamilies) {
-      expect(family).not.toMatch(/Fraunces|Manrope/i);
-    }
+    for (const family of audit.preloadedFamilies) expect(family).not.toMatch(/IBM[_ ]Plex[_ ]Sans(?![_ ]Arabic)/i);
   });
 });

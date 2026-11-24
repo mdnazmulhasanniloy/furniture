@@ -12,7 +12,7 @@ export type MotionPrefs = {
   dir: 1 | -1;
 };
 
-/** The one hook every animation reads (GSAP, Framer Motion, AOS): reduced motion and writing direction. */
+/** The one hook every animation reads (GSAP, Framer Motion): reduced motion and writing direction. */
 export function useMotionPrefs(): MotionPrefs {
   const reduced = useReducedMotion();
   const rtl = useLocale() === "ar";

@@ -1,29 +1,35 @@
-/* Design tokens — source: project-docs/03-design/design-system.md ("Emerald and gold", ADR-014).
-   Light values shared with admin/src/index.css. Checked by src/test/ui-02-aa-contrast.test.ts. */
+/* Design tokens — source: project-docs/03-design/design-system.md ("Najdi arch", ADR-015; contrast rules of ADR-014).
+   Light values shared with admin/src/index.css. Checked by src/test/ui-02-aa-contrast.test.ts and ui-02-aa-call-sites.test.ts. */
 @import "tailwindcss";
 @import "tw-animate-css";
 
 :root {
+  /* paper / ink */
   --background: #ffffff;
-  --foreground: #1c2321;
+  --foreground: #14201d;
   --card: #ffffff;
-  --card-foreground: #1c2321;
+  --card-foreground: #14201d;
   --popover: #ffffff;
-  --popover-foreground: #1c2321;
-  --muted: #f4f6f5;
-  --muted-foreground: #5f6b66;
+  --popover-foreground: #14201d;
+  /* sand: image backdrops, chips and quiet bands. Never the page background. */
+  --muted: #efe9dd;
+  /* stone ink: secondary text on paper AND on sand (5.1:1 on sand). */
+  --muted-foreground: #5c6360;
+  /* stone: hairlines, icons, placeholders. Not for text on sand (4.08:1). */
+  --stone: #6b726f;
+  /* emerald */
   --primary: #0f4c45;
   --primary-foreground: #ffffff;
-  --secondary: #f6efd9;
-  --secondary-foreground: #6b5318;
-  /* gold: decoration, icons, CTA fill. Never as text on white (2.41:1). */
-  --gold: #c8a24a;
-  --gold-foreground: #1c2321;
-  /* gold-strong: meaningful gold graphics (free-delivery bar), >= 3:1 on white and muted. */
+  --secondary: #efe9dd;
+  --secondary-foreground: #14201d;
+  /* date gold: decorative lines only. Never text, never a meaningful graphic (2.9:1 on paper). */
+  --gold: #b8913a;
+  --gold-foreground: #14201d;
+  /* gold-strong: meaningful gold graphics (free-delivery bar), >= 3:1 on paper and sand. */
   --gold-strong: #9c7a2e;
-  --price: #86672a;
-  --border: #e6e9e7;
-  /* input: form-field borders (>= 3:1); --border stays decorative. */
+  --price: #7a5e22;
+  --border: #e4e0d6;
+  /* input: form-field borders (>= 3:1 on paper). Fields sit on paper only. */
   --input: #7d8a85;
   --ring: #0f4c45;
   --destructive: #b42318;
@@ -33,7 +39,8 @@
   --warning: #b7791f;
   --warning-foreground: #7a4b05;
   --radius: 10px;
-  --shadow-soft: 0 8px 24px -12px rgb(15 76 69 / 0.18);
+  /* one soft shadow, only for floating layers (drawer, toast, menu). Content has none. */
+  --shadow-soft: 0 10px 30px -12px rgb(20 32 29 / 0.22);
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -50,6 +57,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  --color-stone: var(--stone);
   --color-gold: var(--gold);
   --color-gold-foreground: var(--gold-foreground);
   --color-gold-strong: var(--gold-strong);
@@ -64,12 +72,12 @@
   --color-warning-foreground: var(--warning-foreground);
   --radius-sm: 6px;
   --radius-md: var(--radius);
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --shadow-card: var(--shadow-soft);
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+  --shadow-float: var(--shadow-soft);
   /* --font-heading / --font-body are set per locale by next/font on <html>
      (src/fonts/latin.ts for en, src/fonts/arabic.ts for ar). */
-  --font-display: var(--font-heading), serif;
+  --font-display: var(--font-heading), system-ui, sans-serif;
   --font-sans: var(--font-body), system-ui, sans-serif;
 }
 
@@ -79,8 +87,43 @@
   outline-offset: 2px;
 }
 
+html {
+  line-height: 1.6;
+}
 html[lang="ar"] {
-  line-height: 1.7;
+  line-height: 1.85;
+}
+
+/* Type (design-system section 2): Readex Pro headings, tight in Latin, never tracked in Arabic. */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.2;
+}
+html[lang="en"] :is(h1, h2, h3, h4) {
+  letter-spacing: -0.02em;
+}
+html[lang="ar"] :is(h1, h2, h3, h4) {
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+/* Hero headline: light and wide, one weight, the only 72 px text on the site. */
+.type-hero {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-variation-settings: "HEXP" 30;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 1.05;
+}
+html[lang="ar"] .type-hero {
+  line-height: 1.35;
+}
+/* Measure: running text never wider than 65 characters. */
+.measure {
+  max-width: 65ch;
 }
 
 body {
@@ -97,65 +140,7 @@ body {
   }
 }
 
-/* Home (T-033): marquee for testimonials; the track holds two copies so -50% loops.
-   RTL flips the direction via --marquee-dir. Reduced motion is handled with
-   `motion-safe:` on the element (manual scroll instead). */
-@theme {
-  --animate-marquee: marquee 40s linear infinite;
-  @keyframes marquee {
-    to {
-      transform: translateX(calc(-50% * var(--marquee-dir, 1)));
-    }
-  }
-}
-[dir="rtl"] {
-  --marquee-dir: -1;
-}
-
-/* Shimmer sweep on the hero CTA (Magic UI ShimmerButton idea, token colours only). */
-.shimmer::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    110deg,
-    transparent 30%,
-    color-mix(in srgb, var(--primary-foreground) 35%, transparent) 50%,
-    transparent 70%
-  );
-  transform: translateX(-100%);
-  animation: shimmer 3s ease-in-out infinite;
-}
-[dir="rtl"] .shimmer::after {
-  transform: translateX(100%);
-  animation-name: shimmer-rtl;
-}
-@keyframes shimmer {
-  to {
-    transform: translateX(100%);
-  }
-}
-@keyframes shimmer-rtl {
-  to {
-    transform: translateX(-100%);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .shimmer::after {
-    animation: none;
-    display: none;
-  }
-}
-
-/* Placeholder for a missing image (B-022): emerald pattern; the wordmark sits on top. */
-.pattern-emerald {
-  background-color: var(--primary);
-  background-image:
-    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--gold) 28%, transparent) 0 2px, transparent 3px),
-    repeating-linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--primary-foreground) 7%, transparent) 0 1px,
-      transparent 1px 14px
-    );
-  background-size: 28px 28px, auto;
+/* Arch (ADR-015): the Najdi arch mask. The path lives in components/arch.tsx (clipPath, objectBoundingBox). */
+.arch {
+  clip-path: url(#fx-arch);
 }

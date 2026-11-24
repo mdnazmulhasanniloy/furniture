@@ -45,7 +45,7 @@ export function FavouritesSync() {
     <p
       role="status"
       data-testid="favourites-full"
-      className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-sm rounded-md border border-border bg-card p-3 text-sm text-warning-foreground shadow-card"
+      className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-sm rounded-md border border-border bg-card p-3 text-sm text-warning-foreground shadow-float"
     >
       {t("full")}
     </p>

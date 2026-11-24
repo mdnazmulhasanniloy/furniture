@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createTranslator, NextIntlClientProvider } from "next-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -61,8 +61,24 @@ describe.each(["en", "ar"] as const)("UI-01 · header and footer v2 (%s)", (loca
     expect(footer.className).toContain("mt-[var(--band-gap)]");
   });
 
-  it(`UI-04 · the header floats transparent over the hero on the home page and turns solid after scrolling (${locale})`, () => {
+  it(`UI-04 · the header floats transparent over the hero and turns solid when the hero leaves the viewport, by IntersectionObserver (${locale})`, () => {
     state.path = "/";
+    const hero = document.createElement("section");
+    hero.setAttribute("data-hero", "");
+    document.body.appendChild(hero);
+    const seen: { cb: (e: { isIntersecting: boolean }[]) => void; options: IntersectionObserverInit; target: Element | null }[] = [];
+    class FakeIO {
+      target: Element | null = null;
+      constructor(public cb: (e: { isIntersecting: boolean }[]) => void, public options: IntersectionObserverInit) {
+        seen.push(this as never);
+      }
+      observe(el: Element) {
+        this.target = el;
+      }
+      disconnect() {}
+      unobserve() {}
+    }
+    vi.stubGlobal("IntersectionObserver", FakeIO);
     render(
       <NextIntlClientProvider locale={state.locale} messages={locales[state.locale]}>
         <SiteHeader categories={[]} />
@@ -70,17 +86,39 @@ describe.each(["en", "ar"] as const)("UI-01 · header and footer v2 (%s)", (loca
     );
     const header = screen.getByTestId("site-header");
     expect(header.className).toContain("fixed");
-    expect(header.className).toContain("bg-transparent");
+    expect(header.className).toContain("bg-transparent"); // before any callback the hero is assumed visible
     expect(header.className).toContain("hdr-light");
-    expect(header.getAttribute("data-over-hero")).toBe("true");
-    Object.defineProperty(window, "scrollY", { value: 120, configurable: true });
-    fireEvent.scroll(window);
+    expect(seen).toHaveLength(1);
+    expect(seen[0].target).toBe(hero); // it watches the hero, not the scroll position
+    expect(seen[0].options.rootMargin).toMatch(/^-\d+px 0px 0px 0px$/); // the top edge is the header's bottom edge
+    act(() => seen[0].cb([{ isIntersecting: false }])); // the hero scrolled out from under the header
     expect(header.className).toContain("bg-background");
+    expect(header.className).toContain("border-border");
     expect(header.className).not.toContain("bg-transparent");
     expect(header.className).not.toContain("hdr-light");
-    Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
-    fireEvent.scroll(window);
+    act(() => seen[0].cb([{ isIntersecting: true }])); // scrolled back to the top
     expect(header.className).toContain("bg-transparent");
+    hero.remove();
+    vi.unstubAllGlobals();
+  });
+
+  it(`UI-04 · with no hero on the page the home header is solid, never transparent over content (${locale})`, () => {
+    state.path = "/";
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        observe() {}
+        disconnect() {}
+        unobserve() {}
+      },
+    );
+    render(
+      <NextIntlClientProvider locale={state.locale} messages={locales[state.locale]}>
+        <SiteHeader categories={[]} />
+      </NextIntlClientProvider>,
+    );
+    expect(screen.getByTestId("site-header").className).toContain("bg-background");
+    vi.unstubAllGlobals();
   });
 
   it(`UI-04 · on every other page the header is the solid sticky header, even at the top (${locale})`, () => {

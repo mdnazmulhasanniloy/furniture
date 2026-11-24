@@ -283,22 +283,34 @@ function MobileNav({ categories }: { categories: Category[] }) {
 
 /**
  * ADR-018 / UI-04: on the home page the header floats over the hero, transparent with light text, and turns solid
- * after the first scroll. Everywhere else it is the solid sticky header. The hero has a top scrim behind it.
+ * as soon as the hero has scrolled out from under it (an IntersectionObserver on the hero, whose top edge is moved
+ * down by the header's own height, so there is no scroll-pixel guess). Everywhere else, and whenever the hero cannot
+ * be observed, it is the solid sticky header and starts solid. The hero has a top scrim behind it.
  */
 export function SiteHeader({ categories, logoUrl, cartConfig }: Props) {
   const t = useTranslations();
   const pathname = usePathname();
   const overHero = pathname === "/";
-  const [scrolled, setScrolled] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+  const [heroVisible, setHeroVisible] = useState(true);
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-  const light = overHero && !scrolled;
+    const hero = overHero ? document.querySelector("[data-hero]") : null;
+    if (!hero || typeof IntersectionObserver === "undefined") {
+      setHeroVisible(false); // no hero to float over: solid
+      return;
+    }
+    const headerHeight = ref.current?.getBoundingClientRect().height ?? 80;
+    const io = new IntersectionObserver(([entry]) => setHeroVisible(!!entry?.isIntersecting), {
+      rootMargin: `-${Math.ceil(headerHeight)}px 0px 0px 0px`,
+      threshold: 0,
+    });
+    io.observe(hero);
+    return () => io.disconnect();
+  }, [overHero, pathname]);
+  const light = overHero && heroVisible;
   return (
     <header
+      ref={ref}
       data-testid="site-header"
       data-over-hero={light}
       className={cn(

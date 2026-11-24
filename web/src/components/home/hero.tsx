@@ -98,6 +98,7 @@ function Slides({ slides, testId }: { slides: Slide[]; testId: string }) {
   return (
     <section
       data-testid={testId}
+      data-hero
       data-running={running && !paused}
       aria-roledescription="carousel"
       aria-label={t("label")}

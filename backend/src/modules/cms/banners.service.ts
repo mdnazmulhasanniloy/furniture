@@ -4,6 +4,11 @@ import { prisma } from '../../lib/prisma.js';
 import { buildImageAsset, syncImages, type R2Context } from '../../lib/r2.js';
 import type { CreateBannerBody, UpdateBannerBody } from './schema.js';
 
+type BannerImageBody = NonNullable<CreateBannerBody['imageMobile']>;
+/** Alt text and the optional focal point travel with the key (CR-011). */
+const assetOf = (img: BannerImageBody) =>
+  buildImageAsset(img.key, { alt: img.alt, ...(img.focalX !== undefined ? { focalX: img.focalX, focalY: img.focalY } : {}) });
+
 const OBJECT_ID = /^[a-f0-9]{24}$/;
 const notFound = () => new AppError(404, 'NOT_FOUND', 'Banner not found');
 const validation = (message: string) => new AppError(422, 'VALIDATION_ERROR', message);
@@ -53,10 +58,8 @@ export async function list(): Promise<BannerResponse[]> {
 
 export async function create(body: CreateBannerBody, ctx: SaveContext): Promise<BannerResponse> {
   assertSchedule(body.startsAt ?? null, body.endsAt ?? null);
-  const imageDesktop = buildImageAsset(body.imageDesktop.key, { alt: body.imageDesktop.alt });
-  const imageMobile = body.imageMobile
-    ? buildImageAsset(body.imageMobile.key, { alt: body.imageMobile.alt })
-    : null;
+  const imageDesktop = assetOf(body.imageDesktop);
+  const imageMobile = body.imageMobile ? assetOf(body.imageMobile) : null;
   const row = await prisma.$transaction(async (tx) => {
     await syncImages(tx, [], keysOf(imageDesktop, imageMobile), 'admin', ctx);
     return tx.banner.create({
@@ -98,12 +101,12 @@ export async function update(
       );
 
       const nextDesktop = body.imageDesktop
-        ? buildImageAsset(body.imageDesktop.key, { alt: body.imageDesktop.alt })
+        ? assetOf(body.imageDesktop)
         : current.imageDesktop;
       const nextMobile =
         'imageMobile' in body
           ? body.imageMobile
-            ? buildImageAsset(body.imageMobile.key, { alt: body.imageMobile.alt })
+            ? assetOf(body.imageMobile)
             : null
           : (current.imageMobile ?? null);
       const sync = await syncImages(
@@ -166,4 +169,18 @@ export async function remove(
     await tx.banner.delete({ where: { id } });
   });
   return { release };
+}
+
+/** CR-011: `ids` must be exactly the set of existing banner ids; `sortOrder` becomes the list position (1 to n). All or nothing. */
+export async function reorder(ids: string[]): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.banner.findMany({ select: { id: true } });
+    const existingIds = new Set(existing.map((b) => b.id));
+    if (ids.length !== existingIds.size || ids.some((id) => !existingIds.has(id))) {
+      throw validation('ids must contain every existing banner id exactly once');
+    }
+    for (const [index, id] of ids.entries()) {
+      await tx.banner.update({ where: { id }, data: { sortOrder: index + 1 } });
+    }
+  });
 }

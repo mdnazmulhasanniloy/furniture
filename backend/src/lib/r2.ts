@@ -117,18 +117,23 @@ export interface ImageAsset {
   width?: number;
   height?: number;
   alt?: { en: string; ar: string };
+  /** Banner focal point in percent (CR-011); both or neither. */
+  focalX?: number;
+  focalY?: number;
 }
 
 /** The server always recomputes `url` from `key`; a key outside `furnixa/{env}/` is rejected (422). */
 export function buildImageAsset(
   key: string,
-  extra: Pick<ImageAsset, 'width' | 'height' | 'alt'> = {},
+  extra: Pick<ImageAsset, 'width' | 'height' | 'alt' | 'focalX' | 'focalY'> = {},
 ): ImageAsset {
   if (!isValidKey(key)) throw uploadNotAllowed('Invalid image key');
   const asset: ImageAsset = { key, url: publicUrlFor(key) };
   if (extra.width !== undefined) asset.width = extra.width;
   if (extra.height !== undefined) asset.height = extra.height;
   if (extra.alt !== undefined) asset.alt = extra.alt;
+  if (extra.focalX !== undefined) asset.focalX = extra.focalX;
+  if (extra.focalY !== undefined) asset.focalY = extra.focalY;
   return asset;
 }
 

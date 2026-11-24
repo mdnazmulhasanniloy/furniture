@@ -24,6 +24,8 @@ export const adminBannersRouter = Router();
 adminBannersRouter.use(requireAuth, requireRole('ADMIN'));
 adminBannersRouter.get('/', controller.listBanners);
 adminBannersRouter.post('/', validate({ body: createBannerBody }), controller.createBanner);
+// CR-011: bulk order for the admin's drag to reorder. Declared before '/:id' so 'order' is never read as an id.
+adminBannersRouter.put('/order', validate({ body: reorderBody }), controller.reorderBanners);
 adminBannersRouter.patch('/:id', validate({ body: updateBannerBody }), controller.updateBanner);
 adminBannersRouter.delete('/:id', controller.removeBanner);
 

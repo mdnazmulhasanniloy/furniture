@@ -1431,6 +1431,24 @@ paths:
           description: Created
           content: { application/json: { schema: { $ref: '#/components/schemas/Banner' } } }
         '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` (missing alt, bad ctaHref, startsAt >= endsAt) or `UPLOAD_NOT_ALLOWED`" }
+  /admin/banners/order:
+    put:
+      tags: [Admin]
+      summary: Set banner order by id list (CR-011, ADM-06)
+      description: >-
+        `ids` must be exactly the set of existing banner ids, each once, else 422 `VALIDATION_ERROR` and nothing is
+        written (all-or-nothing). `sortOrder` becomes the list position (1 to n); it drives the hero slide order.
+        Revalidates `home`. Used by the admin's drag to reorder.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false, required: [ids], properties: { ids: { type: array, minItems: 1, maxItems: 100, items: { $ref: '#/components/schemas/ObjectId' } } } }
+      responses:
+        '204': { description: OK }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — ids missing, duplicated, unknown, or not the full set" }
   /admin/banners/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
@@ -1826,6 +1844,9 @@ components:
         alt: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
         width: { type: [integer, 'null'] }
         height: { type: [integer, 'null'] }
+        # CR-011 (banner photos only): the point of the photo that must stay visible when it is cropped, in percent. The storefront applies it as object-position at every breakpoint. Absent or null = centre.
+        focalX: { type: [number, 'null'], minimum: 0, maximum: 100 }
+        focalY: { type: [number, 'null'], minimum: 0, maximum: 100 }
     ImageAssetInput:
       type: object
       additionalProperties: false
@@ -2230,7 +2251,10 @@ components:
         - $ref: '#/components/schemas/ImageAssetInput'
         - type: object
           required: [alt]
-          description: Banner images require localized alt text in both en and ar (UI-02, owner 2026-11-22) -> 422 if missing.
+          description: "Banner images require localized alt text in both en and ar (UI-02, owner 2026-11-22) -> 422 if missing. CR-011 adds the optional `focalX` and `focalY` (0 to 100, both or neither) that set the focal point; sending neither clears it."
+          properties:
+            focalX: { type: number, minimum: 0, maximum: 100 }
+            focalY: { type: number, minimum: 0, maximum: 100 }
     BannerInput:
       type: object
       additionalProperties: false

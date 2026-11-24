@@ -32,9 +32,15 @@ const safeHref = z
 // ---------------------------------------------------------------- banners (ADM-06)
 
 /** Banner images require localized alt text (UI-02, owner 2026-11-22). */
+const percent = z.number().min(0).max(100);
+/** CR-011: optional focal point, both coordinates or neither. */
 const bannerImage = z
-  .object({ key: z.string().min(1).max(300), alt: localizedRequired(200) })
-  .strict();
+  .object({ key: z.string().min(1).max(300), alt: localizedRequired(200), focalX: percent.optional(), focalY: percent.optional() })
+  .strict()
+  .refine((v) => (v.focalX === undefined) === (v.focalY === undefined), {
+    message: 'focalX and focalY must be sent together',
+    path: ['focalX'],
+  });
 
 const bannerFields = {
   title: localizedRequired(120),

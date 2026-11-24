@@ -251,5 +251,5 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 
 ### T-104 Customer management (block with reason, update, soft delete and anonymise, status filter, audit log lines) · done (CR-011 checkpoint 3A)
 - Req: ADM-05, ADM-17 · Depends: approval · Docs: cr-011-plan.md section 4 and 6
-### T-105 Banner reorder endpoint `PUT /admin/banners/order` · todo (checkpoint 3)
+### T-105 Banner reorder endpoint `PUT /admin/banners/order` · done (CR-011 checkpoint 3A; includes the banner focal point focalX/focalY, Q-5)
 - Req: ADM-06

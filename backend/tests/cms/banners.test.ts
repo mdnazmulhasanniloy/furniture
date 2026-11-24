@@ -29,7 +29,7 @@ const revalidateMock = vi.mocked(revalidateTags);
 let adminToken = '';
 let customerToken = '';
 
-const api = (method: 'get' | 'post' | 'patch' | 'delete', path = '') => {
+const api = (method: 'get' | 'post' | 'put' | 'patch' | 'delete', path = '') => {
   const agent = request(app);
   return agent[method](`/api/v1/admin/banners${path}`).set('Authorization', `Bearer ${adminToken}`);
 };
@@ -366,5 +366,76 @@ describe('ADM-06 · hero banners', () => {
     expect(patched.status).toBe(200);
     expect(revalidateMock).toHaveBeenCalledTimes(3);
     for (const call of revalidateMock.mock.calls) expect(call[0]).toEqual(['home']);
+  });
+});
+
+describe('ADM-06 · banner reorder (CR-011)', () => {
+  const make = async (title: string) =>
+    (await api('post').send(await goodBody({ title: { en: title, ar: title } })).expect(201)).body as { id: string };
+  const order = async () => ((await api('get')).body as { id: string; sortOrder: number }[]).map((b) => [b.id, b.sortOrder] as const);
+
+  it('ADM-06 · PUT /admin/banners/order sets sortOrder to the list position and the hero follows it', async () => {
+    const [a, b, c] = [await make('A'), await make('B'), await make('C')];
+    revalidateMock.mockClear();
+    await api('put', '/order').send({ ids: [c.id, a.id, b.id] }).expect(204);
+    expect(await order()).toEqual([[c.id, 1], [a.id, 2], [b.id, 3]]);
+    const home = await request(app).get('/api/v1/cms/home');
+    expect(home.body.banners.map((x: { id: string }) => x.id)).toEqual([c.id, a.id, b.id]);
+    expect(revalidateMock).toHaveBeenCalledTimes(1);
+    expect(revalidateMock.mock.calls[0]![0]).toEqual(['home']);
+  });
+
+  it('ADM-06 · a reorder must name every banner exactly once, else 422 and nothing changes (all or nothing)', async () => {
+    const [a, b, c] = [await make('A'), await make('B'), await make('C')];
+    await api('put', '/order').send({ ids: [c.id, b.id, a.id] }).expect(204);
+    const before = await order();
+    for (const ids of [[a.id, b.id], [a.id, b.id, c.id, '0'.repeat(24)], [a.id, a.id, b.id], [], ['not-an-id'], [a.id, b.id, '0'.repeat(24)]]) {
+      const res = await api('put', '/order').send({ ids });
+      expect(res.status, JSON.stringify(ids)).toBe(422);
+      expect(res.body.code).toBe('VALIDATION_ERROR');
+    }
+    expect((await api('put', '/order').send({ ids: [a.id], extra: 1 })).status).toBe(422); // strict body
+    expect(await order()).toEqual(before);
+  });
+
+  it('ADM-06 · reorder requires an admin: 401 without a token, 403 for a customer, and "order" is never read as an id', async () => {
+    const a = await make('A');
+    await request(app).put('/api/v1/admin/banners/order').send({ ids: [a.id] }).expect(401);
+    await request(app).put('/api/v1/admin/banners/order').set('Authorization', `Bearer ${customerToken}`).send({ ids: [a.id] }).expect(403);
+    await api('put', '/order').send({ ids: [a.id] }).expect(204); // not 404 NOT_FOUND "Banner not found"
+  });
+});
+
+describe('ADM-06 · banner focal point (CR-011)', () => {
+  it('ADM-06 · focalX and focalY are stored on the photo, returned to the admin and to the public hero', async () => {
+    const key = await presignedKey();
+    const created = await api('post').send({ title: { en: 'T', ar: 'ع' }, imageDesktop: { key, alt, focalX: 30.5, focalY: 70 } }).expect(201);
+    expect(created.body.imageDesktop).toMatchObject({ focalX: 30.5, focalY: 70 });
+    const home = await request(app).get('/api/v1/cms/home');
+    expect(home.body.banners[0].imageDesktop).toMatchObject({ focalX: 30.5, focalY: 70 });
+    // mobile has its own point
+    const patched = await api('patch', `/${created.body.id}`).send({
+      expectedUpdatedAt: created.body.updatedAt,
+      imageMobile: { key: await presignedKey(), alt, focalX: 10, focalY: 90 },
+    }).expect(200);
+    expect(patched.body.imageMobile).toMatchObject({ focalX: 10, focalY: 90 });
+    expect(patched.body.imageDesktop).toMatchObject({ focalX: 30.5, focalY: 70 }); // untouched
+  });
+
+  it('ADM-06 · the focal point is both coordinates or neither, 0 to 100 only, else 422', async () => {
+    const key = await presignedKey();
+    for (const focal of [{ focalX: 50 }, { focalY: 50 }, { focalX: -1, focalY: 5 }, { focalX: 5, focalY: 100.5 }, { focalX: '5', focalY: 5 }]) {
+      const res = await api('post').send({ title: { en: 'T', ar: 'ع' }, imageDesktop: { key, alt, ...focal } });
+      expect(res.status, JSON.stringify(focal)).toBe(422);
+    }
+    expect(await prisma.banner.count()).toBe(0);
+  });
+
+  it('ADM-06 · saving the photo again without a focal point clears it (back to the centre)', async () => {
+    const key = await presignedKey();
+    const created = await api('post').send({ title: { en: 'T', ar: 'ع' }, imageDesktop: { key, alt, focalX: 20, focalY: 20 } }).expect(201);
+    const cleared = await api('patch', `/${created.body.id}`).send({ expectedUpdatedAt: created.body.updatedAt, imageDesktop: { key, alt } }).expect(200);
+    expect(cleared.body.imageDesktop.focalX ?? null).toBeNull();
+    expect(cleared.body.imageDesktop.focalY ?? null).toBeNull();
   });
 });

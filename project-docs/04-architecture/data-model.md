@@ -8,7 +8,7 @@ Prisma generator (not part of the data model, recorded here because `schema.pris
 
 - `LocalizedText { en String, ar String }`
 - `PendingRegistration { passwordHash String, firstName String, lastName String, preferredLocale Locale }` — embedded in `Otp.pendingRegistration` (VERIFY_EMAIL only); applied to the `User` only when that OTP is verified (prevents pre-account takeover)
-- `ImageAsset { key String, url String, alt LocalizedText?, width Int?, height Int? }` — `key` = R2 object key `furnixa/{env}/{yyyy}/{mm}/{uuid}.{ext}`; `url` = `R2_PUBLIC_BASE_URL + "/" + key` (recomputed by the server); `publicId` removed (ADR-010)
+- `ImageAsset { key String, url String, alt LocalizedText?, width Int?, height Int?, focalX Float?, focalY Float? }` (CR-011: `focalX`/`focalY` are 0 to 100 percent, used only for banner photos; explicit `null` or absent = centre) — `key` = R2 object key `furnixa/{env}/{yyyy}/{mm}/{uuid}.{ext}`; `url` = `R2_PUBLIC_BASE_URL + "/" + key` (recomputed by the server); `publicId` removed (ADR-010)
 - `Dimensions { widthCm Float?, depthCm Float?, heightCm Float?, weightKg Float? }`
 - `VatSetting { vatRate Float (percent 0–50, ≤2 decimals, default 0), applyToDelivery Boolean (default true), pricesIncludeVat Boolean (default true), registrationNumber String? (15 digits, `^3\d{13}3$`) }` (embedded in `SiteSetting.vat`)
 - `OrderVat { vatRate Float, vatAmount Int (halalas), applyToDelivery Boolean, pricesIncludeVat Boolean, registrationNumber String? }` (immutable snapshot on each order)

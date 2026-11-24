@@ -127,6 +127,14 @@ export const removeSection: RequestHandler = async (req, res) => {
   );
 };
 
+export const reorderBanners: RequestHandler = async (req, res) => {
+  await banners.reorder((req.body as ReorderBody).ids);
+  await finishAfterCommit(
+    () => revalidateTags(HOME_TAGS, ctx(req)),
+    () => res.status(204).end(),
+  );
+};
+
 export const reorderSections: RequestHandler = async (req, res) => {
   await sections.reorder((req.body as ReorderBody).ids);
   await finishAfterCommit(

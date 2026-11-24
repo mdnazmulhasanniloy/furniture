@@ -365,6 +365,12 @@ it('NFR-01 · CMS routes conform (banners, sections, pages, settings, home)', as
       sortOrder: 2,
     },
   });
+  // CR-011: a reorder bumps updatedAt, so it runs after the PATCH above (which needed the old token).
+  await call('put', '/admin/banners/order', {
+    status: 204,
+    token: adminToken,
+    body: { ids: [(b2.body as { id: string }).id, (b1.body as { id: string }).id] },
+  });
   await call('delete', '/admin/banners/{id}', {
     status: 204,
     path: `/admin/banners/${(b2.body as { id: string }).id}`,

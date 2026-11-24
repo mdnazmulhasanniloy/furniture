@@ -95,6 +95,9 @@ type ImageAsset {
   alt    LocalizedText?
   width  Int?
   height Int?
+  // CR-011: banner focal point in percent (0 to 100); explicit null or absent = centre
+  focalX Float?
+  focalY Float?
 }
 
 type Dimensions {

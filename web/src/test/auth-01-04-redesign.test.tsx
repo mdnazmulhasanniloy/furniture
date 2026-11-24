@@ -48,7 +48,7 @@ describe.each(["en", "ar"] as const)("AUTH-01 · redesigned auth screens (%s)", 
 
   it(`UI-04 · auth split: a photo panel with the wordmark and the one true brand line, the form beside it, no arch (${locale})`, () => {
     wrap(locale, <SiteFactsProvider cityCount={6}><LoginForm /></SiteFactsProvider>);
-    expect(screen.getByTestId("auth-shell").className).toContain("lg:grid-cols-2");
+    expect(screen.getByTestId("auth-shell").className).toContain("lg:grid-cols-[5fr_6fr]"); // the form column is the wider one
     const panel = screen.getByTestId("auth-panel");
     const shell = screen.getByTestId("auth-shell");
     expect(shell.firstElementChild).toBe(panel); // photo on the inline-start side: mirrors in RTL
@@ -75,10 +75,10 @@ describe.each(["en", "ar"] as const)("AUTH-01 · redesigned auth screens (%s)", 
     expect(screen.queryByTestId("brand-line")).toBeNull();
   });
 
-  it(`UI-04 · auth v3: floating-label 56 px fields, a 48 px full-width submit, flat alerts (${locale})`, () => {
+  it(`UI-04 · auth v3: floating-label 52 px fields, a 52 px full-width submit, flat alerts (${locale})`, () => {
     wrap(locale, <LoginForm />);
     const email = screen.getByLabelText(m.auth.email);
-    expect(email.className).toContain("h-14");
+    expect(email.className).toContain("h-[52px]");
     expect(email.className).toContain("rounded-sm");
     expect(email.className).toContain("border-input");
     expect(email.getAttribute("placeholder")).toBe(" "); // the label floats via :placeholder-shown
@@ -86,9 +86,9 @@ describe.each(["en", "ar"] as const)("AUTH-01 · redesigned auth screens (%s)", 
     const label = document.querySelector(`label[for="${email.id}"]`)!;
     expect(label.className).toContain("peer-focus:text-xs");
     const submit = screen.getByRole("button", { name: m.auth.login });
-    expect(submit.className).toContain("h-12");
+    expect(submit.className).toContain("h-[52px]");
     expect(submit.className).toContain("w-full");
-    expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-4xl");
+    expect(screen.getByRole("heading", { level: 1 }).className).toContain("md:text-5xl");
   });
 
   it(`UI-04 · the password field has a show/hide toggle (${locale})`, () => {

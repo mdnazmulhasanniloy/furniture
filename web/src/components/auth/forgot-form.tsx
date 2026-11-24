@@ -47,14 +47,14 @@ export function ForgotForm() {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl">{t("forgotTitle")}</h1>
-      <p className="mt-1 mb-6 text-sm text-muted-foreground">{t("forgotIntro")}</p>
-      <form onSubmit={onSubmit} noValidate className="space-y-4">
+      <h1 className="text-4xl md:text-5xl">{t("forgotTitle")}</h1>
+      <p className="mt-2 mb-8 text-base text-muted-foreground">{t("forgotIntro")}</p>
+      <form onSubmit={onSubmit} noValidate className="space-y-5">
         <ErrorSummary show={summary.shown} />
         <FormAlert error={apiError} />
         <Field label={t("email")} type="email" autoComplete="email" dir="ltr" value={email}
           onChange={(e) => setEmail(e.target.value)} error={error} />
-        <Button type="submit" className="h-12 w-full" disabled={busy}>
+        <Button type="submit" className="h-[52px] w-full text-base" disabled={busy}>
           {busy ? t("submitting") : t("sendCode")}
         </Button>
       </form>

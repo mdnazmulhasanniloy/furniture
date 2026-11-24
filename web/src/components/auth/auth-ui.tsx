@@ -23,7 +23,7 @@ export function AuthShell({ children }: Readonly<{ children: React.ReactNode }>)
   const tHome = useTranslations("home");
   const cityCount = useCityCount();
   return (
-    <main className="grid w-full lg:min-h-[calc(100svh-5rem)] lg:grid-cols-2" data-testid="auth-shell">
+    <main className="grid w-full lg:min-h-[calc(100svh-5rem)] lg:grid-cols-[5fr_6fr]" data-testid="auth-shell">
       <aside
         data-testid="auth-panel"
         className="relative h-[28vh] min-h-44 overflow-hidden bg-foreground text-primary-foreground lg:h-auto"
@@ -47,7 +47,7 @@ export function AuthShell({ children }: Readonly<{ children: React.ReactNode }>)
           )}
         </div>
       </aside>
-      <div className="flex items-center justify-center px-5 py-10 sm:px-8 lg:py-16">
+      <div className="flex items-center justify-center px-5 py-10 sm:px-8 lg:px-12 lg:py-16">
         <div className="w-full max-w-[440px]">{children}</div>
       </div>
     </main>
@@ -96,7 +96,7 @@ export function Field({
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className={cn(
-            "peer h-14 pb-1 pt-5 text-base placeholder:text-transparent",
+            "peer h-[52px] pb-1 pt-[22px] text-base placeholder:text-transparent",
             isPassword && (ltr ? "pr-12" : "pe-12"),
             className,
           )}
@@ -105,9 +105,9 @@ export function Field({
         <label
           htmlFor={id}
           className={cn(
-            "pointer-events-none absolute top-[18px] text-base text-muted-foreground transition-all duration-150",
-            "peer-focus:top-2 peer-focus:text-xs peer-autofill:top-2 peer-autofill:text-xs",
-            "peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:text-xs",
+            "pointer-events-none absolute top-[14px] text-base text-muted-foreground transition-all duration-150",
+            "peer-focus:top-1.5 peer-focus:text-xs peer-autofill:top-1.5 peer-autofill:text-xs",
+            "peer-[:not(:placeholder-shown)]:top-1.5 peer-[:not(:placeholder-shown)]:text-xs",
             ltr ? "left-3" : "start-3",
           )}
         >

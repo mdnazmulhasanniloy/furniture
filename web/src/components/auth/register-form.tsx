@@ -78,9 +78,9 @@ export function RegisterForm() {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl">{t("registerTitle")}</h1>
-      <p className="mt-1 mb-6 text-sm text-muted-foreground">{t("registerIntro")}</p>
-      <form onSubmit={onSubmit} noValidate className="space-y-4">
+      <h1 className="text-4xl md:text-5xl">{t("registerTitle")}</h1>
+      <p className="mt-2 mb-8 text-base text-muted-foreground">{t("registerIntro")}</p>
+      <form onSubmit={onSubmit} noValidate className="space-y-5">
         <ErrorSummary show={summary.shown} />
         <FormAlert error={apiError} />
         <div className="grid gap-4 sm:grid-cols-2">
@@ -93,11 +93,11 @@ export function RegisterForm() {
           onChange={set("email")} onBlur={blur("email")} error={errors.email} />
         <Field label={t("password")} type="password" autoComplete="new-password" dir="ltr" maxLength={128}
           value={v.password} onChange={set("password")} onBlur={blur("password")} error={errors.password} below={<PasswordRules value={v.password} />} />
-        <Button type="submit" className="h-12 w-full" disabled={busy}>
+        <Button type="submit" className="h-[52px] w-full text-base" disabled={busy}>
           {busy ? t("submitting") : t("register")}
         </Button>
       </form>
-      <p className="mt-6 text-sm text-muted-foreground">
+      <p className="mt-8 text-base text-muted-foreground">
         {t("haveAccount")}{" "}
         <Link href="/login" className="text-primary underline-offset-4 hover:underline">
           {t("login")}

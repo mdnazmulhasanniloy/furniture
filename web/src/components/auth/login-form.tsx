@@ -63,9 +63,9 @@ export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl">{t("loginTitle")}</h1>
-      <p className="mt-1 mb-6 text-sm text-muted-foreground">{t("loginIntro")}</p>
-      <form onSubmit={onSubmit} noValidate className="space-y-4">
+      <h1 className="text-4xl md:text-5xl">{t("loginTitle")}</h1>
+      <p className="mt-2 mb-8 text-base text-muted-foreground">{t("loginIntro")}</p>
+      <form onSubmit={onSubmit} noValidate className="space-y-5">
         {resetDone ? <FormNotice>{t("resetDone")}</FormNotice> : null}
         <ErrorSummary show={summary.shown} />
         <FormAlert error={apiError} />
@@ -86,11 +86,11 @@ export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
             {t("forgot")}
           </Link>
         </div>
-        <Button type="submit" className="h-12 w-full" disabled={busy}>
+        <Button type="submit" className="h-[52px] w-full text-base" disabled={busy}>
           {busy ? t("submitting") : t("login")}
         </Button>
       </form>
-      <p className="mt-6 text-sm text-muted-foreground">
+      <p className="mt-8 text-base text-muted-foreground">
         {t("noAccount")}{" "}
         <Link href="/register" className="text-primary underline-offset-4 hover:underline">
           {t("register")}

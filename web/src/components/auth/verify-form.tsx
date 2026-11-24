@@ -102,12 +102,12 @@ export function VerifyForm() {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl">{t("verifyTitle")}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">{t("verifyIntro")}</p>
+      <h1 className="text-4xl md:text-5xl">{t("verifyTitle")}</h1>
+      <p className="mt-2 text-base text-muted-foreground">{t("verifyIntro")}</p>
       <p className="mt-1 mb-6 text-sm text-foreground">
         <bdi>{t("otpSent", { email: pending.email })}</bdi>
       </p>
-      <form onSubmit={onSubmit} noValidate className="space-y-4">
+      <form onSubmit={onSubmit} noValidate className="space-y-5">
         {notice ? <FormNotice>{notice}</FormNotice> : null}
         <FormAlert error={apiError} />
         {expiredNoData ? (
@@ -131,7 +131,7 @@ export function VerifyForm() {
             {tv("codeIncomplete")}
           </p>
         ) : null}
-        <Button type="submit" className="h-12 w-full" disabled={busy}>
+        <Button type="submit" className="h-[52px] w-full text-base" disabled={busy}>
           {busy ? t("submitting") : t("verifySubmit")}
         </Button>
       </form>

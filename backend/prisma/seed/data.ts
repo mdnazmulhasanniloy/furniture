@@ -36,6 +36,12 @@ export const HOME_SECTIONS: { type: SectionType; title: L; config: Record<string
   },
 ];
 
+/** Body of a policy page until the owner writes it (owner 2026-11-24, QA item 8). */
+const COMING_SOON: L = {
+  en: 'Content coming soon.',
+  ar: 'المحتوى قريبًا.',
+};
+
 const PLACEHOLDER: L = {
   en: 'PLACEHOLDER - replace before launch',
   ar: 'نص مؤقت - يجب استبداله قبل الإطلاق',
@@ -74,17 +80,25 @@ export const PAGES: {
     },
     isPublished: true,
   },
+  // The policy pages are published so the footer can link them, with a placeholder body until the owner
+  // writes the real text (owner 2026-11-24, QA item 8). Their content is editable in the admin.
   {
     slug: 'terms',
     title: { en: 'Terms and conditions', ar: 'الشروط والأحكام' },
-    content: { en: `<p>${PLACEHOLDER.en}</p>`, ar: `<p>${PLACEHOLDER.ar}</p>` },
-    isPublished: false,
+    content: { en: `<p>${COMING_SOON.en}</p>`, ar: `<p>${COMING_SOON.ar}</p>` },
+    isPublished: true,
   },
   {
     slug: 'privacy',
     title: { en: 'Privacy policy', ar: 'سياسة الخصوصية' },
-    content: { en: `<p>${PLACEHOLDER.en}</p>`, ar: `<p>${PLACEHOLDER.ar}</p>` },
-    isPublished: false,
+    content: { en: `<p>${COMING_SOON.en}</p>`, ar: `<p>${COMING_SOON.ar}</p>` },
+    isPublished: true,
+  },
+  {
+    slug: 'returns',
+    title: { en: 'Return and refund policy', ar: 'سياسة الإرجاع والاسترجاع' },
+    content: { en: `<p>${COMING_SOON.en}</p>`, ar: `<p>${COMING_SOON.ar}</p>` },
+    isPublished: true,
   },
 ];
 

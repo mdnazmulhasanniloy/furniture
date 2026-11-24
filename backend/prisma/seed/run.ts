@@ -4,14 +4,15 @@ import { buildSearchText } from '../../src/lib/searchText.js';
 import { failedPasswordRules } from '../../src/lib/passwordPolicy.js';
 import { CATEGORIES, DELIVERY_CITIES, DEMO_PRODUCTS, HOME_SECTIONS, PAGES } from './data.js';
 
-export const PLACEHOLDER_CONTACT_EMAIL = 'placeholder@example.com';
-export const PLACEHOLDER_CONTACT_PHONE = '+966500000000';
-
 export interface SeedOptions {
   nodeEnv: string;
   demo: boolean;
   admin: { email?: string; password?: string; firstName?: string; lastName?: string };
-  /** Optional public contact details (SEED_CONTACT_EMAIL / SEED_CONTACT_PHONE). Placeholders are used when missing. */
+  /**
+   * Optional public contact details (SEED_CONTACT_EMAIL / SEED_CONTACT_PHONE). Left EMPTY when missing, and the
+   * storefront footer then shows no contact line: a placeholder address must never reach a customer
+   * (owner 2026-11-24, QA item 8). They are editable in the admin under Settings.
+   */
   contact?: { email?: string; phone?: string };
   argon2?: { memoryCost: number; timeCost: number; parallelism: number };
   log?: (msg: string) => void;
@@ -95,11 +96,11 @@ export async function runSeed(prisma: PrismaClient, opts: SeedOptions): Promise<
 
   // SiteSetting singleton: untouched when it exists (VAT, fees and cities are admin-managed).
   if (!(await prisma.siteSetting.findUnique({ where: { key: 'default' } }))) {
-    const contactEmail = opts.contact?.email?.trim() || PLACEHOLDER_CONTACT_EMAIL;
-    const contactPhone = opts.contact?.phone?.trim() || PLACEHOLDER_CONTACT_PHONE;
-    if (contactEmail === PLACEHOLDER_CONTACT_EMAIL || contactPhone === PLACEHOLDER_CONTACT_PHONE) {
+    const contactEmail = opts.contact?.email?.trim() ?? '';
+    const contactPhone = opts.contact?.phone?.trim() ?? '';
+    if (!contactEmail || !contactPhone) {
       log(
-        'WARNING: SiteSetting contactEmail/contactPhone use placeholder values (set SEED_CONTACT_EMAIL and SEED_CONTACT_PHONE before seeding, or change them from the admin dashboard before launch).',
+        'WARNING: SiteSetting contactEmail/contactPhone are empty, so the footer shows no contact details (set SEED_CONTACT_EMAIL and SEED_CONTACT_PHONE before seeding, or fill them in from the admin dashboard before launch).',
       );
     }
     await prisma.siteSetting.create({

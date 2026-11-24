@@ -21,6 +21,11 @@ vi.mock("@/i18n/navigation", () => ({
   usePathname: () => state.path,
 }));
 vi.mock("next/navigation", () => ({ useParams: () => ({}) }));
+// the footer links CMS pages (QA 2026-11-24 item 8); this suite is about the layout, so none exist here
+vi.mock("@/lib/api/public", async (orig) => ({
+  ...(await orig<typeof import("@/lib/api/public")>()),
+  getPage: async () => ({ status: "not-found" }),
+}));
 
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";

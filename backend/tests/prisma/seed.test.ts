@@ -89,12 +89,33 @@ describe('seed (T-002)', () => {
     expect(logs.some((m) => m.includes('WARNING'))).toBe(false);
   });
 
-  it('NFR-05 · missing contact details fall back to placeholders and log a warning', async () => {
+  it('QA-8 · missing contact details are left empty (never a placeholder) and log a warning', async () => {
     const logs: string[] = [];
     await runSeed(prisma, { ...base, log: (m) => logs.push(m) });
     const s = (await prisma.siteSetting.findUnique({ where: { key: 'default' } }))!;
-    expect([s.contactEmail, s.contactPhone]).toEqual(['placeholder@example.com', '+966500000000']);
+    // empty, so the storefront footer shows no contact line at all (owner 2026-11-24, QA item 8)
+    expect([s.contactEmail, s.contactPhone]).toEqual(['', '']);
+    expect(JSON.stringify(s)).not.toMatch(/placeholder|example\.com|\+966500000000/i);
     expect(logs.some((m) => m.includes('WARNING') && m.includes('admin dashboard'))).toBe(true);
+  });
+
+  it('QA-8 · the policy pages are published with a placeholder body the owner can edit', async () => {
+    await runSeed(prisma, base);
+    const pages = await prisma.page.findMany();
+    const bySlug = new Map(pages.map((x) => [x.slug, x]));
+    for (const slug of ['terms', 'privacy', 'returns']) {
+      const page = bySlug.get(slug);
+      expect(page, slug).toBeTruthy();
+      expect(page!.isPublished, slug).toBe(true); // the footer only links pages that exist
+      expect(page!.title.en && page!.title.ar, slug).toBeTruthy();
+      expect(page!.content.en, slug).toContain('Content coming soon');
+      expect(page!.content.ar, slug).toContain('المحتوى قريبًا');
+      // the old "PLACEHOLDER - replace before launch" body is gone
+      expect(page!.content.en, slug).not.toMatch(/PLACEHOLDER/i);
+    }
+    // the information pages the footer also links
+    for (const slug of ['about', 'contact', 'faq'])
+      expect(bySlug.get(slug)?.isPublished, slug).toBe(true);
   });
 
   it('NFR-05 · seed creates exactly 1 admin from env with an argon2id hash', async () => {
@@ -148,7 +169,7 @@ describe('seed (T-002)', () => {
     expect(n).toBeGreaterThanOrEqual(3);
   });
 
-  it('NFR-05 · seed creates 5 pages with en and ar; terms and privacy are unpublished placeholders', async () => {
+  it('NFR-05 · seed creates the 6 pages with en and ar, all published (QA 2026-11-24 item 8)', async () => {
     await runSeed(prisma, base);
     const pages = await prisma.page.findMany();
     expect(pages.map((p) => p.slug).sort()).toEqual([
@@ -156,15 +177,17 @@ describe('seed (T-002)', () => {
       'contact',
       'faq',
       'privacy',
+      'returns',
       'terms',
     ]);
     for (const p of pages)
       expect(p.content.en && p.content.ar && p.title.en && p.title.ar).toBeTruthy();
-    for (const slug of ['terms', 'privacy']) {
+    // the policy pages are published with a body to replace, so the footer can link them (owner 2026-11-24)
+    for (const slug of ['terms', 'privacy', 'returns']) {
       const p = pages.find((x) => x.slug === slug)!;
-      expect(p.isPublished).toBe(false);
-      expect(p.content.en).toContain('PLACEHOLDER - replace before launch');
-      expect(p.content.ar).toContain('نص مؤقت - يجب استبداله قبل الإطلاق');
+      expect(p.isPublished, slug).toBe(true);
+      expect(p.content.en, slug).toContain('Content coming soon');
+      expect(p.content.ar, slug).toContain('المحتوى قريبًا');
     }
     for (const slug of ['about', 'faq', 'contact']) {
       expect(pages.find((x) => x.slug === slug)!.isPublished).toBe(true);

@@ -2,7 +2,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Link } from "@/i18n/navigation";
-import type { SiteSettings } from "@/lib/api/public";
+import { getPage, type SiteSettings } from "@/lib/api/public";
 import { pick } from "@/lib/pick";
 
 const SOCIALS = ["facebook", "instagram", "whatsapp", "tiktok"] as const;
@@ -19,6 +19,9 @@ export function safeHttps(url: string | null | undefined): string | null {
 
 const linkCls = "underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary";
 
+/** CMS pages the footer links, in this order, when they exist and are published (QA 2026-11-24 item 8). */
+const FOOTER_PAGES = ["about", "contact", "faq", "terms", "privacy", "returns"] as const;
+
 /** One emerald block (ADR-015): contact, cities served, cash on delivery in one sentence, language switch. */
 export async function SiteFooter({ settings }: { settings: SiteSettings | null }) {
   const t = await getTranslations();
@@ -28,6 +31,16 @@ export async function SiteFooter({ settings }: { settings: SiteSettings | null }
     const href = safeHttps(settings?.socials?.[key]);
     return href ? [{ key, href }] : [];
   });
+  // Only pages that exist and are published are linked, so the footer never offers a dead link (QA item 8).
+  const pages = (
+    await Promise.all(
+      FOOTER_PAGES.map(async (slug) => {
+        const res = await getPage(slug);
+        return res.status === "ok" ? { slug, title: pick(res.page.title, locale) } : null;
+      }),
+    )
+  ).flatMap((x) => (x && x.title ? [x] : []));
+
   const cities = (settings?.deliveryCities ?? [])
     .filter((c) => c.isActive !== false)
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
@@ -94,6 +107,13 @@ export async function SiteFooter({ settings }: { settings: SiteSettings | null }
             <li>
               <Link href="/shop?type=resale" className={linkCls}>{t("nav.resale")}</Link>
             </li>
+            {pages.map((page) => (
+              <li key={page.slug}>
+                <Link href={`/pages/${page.slug}`} className={linkCls}>
+                  {page.title}
+                </Link>
+              </li>
+            ))}
           </ul>
           <div className="mt-5">
             <LanguageSwitcher

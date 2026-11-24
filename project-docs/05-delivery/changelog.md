@@ -616,5 +616,19 @@
 - Docs v0.1 drafted from client brief SRC-001: PRD, journeys, roles, design system, screen flow/specs, architecture, data model, OpenAPI spec, ADR-001…006, tasks T-001…T-072, blockers B-001…B-010.
 - Repos scaffolded with CLAUDE.md, slash commands, config only (no feature code — awaiting sign-off).
 
+## 2026-11-24 (QA pass: items 1-10)
+- **Password policy (owner 2026-11-24)**: one shared definition (8+ chars, upper, lower, digit, special) enforced on register, reset, accept-invite and the admin seed; 400 `PASSWORD_TOO_WEAK` names every unmet rule and is raised before the OTP is spent; login untouched. Live five-rule checklist on the storefront and in the admin; a drift test in each app compares its copy with the backend's. Spec and PRD first. Fixture passwords updated across the three suites.
+- **QA 1 (security)**: production now refuses to start with `AUTH_COOKIE_SECURE=false` or `AUTH_COOKIE_SAME_SITE=none`. Already in place and verified, not changed: the refresh cookie is httpOnly + Secure (default in production) + SameSite=lax; login (admin and customer share `POST /auth/login`) locks an email after 5 failures for 15 minutes and limits an IP to 10 failures per 15 minutes; the admin seed reads `ADMIN_EMAIL`/`ADMIN_PASSWORD` from env (both empty in `.env.example`) and no credentials are in the repo or the README; the only `http://` values in code are localhost dev defaults.
+- **QA 2**: the cart shows one skeleton until the session and every line are known — no `SAR 0` or partial subtotal, and the checkout label no longer flips.
+- **QA 3**: an add that would pass the live stock adds nothing and says what is available (approved copy) instead of "Added to cart"; the product page says how many are left at 3 or fewer. The API already refuses an over-stock line (409 `OUT_OF_STOCK`) and re-checks at checkout.
+- **QA 4**: public search matches plural and singular forms and looks in the title, description, category name and material in both languages; every word must match and regex characters stay literal.
+- **QA 5**: the demo vase and mirror name their own photos, so the main image is not a pendant lamp. The mirror still has no mirror photo in the manifest (B-038).
+- **QA 6**: a reversed price range is a 422 from the API and an inline message in the panel that blocks Apply; the price fields take digits only.
+- **QA 7**: the hero banner subtitle is "delivered to 6 Saudi cities" / "توصيل إلى 6 مدن في المملكة", with a test tying that count to the seeded delivery cities and rejecting any all-of-the-Kingdom claim.
+- **QA 8**: the footer links the information and policy pages by their CMS titles and only when the page exists; the seed publishes terms, privacy and a new return-and-refund page with a "Content coming soon" body, seeds no placeholder contact email or phone, and no longer seeds `[DEMO]` testimonials.
+- **QA 9**: the shelf tab label exists once in the DOM (it was read as "New New"); e2e checks the accessible names of the shop filters and the tabs in both locales.
+- **QA 10**: the product page shows the discount badge like the cards; every cart line shows its unit price; every page has its own title through a localised `%s | brand` template, and the Arabic home title is the Arabic store name.
+- Checks: backend 970 tests / 71 files, web 665 / 43 plus e2e, admin 446 / 18; lint, typecheck, prettier and i18n green in all three. Nothing pushed; no seed, reset or other data command run.
+
 ## 2026-11-24 (dev-origin note)
 - Cause of the "header never turns solid" report on the IP site: `next dev` blocked cross-origin dev resources, so the page never hydrated. `allowedDevOrigins` is env-driven (`ALLOWED_DEV_ORIGINS`, default empty); `infra-deployment.md` now says to use production builds for remote review and documents `next start` / `vite preview` (the admin has no `/api` proxy in dev or preview: it calls `VITE_API_URL` cross-origin).

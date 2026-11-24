@@ -5,6 +5,7 @@ import { ConnectedProductCard } from "@/components/favourites/connected-card";
 import { CategoryRow } from "@/components/home/category-row";
 import { CtaLink } from "@/components/home/cta-link";
 import { HowResale } from "@/components/home/how-resale";
+import { ShopTheLook } from "@/components/home/shop-the-look";
 import { Shelf } from "@/components/home/shelf";
 import { buttonVariants } from "@/components/ui/button";
 import type { Locale } from "@/i18n/routing";
@@ -109,8 +110,8 @@ function OptionalSection({ section, locale }: { section: HomeSection; locale: Lo
 }
 
 /**
- * Home composition (ADR-015): category bento, ONE shelf (New / Pre-owned), any optional admin sections
- * in the same quiet style, then "How pre-owned works". Empty sections are skipped.
+ * Home composition (ADR-015): category bento, ONE shelf (New / Pre-owned: the pre-owned picks), shop the look, any optional admin sections
+ * in the same quiet style, then "How pre-owned works" (the trust strip follows on the page). Empty sections are skipped.
  */
 export function HomeSections({
   sections,
@@ -143,6 +144,11 @@ export function HomeSections({
         featuredIds={featuredIds}
         locale={locale}
       />
+      {visible
+        .filter((s) => s.type === "SHOP_THE_LOOK")
+        .map((s) => (
+          <ShopTheLook key={s.id} section={s} locale={locale} />
+        ))}
       {optional.map((s) => (
         <OptionalSection key={s.id} section={s} locale={locale} />
       ))}

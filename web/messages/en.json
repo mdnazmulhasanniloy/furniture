@@ -42,16 +42,16 @@
       "step": "Step {n}",
       "steps": {
         "browse": {
-          "title": "Browse pre-owned pieces",
-          "body": "Filter by category and condition to find furniture that suits your home."
+          "title": "We photograph it",
+          "body": "Every piece gets its own photos."
         },
         "grade": {
-          "title": "Check the condition",
-          "body": "Every piece shows its condition grade and notes before you buy."
+          "title": "We grade it",
+          "body": "Each piece is marked new, like new, good or fair, with notes."
         },
         "deliver": {
-          "title": "Order and receive",
-          "body": "Pay at checkout and we deliver the piece to your address."
+          "title": "You pay when it arrives",
+          "body": "Order online and pay in cash on delivery."
         }
       }
     },
@@ -59,6 +59,16 @@
       "title": "New and pre-owned furniture",
       "seeAllNew": "See all new",
       "seeAllResale": "See all pre-owned"
+    },
+    "look": {
+      "title": "Shop the look",
+      "hint": "Tap the dots to see what is in the room.",
+      "hotspot": "Show {name}"
+    },
+    "trust": {
+      "cod": "Pay in cash when it arrives",
+      "cities": "We deliver to {cities}",
+      "freeDelivery": "Free delivery over {amount}"
     }
   },
   "lang": {

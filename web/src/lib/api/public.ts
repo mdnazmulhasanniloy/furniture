@@ -115,6 +115,7 @@ export type HomeSectionType =
   | "RESALE_PICKS"
   | "CATEGORY_GRID"
   | "PROMO_BANNER"
+  | "SHOP_THE_LOOK"
   | "TESTIMONIALS";
 
 export type HomeSection = {
@@ -128,6 +129,8 @@ export type HomeSection = {
   products?: HomeProduct[];
   categories?: HomeCategory[];
   banner?: Banner;
+  /** SHOP_THE_LOOK, resolved by GET /cms/home: hotspots whose product is not published are already dropped. */
+  look?: { image: ImageAsset; hotspots: { x: number; y: number; product: HomeProduct }[] };
 };
 
 export type HomeContent = { banners: Banner[]; sections: HomeSection[] };

@@ -32,6 +32,8 @@ export function sectionHasContent(section: HomeSection): boolean {
       return (section.categories?.length ?? 0) > 0;
     case "PROMO_BANNER":
       return !!section.banner;
+    case "SHOP_THE_LOOK":
+      return !!section.look?.image?.url && (section.look.hotspots?.length ?? 0) > 0;
     case "TESTIMONIALS":
       return (section.config?.testimonials?.length ?? 0) > 0;
     default:

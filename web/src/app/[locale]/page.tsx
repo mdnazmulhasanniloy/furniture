@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 
+import { TrustStrip } from "@/components/home/trust-strip";
 import { Hero, HeroFallback } from "@/components/home/hero";
 import { HomeSections, type ShelfFallback } from "@/components/home/home-sections";
 import type { Locale } from "@/i18n/routing";
-import { getHome, getProducts } from "@/lib/api/public";
+import { getHome, getProducts, getSettings } from "@/lib/api/public";
 import { sectionHasContent } from "@/lib/home";
 import { alternatesFor } from "@/lib/seo";
 
@@ -26,7 +27,7 @@ export default async function HomePage({
 }: Readonly<{ params: Promise<{ locale: string }> }>) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const { banners, sections } = await getHome();
+  const [{ banners, sections }, settings] = await Promise.all([getHome(), getSettings()]);
   const has = (type: string) => sections.some((s) => s.type === type && sectionHasContent(s));
   const fallback: ShelfFallback = {};
   const [newest, resale] = await Promise.all([
@@ -40,6 +41,7 @@ export default async function HomePage({
     <main>
       {banners.length > 0 ? <Hero banners={banners} /> : <HeroFallback />}
       <HomeSections sections={sections} locale={locale as Locale} fallback={fallback} />
+      <TrustStrip settings={settings} />
     </main>
   );
 }

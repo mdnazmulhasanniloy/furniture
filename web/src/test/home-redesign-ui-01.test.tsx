@@ -468,12 +468,12 @@ describe.each(["en", "ar"] as const)("UI-01 · home v2 category row and shelf (%
     expect(screen.getByTestId("home-section-FEATURED_PRODUCTS")).toBeTruthy();
   });
 
-  it(`UI-01 · how pre-owned works is static: three steps, gold hairline, no GSAP (${locale})`, async () => {
+  it(`UI-01 · how pre-owned works is static: three steps, champagne hairline, no GSAP (${locale})`, async () => {
     wrap(locale, <HomeSections sections={[]} locale={locale} />);
     await flush();
     const steps = screen.getByTestId("how-resale").querySelectorAll("[data-step]");
     expect(steps).toHaveLength(3);
-    steps.forEach((s) => expect(s.className).toContain("border-gold"));
+    steps.forEach((s) => expect(s.className).toContain("border-champagne"));
     expect(gsapMock.calls).toHaveLength(0);
     expect(gsapMock.timelineOptions).toHaveLength(0);
   });

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (CR-011 approved)
+- **CR-011 plan approved by the owner with answers Q-1 to Q-10** (recorded in `cr-011-plan.md` section 10). ADR-018 Accepted; PRD gains UI-04 and ADM-17 and updates UI-01, ADM-05, ADM-06. Launch blocker B-038 added (final photography must be owner-supplied or commercially licensed). Focal point for banner images added to T-105/T-106. No code in this entry. Nothing pushed.
+
 ## 2026-11-24 (CR-011 soft luxury storefront, banners and customers: plan only)
 - **CR-011 (SRC-012) recorded, plan written, waiting for owner approval. No code.** Work stopped at a clean point: `redesign/home-v4` at `9f0f879`, nothing uncommitted or stashed. The CR-009 split hero is cancelled (web T-081 to T-084 marked cancelled before any code); backend T-080 stays. CR-010 stays approved.
 - New: `05-delivery/cr-011-plan.md` (design deltas, three checkpoints, every new en/ar string, backend and spec changes, tasks T-090 to T-107, questions Q-1 to Q-10), ADR-018 (Proposed), notes on ADR-015 and ADR-016, client-notes addendum 5, task entries. PRD, api-spec and data-model edits are listed in the plan and applied with the tasks, spec first.

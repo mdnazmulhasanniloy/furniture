@@ -45,4 +45,4 @@ The owner found the CR-008 home page not professional enough and asked for the l
 - Step 3 of "How pre-owned works" says cash on delivery (the old "Pay at checkout" is fixed).
 - The GSAP approach (transform only, nothing at opacity 0) is approved.
 
-> **Note 2026-11-24 (CR-011, ADR-018, proposed):** the owner rejected this direction. The split hero, announcement bar and CR-009 web tasks T-081 to T-084 are cancelled before any web code was written. Only the backend `SHOP_THE_LOOK` section (T-080, commit 9f0f879) is kept.
+> **Note 2026-11-24 (CR-011, ADR-018, accepted):** the owner rejected this direction. The split hero, announcement bar and CR-009 web tasks T-081 to T-084 are cancelled before any web code was written. Only the backend `SHOP_THE_LOOK` section (T-080, commit 9f0f879) is kept.

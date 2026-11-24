@@ -1,4 +1,4 @@
-# CR-011: Soft luxury storefront, banners and customer management (plan, waiting for approval)
+# CR-011: Soft luxury storefront, banners and customer management (plan, approved 2026-11-24)
 
 Source: owner brief SRC-012 (2026-11-24, see `01-discovery/client-notes-2026-11-24.md` addendum 5) · Branch: `redesign/home-v4` · ADR: `04-architecture/adr/ADR-018-soft-luxury-storefront.md` · **Plan only. No code until you approve. Nothing is pushed.**
 
@@ -212,3 +212,20 @@ Per task: plan, tests in en and ar, typecheck, lint, i18n check, build, e2e (`E2
 | Q-8 | "Record who and when, one log line per action". Do you also want a stored audit trail in the database (a new collection the admin can read), or log lines plus the fields on the user are enough? | Log lines plus the fields on the user (no new collection). |
 | Q-9 | Run T-045 (revalidate route) right after Checkpoint 1 approval, before Checkpoint 2? | Yes. |
 | Q-10 | Bodoni Moda has a very high contrast (hairline strokes). At small sizes, hairlines look thin, which is the brief's complaint. | Use it from 28 px up only (headings and prices in the hero and cards); smaller headings use weight 700 and the optical-size axis. If it still looks thin in screenshots I will say so at the checkpoint. |
+
+## 10. Owner decisions (2026-11-24, plan approved)
+
+| # | Decision |
+|---|---|
+| Q-1 | Demo photos are placeholders. Final photos must be owner-supplied or commercially licensed: launch blocker **B-038**. |
+| Q-2 | Keep shop the look, pre-owned band, trust strip and pre-owned picks for Checkpoint 2, restyled. Announcement bar dropped. |
+| Q-3 | Admin banners keep one button. No model change. |
+| Q-4 | Approved as proposed: "Cash on delivery across Saudi Arabia." is the only auth brand line. |
+| Q-5 | Focal-point picker approved: store x and y percent, apply as object-position on the web at every breakpoint. No crop library. |
+| Q-6 | Approved as proposed: first name, last name and phone. |
+| Q-7 | Keep the order snapshot (sales and VAT record). Anonymise the account, addresses, cart, wishlist and notifications; revoke all sessions on delete; free the email (the stored email becomes a unique placeholder) so the person can register again. |
+| Q-8 | Log lines plus user fields. |
+| Q-9 | T-045 right after Checkpoint 1, with the security rules from B-028 (POST only, `x-revalidate-secret` via `timingSafeEqual` on SHA-256 digests, 401 with no detail when missing, wrong or unset, 400 invalid body, tag allow-list, secret never logged). |
+| Q-10 | Approved. |
+
+The focal point adds two optional numbers to the banner image (`focalX`, `focalY`, 0 to 100); the spec, backend and tests are in T-105 and the editor in T-106. The hero reads them as object-position when present.

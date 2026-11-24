@@ -95,7 +95,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 - Req: ADM-16 · Depends: backend T-086
 - Done: preset cards with scoped live preview (product tile, button, price), Apply with 409 handling, tests (en and ar). Starts after CR-009 is approved.
 
-## CR-011 (proposed, waiting for approval)
+## CR-011 (approved 2026-11-24)
 
 ### T-106 Banners list and editor with live preview · todo (checkpoint 3)
 - Req: ADM-06 · Depends: T-105

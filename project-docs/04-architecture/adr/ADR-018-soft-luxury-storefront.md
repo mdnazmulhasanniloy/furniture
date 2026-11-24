@@ -1,6 +1,6 @@
 # ADR-018: Soft luxury storefront (serif headings, hero carousel, no arch)
 
-Status: **Proposed 2026-11-24** (CR-011, SRC-012; waiting for owner approval) · Source: UI-01, UI-02, UI-04, CAT-01, ADM-06, AUTH-01..04 · **Supersedes the home composition of ADR-016 (split hero cancelled) and the arch identity of ADR-015 on the storefront.** Keeps ADR-017 (theme presets).
+Status: **Accepted 2026-11-24** (CR-011, SRC-012; owner approved the plan with answers recorded in `05-delivery/cr-011-plan.md` section 10) · Source: UI-01, UI-02, UI-04, CAT-01, ADM-06, AUTH-01..04 · **Supersedes the home composition of ADR-016 (split hero cancelled) and the arch identity of ADR-015 on the storefront.** Keeps ADR-017 (theme presets).
 
 ## Context
 
@@ -29,3 +29,7 @@ The owner reviewed the running site and rejected the direction again: the hero p
 ## Open points
 
 See `05-delivery/cr-011-plan.md` section 9 (Q-1 to Q-10).
+
+## Owner decisions (2026-11-24)
+
+Q-1 placeholders, final photos are a launch blocker (B-038); Q-2 keep the other home sections, restyled, drop the announcement bar; Q-3 one button per admin banner; Q-5 focal-point picker, no crop library; Q-7 keep order snapshots, anonymise the rest, free the email; Q-8 log lines plus user fields; Q-9 T-045 right after checkpoint 1; Q-10 approved; Q-4 and Q-6 as proposed.

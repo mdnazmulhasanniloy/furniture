@@ -139,7 +139,7 @@ Order status flow (owner 2026-11-22, T-014): `PENDING → CONFIRMED → PROCESSI
 
 ### 5.7 UI quality (UI) — SRC-001.5, .7, .8, .12
 
-**UI-01 Look & motion** · draft — "Emerald and gold" on white (`03-design/design-system.md`, ADR-014). GSAP + ScrollTrigger for the home hero and section reveals; Framer Motion for product cards, cart drawer, page enter transitions and add-to-cart feedback (fly-to-cart + toast); AOS for content-page reveals. `prefers-reduced-motion` disables non-essential animation and every animation mirrors in RTL. Headings in Fraunces / Noto Kufi Arabic; radius and shadow tokens only; no hex values in components.
+**UI-01 Look & motion** · draft — "Emerald and gold" on white (`03-design/design-system.md`, ADR-014). Motion is restrained (CR-011, UI-04): hero carousel crossfade, slow image zoom and hover zoom only, nothing on scroll; the cart drawer and add-to-cart toast keep their short transitions. `prefers-reduced-motion` disables autoplay, zoom and non-essential animation, and every animation mirrors in RTL. Headings in Bodoni Moda / El Messiri (UI-04; Fraunces and Noto Kufi Arabic were the earlier choice); radius and shadow tokens only; no hex values in components.
 **UI-02 Responsive & accessible** · draft — 360 px to 1920 px; WCAG 2.1 AA colour contrast, enforced by an automated test on the design tokens (body, muted text, price, every button and badge text, light and dark; ≥ 4.5:1, graphics ≥ 3:1); keyboard navigable; images have localized alt text.
 
 **UI-03 Selectable theme (storefront)** · draft (SRC-011, CR-010, ADR-017) — The storefront applies the theme chosen in Settings → Appearance as CSS variables on `<html>`, on the server (no flash of the default theme).
@@ -147,6 +147,16 @@ Order status flow (owner 2026-11-22, T-014): `PENDING → CONFIRMED → PROCESSI
 - Given no theme is stored or the stored id is unknown, Then the default (Emerald) applies.
 - Given the settings API is unreachable, Then the CSS defaults (Emerald) apply.
 - Every preset passes the AA gate (text 4.5:1; focus ring, field border, free-delivery graphic and footer hairline 3:1). Ink, paper and the status colours never change with the theme.
+
+**UI-04 Soft luxury system** · draft (SRC-012, CR-011, ADR-018) — Typography, tokens, hero carousel, category bento, auth split screen; applied to every storefront page (checkpoint 2).
+- Headings Bodoni Moda (en) / El Messiri (ar) at weight 600 or 700, body IBM Plex Sans / IBM Plex Sans Arabic 16 to 17 px; each locale downloads only its own fonts.
+- Colours only from theme tokens (primary, blush, champagne; champagne is decorative, never text); every preset passes the AA gate on every new surface.
+- Container up to 1440 px, full-bleed bands, no empty gaps, image corners 4 to 8 px, no native scrollbars on rails (arrow buttons and keyboard kept). The arch is removed from the whole storefront.
+- Given the home page, Then a full-bleed carousel (85vh desktop, 70vh mobile, min 480 px) shows the active banners, or three static slides when there are none; Given autoplay, Then there is a visible pause button, hover and focus pause it, and reduced motion means no autoplay and no zoom (WCAG 2.2.2).
+- Given the categories band, Then an editorial grid shows up to five categories (one large and four small on desktop, two columns on tablet and mobile) with no horizontal scrollbar.
+- Given any auth page, Then desktop shows a photo side and a form side (mirrored in RTL) and mobile a 28vh banner; floating labels, show/hide password, live password rules (only rules the API enforces), six-box OTP with paste and a resend timer, field-level errors.
+- LCP and CLS stay within the CR-009 budget (mobile LCP <= 1505 ms en / 1580 ms ar, desktop <= 400 ms, CLS <= 0.042 mobile / 0.01 desktop, transfer <= +15%).
+- Photos are placeholders until final photography is owner-supplied or commercially licensed (blocker B-038).
 
 ### 5.8 Resale (RESALE)
 
@@ -161,8 +171,8 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 **ADM-03 Categories** · draft — CRUD, image, parent, sort order, active toggle; cannot delete a category with products.
 **ADM-04 Orders** · draft — Filter by status/date/search; detail view; change status following the flow (invalid transitions rejected); internal note; printable invoice showing the VAT breakdown and the VAT registration number when set (ADM-14); ZATCA e-invoicing compliance (QR code, e-invoice format) pending B-013.
 - Owner 2026-11-22 (T-014): the full transition matrix is in §5.4 (every non-terminal status can be cancelled; cancel requires an internal reason of 3–500 chars and restores stock). Search matches the order number, the customer email, or — when the query normalises to a Saudi mobile number (NFR-06 rules, incl. Arabic-Indic digits) — the order's snapshot phone. Date filters are inclusive Asia/Riyadh calendar days. Internal notes (`adminNote` and status-event notes) are never shown to customers or included in emails.
-**ADM-05 Customers** · draft — List, view orders of a customer, block/unblock.
-**ADM-06 Hero banners** · draft — CRUD, localized title/subtitle/CTA, desktop + mobile image, link, schedule (start/end), sort, active.
+**ADM-05 Customers** · draft — List (search, status filter, pagination), detail with orders, block/unblock with a required reason (CR-011; see ADM-17).
+**ADM-06 Hero banners** · draft — CRUD, localized title/subtitle/CTA, desktop + mobile image, link, schedule (start/end), sort, active. CR-011: drag reorder (bulk order endpoint), separate editor page with a live hero preview, and a focal point (x/y percent, applied as object-position at every breakpoint); the banners are the slides of the home hero carousel. One button per banner.
 - Owner 2026-11-22 (T-011): banner images require localized alt text in both en and ar (UI-02); the CTA link must be a same-site path or an absolute https URL (protocol-relative, `javascript:`, `data:` and `http:` rejected).
 **ADM-07 Home sections** · draft — (CR-007 Q-7: the hero from banners, "How resale works" and the contact strip are fixed parts of the home page; the sections below stay admin-ordered and hideable.) Ordered list of sections the home page renders: `FEATURED_PRODUCTS`, `NEW_ARRIVALS`, `RESALE_PICKS`, `CATEGORY_GRID`, `PROMO_BANNER`, `TESTIMONIALS`; each with localized title, visibility, sort order, config (e.g. product ids, limit). Admins may create and delete sections (B-032, 2026-11-24).
 **ADM-08 Static pages** · draft — About, Contact, FAQ, Terms, Privacy; rich text per locale; slug; published toggle.
@@ -202,6 +212,13 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 - Given another admin changed settings meanwhile, When I apply, Then I get a conflict message (409 `STALE_UPDATE`) and can reload.
 - Given an unknown theme id is sent, Then the API rejects it with 422 `VALIDATION_ERROR`.
 - Who and when: the settings document records `themeUpdatedById` and `themeUpdatedAt`; one log line records admin id, old and new theme and request id.
+
+**ADM-17 Customer management** · draft (SRC-012, CR-011) — Admin only; applies to CUSTOMER accounts, never to an admin or to oneself.
+- Block needs a reason (3 to 300 chars, admin-only). Blocking revokes refresh tokens, disconnects sockets, and blocks login, refresh, password reset and new orders. The customer sees one generic message, never the reason. Unblock may carry a reason.
+- Update accepts first name, last name and phone (+966 mobile) only; any other field is a 422. The admin never sets or sees passwords; no response contains a hash. Email change is out of scope. Concurrent edit gives 409 `STALE_UPDATE`.
+- Delete is a soft delete. It is refused (409 `CUSTOMER_HAS_OPEN_ORDERS`) when the customer has a PENDING or CONFIRMED order, and the admin must send the customer's exact email (`confirmEmail`). On success, in one transaction: name, email (freed, so the person can register again), phone and avatar are anonymised, addresses, cart, wishlist and notifications are removed, all sessions are revoked and sockets disconnected, the password is replaced by an unusable one. Orders are kept with their address snapshot (sales and VAT record).
+- Targeting an admin or oneself is refused (404 for a non-customer id, 403 `FORBIDDEN_TARGET` for the self or admin case).
+- Who and when are stored on the user for block and delete; one log line per action (`customer.block`, `customer.unblock`, `customer.update`, `customer.delete`) with actor id, target id, action, time and changed field names only; no personal data in logs.
 
 ### 5.10 Favourites (FAV) — SRC-008.8–10 (CR-007)
 

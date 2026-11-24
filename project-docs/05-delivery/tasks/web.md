@@ -220,16 +220,16 @@ Order: backend T-080 first (seed), then the owner runs `demo:reset`, then T-081 
 - Req: UI-03 · Depends: backend T-086, T-045
 - Done: `themeStyle()` helper and the `<html>` style in the locale layout, fallback to the CSS defaults, tests (en and ar). Starts after CR-009 is approved.
 
-## CR-011 (soft luxury, proposed, waiting for approval; see `05-delivery/cr-011-plan.md`)
+## CR-011 (soft luxury, approved 2026-11-24; see `05-delivery/cr-011-plan.md`)
 
-### T-090 Soft luxury foundation (fonts, tokens, container, rails, design-system v3) · todo (blocked on approval)
+### T-090 Soft luxury foundation (fonts, tokens, container, rails, design-system v3) · todo
 - Req: UI-04, UI-01, UI-02 · Depends: approval of CR-011 · Docs: ADR-018
-### T-091 Hero carousel · todo (blocked on approval)
+### T-091 Hero carousel · todo
 - Req: CAT-01, ADM-06, UI-04 · Depends: T-090
-### T-092 Category bento · todo (blocked on approval)
+### T-092 Category bento · todo
 - Req: CAT-01, UI-04 · Depends: T-090
-### T-093 Auth split screen, floating labels, live rules, six-box OTP · todo (blocked on approval)
+### T-093 Auth split screen, floating labels, live rules, six-box OTP · todo
 - Req: AUTH-01..AUTH-04, UI-04 · Depends: T-090
-### T-094 Remove the Arch component; checkpoint 1 screenshots (screens-v5) · todo (blocked on approval)
+### T-094 Remove the Arch component; checkpoint 1 screenshots (screens-v5) · todo
 - Req: UI-04 · Depends: T-091..T-093
 ### T-095 to T-103 Checkpoint 2, one task per page group · todo (written after checkpoint 1 approval)

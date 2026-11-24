@@ -1,84 +1,207 @@
-# Design System — "Emerald and gold"
+# Design System — "Najdi arch" (v2, proposed — CR-008, ADR-015)
 
-Mood: calm, bright, showroom. White canvas, deep emerald, brass accents. Works equally in LTR and RTL. (Replaces "Warm Walnut", CR-007 / SRC-008, ADR-014. ADR-004 is unchanged: shadcn/ui stays the base.)
+> **Status: accepted 2026-11-24 (ADR-015).** Supersedes the visual parts of ADR-014; its contrast rules stay in force. Build progress is tracked in `05-delivery/cr-008-plan.md`.
 
-## 1. Colour tokens
+Mood: a bright, quiet showroom with one bold gesture, the arch. White page, deep emerald for action, sand behind the furniture, date gold only as a fine line. Works equally in LTR and RTL; Arabic is designed first.
 
-Defined as CSS variables in both `web` (`globals.css`) and `admin` (`index.css`). Components use token classes only, never hex values. All values below are a contract checked by the AA test (UI-02, see "Contrast" below).
+## 1. Colour
 
-| Token | Light | Dark (admin) | Use |
-|---|---|---|---|
-| `--background` | `#FFFFFF` | `#0E1513` | Page |
-| `--foreground` | `#1C2321` | `#EEF2F0` | Body text |
-| `--card` | `#FFFFFF` | `#15201D` | Cards, sheets |
-| `--muted` | `#F4F6F5` | `#1A2522` | Bands, skeletons, progress track |
-| `--muted-foreground` | `#5F6B66` | `#A3B0AB` | Secondary text |
-| `--primary` / `--primary-foreground` | `#0F4C45` / `#FFFFFF` | `#4FB3A3` / `#0E1513` | Buttons, links, "New" badge |
-| `--secondary` / `--secondary-foreground` | `#F6EFD9` / `#6B5318` | `#2A2616` / `#E9DDB8` | "Pre-owned" badge, soft CTA |
-| `--gold` / `--gold-foreground` | `#C8A24A` / `#1C2321` | `#D9B865` / `#1C2321` | Decoration, icons, CTA fill, "Featured" badge. **Never as text on white.** |
-| `--gold-strong` | `#9C7A2E` | `#D9B865` | Meaningful gold graphics (free-delivery progress fill; ≥ 3:1 on white and muted) |
-| `--price` | `#86672A` | `#D9B865` | Amounts only (`Price` component) |
-| `--border` | `#E6E9E7` | `#24302D` | Decorative dividers only |
-| `--input` | `#7D8A85` | `#6B7A75` | Form-field borders (3:1) |
-| `--ring` | `#0F4C45` | `#4FB3A3` | Focus ring |
-| `--destructive` | `#B42318` | `#F28B82` | Errors, cancel (text and fills) |
-| `--success` | `#1F7A4D` | `#5CC38F` | Delivered, success |
-| `--success-foreground` | `#17603B` | `#5CC38F` | Text on success tint |
-| `--warning` | `#B7791F` | `#E3A93E` | Icons and badge backgrounds **only** |
-| `--warning-foreground` | `#7A4B05` | `#E3A93E` | Text (the "darkest shade") on warning tint |
+All colour comes from CSS variables (`web/src/app/globals.css`, `admin/src/index.css`). Components use token classes only.
 
-`--accent` is removed. Amounts use `--price`; decorative highlights use `--gold`; the six former call sites move to `primary` or `gold` by meaning.
+| Token | Light | Use |
+|---|---|---|
+| `--background`, `--card` | `#FFFFFF` (paper) | Page, sheets, form fields |
+| `--foreground` | `#14201D` (ink) | Text, headings |
+| `--muted` / `--secondary` | `#EFE9DD` (sand) | Image backdrops, chips, quiet bands. **Never the page background.** |
+| `--muted-foreground` | `#5C6360` (stone ink) | Secondary text on paper and on sand |
+| `--stone` | `#6B726F` | Hairlines, icons, placeholders. **Not for text on sand** |
+| `--primary` / `--primary-foreground` | `#0F4C45` / `#FFFFFF` | Buttons, links, footer block, "New" chip |
+| `--gold` | `#B8913A` (date gold) | Decorative lines and icons only. Never text, never a meaningful graphic |
+| `--gold-strong` | `#9C7A2E` | Meaningful gold graphics (free-delivery bar), 3:1 |
+| `--price` | `#7A5E22` | Amounts, readable on paper and on sand |
+| `--border` | `#E4E0D6` | Decorative dividers |
+| `--input`, `--ring` | `#7D8A85`, `#0F4C45` | Field borders (on paper only), focus ring |
+| `--destructive`, `--success`, `--success-foreground`, `--warning`, `--warning-foreground` | as ADR-014 | Status |
 
-Contrast (computed, WCAG relative luminance; enforced by tests in `web` and `admin`): foreground and muted-foreground on background, card and muted ≥ 4.5:1; `--price` on the same surfaces ≥ 4.5:1; every Button variant text on its fill and every badge text on its fill ≥ 4.5:1; ring, `--input` and `--gold-strong` against the surface they sit on ≥ 3:1. Known figures: muted-foreground on white 5.55, price on white 5.27, white on primary 9.81, gold button text 6.65, Pre-owned badge 6.35, warning-foreground on white 7.4, `--gold-strong` on white 4.01 and on muted 3.69, `--input` on white 3.59. Raw `--warning` as text (3.64) and raw `--gold` as text on white (2.41) are forbidden.
+Contrast (computed, WCAG): ink on paper 16.8, ink on sand 13.9, white on emerald 9.8, emerald on sand 8.1, stone ink `#5C6360` on paper 6.2 / on sand 5.1, price `#7A5E22` on paper 6.1 / on sand 5.0, sand text on emerald 8.1. Date gold on paper is 2.9 and on emerald 3.3: that is why it is a decorative hairline only. Admin dark mode keeps the ADR-014 values. The AA tests in `web` and `admin` keep scanning the real CSS and every colour call site.
 
-Order status colours: PENDING warning badge (text `warning-foreground`) · CONFIRMED primary · PROCESSING gold · OUT_FOR_DELIVERY secondary · DELIVERED success · CANCELLED destructive.
+Dropped from v1: `--secondary` cream `#F6EFD9`, cool grey `#F4F6F5`, `--gold` `#C8A24A`, the old ink `#1C2321`. Fewer neutrals: paper, sand, ink, stone.
 
 ## 2. Typography
 
-| Role | Latin (en) | Arabic (ar) |
+| Role | en | ar |
 |---|---|---|
-| Display / headings | **Fraunces** (600, optical size) | **Noto Kufi Arabic** (600/700) |
-| Body / UI | **Manrope** (400/500/600) | **IBM Plex Sans Arabic** (400/500/600) |
+| Headings, numerals, buttons | **Readex Pro** | **Readex Pro** (same family, Arabic subset) |
+| Body, UI | **IBM Plex Sans** | **IBM Plex Sans Arabic** |
 
-Loaded via `next/font` (web) / `@fontsource` (admin). Scale (rem): 0.75, 0.875, 1, 1.125, 1.25, 1.5, 2, 2.5, 3.5, 4.5. Arabic line-height +0.1 vs Latin.
+Readex Pro is one family for both scripts and has a weight axis (160–700) and a width axis (`HEXP` 0–100), loaded through `next/font/google` (variable, per-locale subsets, `preload: false` as today). Weight and width are the design device:
 
-## 3. Space, radius, shadow
+- Hero headline: weight 300, `HEXP` 30, very large. A light, wide face at 56–72 px is the confident gesture. Nothing inside it is accented.
+- Section titles: weight 600, `HEXP` 0, one step smaller. Product titles and buttons: weight 500.
+- Latin headings get `letter-spacing: -0.02em`. **Arabic never gets negative or positive tracking** (it breaks the joins).
 
-- 4 px base grid; container max 1280 px; section padding 96 px desktop / 56 px mobile; gap between home sections at least 64 px desktop / 40 px mobile.
-- Radius: `sm 6px`, `md 10px`, `lg 16px`, `xl 24px` (product cards = lg, hero = xl).
-- Shadow tokens only (`--shadow-soft`: `0 8px 24px -12px rgb(15 76 69 / 0.18)`); hover lift `translateY(-4px)`. Radius and shadow come from tokens, never literals.
+Scale (major third, 1.25; base 16 px), fluid at the top:
 
-## 4. Components
+| Step | rem / px | Use | Line-height en / ar |
+|---|---|---|---|
+| −1 | 0.8125 / 13 | Chips, captions | 1.4 / 1.7 |
+| 0 | 1 / 16 | Body, UI | 1.6 / 1.85 |
+| 1 | 1.25 / 20 | Lead sentence, product title on the product page | 1.5 / 1.75 |
+| 2 | 1.5625 / 25 | Card group titles | 1.3 / 1.6 |
+| 3 | 1.95 / 31 | Section titles | 1.2 / 1.5 |
+| 4 | 2.44 / 39 | Page titles | 1.15 / 1.45 |
+| 5 | `clamp(2.5rem, 6vw, 4.5rem)` | Hero headline only | 1.05 / 1.35 |
 
-- Base: **shadcn/ui** (Radix) for all interactive components in both apps — Button, Input, Select, Dialog, Sheet, DropdownMenu, Tabs, Toast (sonner), Table (+ TanStack Table in admin), Form (react-hook-form + zod).
-- **Magic UI** for showcase pieces on the website only: Marquee (brand/testimonial strip), BlurFade, NumberTicker (stats), ShimmerButton (hero CTA), BentoGrid (category grid).
-- **daisyUI**: not used by default to avoid two competing theme systems (see ADR-004). Allowed only for isolated utility pieces if the team decides.
-- Badges: `New` (primary fill, white text) · `Pre-owned · {grade}` (secondary fill, secondary-foreground text) · `Featured` (gold fill, gold-foreground text) · `Sold out` (muted fill, muted-foreground text). Status badges: tinted background of the status colour, text in its `*-foreground` shade (warning uses `--warning-foreground`).
-- Toast: sonner (approved), styled with tokens, RTL-aware position.
-- Product card: 4:5 image with a second-image crossfade on hover (Framer Motion), type/condition badge, animated heart favourite toggle (FAV-01), title in 2 lines, price in `--price` (compare-at struck after it on the end side), quick "Add to cart" button; at stock 0 the button is disabled and reads "Sold out". Hover lift only on hover-capable devices.
-- Placeholder (B-022, B-006): when an image is missing, an emerald pattern with the brand mark. Until a real logo exists the mark is a text wordmark "Furnixa" / "فرنيكسا" in Fraunces / Noto Kufi Arabic with a thin gold underline (also used in header and auth panel). A logo set in Site Settings replaces it.
-- Auth: split layout, emerald side panel with a gold accent line, lifestyle image panel (placeholder), animated 6-box OTP.
-- Cart: gold free-delivery progress bar (`--gold-strong` fill on a muted track with a 1 px `--input` outline; the text label carries the meaning), quantity stepper, remove with undo toast, VAT line only when > 0.
+Measure: body copy `max-width: 65ch` (never above 75 characters); descriptions and condition notes the same. Numerals are Western digits, tabular in prices. Sentence case everywhere, no letter-spaced capitals.
 
-## 5. Motion
+## 3. Space, shape, depth
 
-| Library | Where | Rules |
+- 8 px grid; container 1280 px; page gutter 16 px mobile / 32 px desktop; vertical rhythm between home blocks 80 px desktop / 48 px mobile. Generous, not uniform: the hero and the shelf get more air than the footer.
+- Radius: `sm 6px` (chips, fields), `md 10px` (buttons), nothing larger except the arch. Product images have **square corners**.
+- **No shadows on content.** Depth comes from sand backdrops and white space. Only floating layers (drawer, toast, mega-menu) carry one soft shadow token.
+- Hairlines: 1 px `--border`. No card borders around products.
+
+## 4. The arch (the signature)
+
+One SVG `clipPath` in `objectBoundingBox` units, so it scales to any box and is symmetric (RTL needs no mirroring of the shape):
+
+```
+M0 1 V0.5 C0 0.22 0.3 0.1 0.5 0 C0.7 0.1 1 0.22 1 0.5 V1 Z
+```
+
+A pointed Najdi-style arch: straight sides, shoulders that rise to a soft point. Used in exactly three places, always at an aspect ratio of 4:5 (hero) or 3:4 (tiles):
+
+1. **Hero image** (admin banners fill it and rotate).
+2. **Category tiles** in the horizontal row.
+3. **Auth pages** image panel.
+
+Detail that carries the identity: behind the hero arch sits a second arch outline in `--gold`, 1.5 px, offset 14 px up and toward the page edge (it mirrors in RTL because it uses logical offsets). Nothing else is arched. Product images, banners elsewhere, avatars: square.
+
+## 5. Components
+
+- **Header (slim, 64 px):** wordmark, a wide search field (the centre of the header, always visible from md; an icon that expands from sm), icons for favourites (count), account, cart (count); categories open a mega-menu from a "Categories" link. No bell clutter for guests.
+- **Wordmark:** "Furnixa" / "فرنيكسا" in Readex Pro 600 with the thin gold underline (kept from ADR-014 until a logo exists, B-006).
+- **Buttons:** primary = emerald fill, white text; secondary = 1.5 px emerald outline, emerald text; text link = emerald underline on hover. Labels say what happens ("Add to cart", "Place order, pay on delivery"). No trailing arrows. The shimmer effect is removed.
+- **Chips:** `New` emerald/white; `Pre-owned, like new` sand/ink; `Sold out` ink outline. Chips sit **under** the image next to the price, never on top of a photo.
+- **Product tile (no border, no shadow):** sand backdrop at 4:5 with the photo multiplied onto it (`mix-blend-mode: multiply`, so white studio shots melt into the sand); heart in the top-end corner (paper circle, 36 px); title (2 lines max, Readex 500); price; condition chip. Quick add: a full-width text button below on mobile, revealed on hover/focus on desktop. Second image crossfades on hover (desktop only).
+- **Segmented switch** (shelf): two options, ink-outlined, the active one filled ink with paper text; keyboard arrows move between them.
+- **Condition report** (pre-owned product page): see the product wireframe. Real data only: grade (existing field), the seller-written notes (existing `conditionNotes`), the extra photos, and the byline "Photos and condition notes by Furnixa". The app never claims inspection (owner answer to Q-2; one string to change per language if every item is inspected).
+- **Footer:** one emerald block: contact, cities served (from settings), COD in one plain sentence, language switch. Sand text on emerald; links underline on hover.
+- **Toast:** sonner, paper surface, one soft shadow.
+
+## 6. Layout (wireframes)
+
+Desktop 1440 (LTR; in RTL everything mirrors, the arch stays symmetric).
+
+```
+HOME 1440
++--------------------------------------------------------------------------------+
+| Furnixa_   [ Search sofas, beds, dining tables...        ] Categories  ♡  👤  🛍 |  64px
++--------------------------------------------------------------------------------+
+|                                                                                |
+|  Sofas, beds and dining tables         ,-----------.                           |
+|  for your home                        /  (gold arch  \   <- banner image inside |
+|  (Readex 300, 72px, 2 lines)         |   outline)     |     the arch, rotates   |
+|                                      |   [ image ]    |                        |
+|  New pieces and inspected pre-owned  |                |                        |
+|  furniture. Delivered to Riyadh,     |                |                        |
+|  Jeddah and Dammam. Pay on delivery. |                |                        |
+|                                      |                |                        |
+|  [ Shop new ]  [ Shop pre-owned ]    |________________|     ( • ○ ○ )          |
+|                                                                                |
++--------------------------------------------------------------------------------+
+|  Shop by room                                                                  |
+|   ,--.   ,--.   ,--.   ,--.   ,--.   ,--.   ,--.  -> horizontal scroll, snap    |
+|  |img|  |img|  |img|  |img|  |img|  |img|  |img|   arch tiles 3:4, name below  |
+|  Living Bedroom Dining Office  Kids   Outdoor Storage                          |
++--------------------------------------------------------------------------------+
+|  [ New | Pre-owned ]                                         See all new        |
+|  +------+ +------+ +------+ +------+     sand backdrops, no borders             |
+|  |sand  | |sand ♡| |sand  | |sand  |                                           |
+|  |image | |image | |image | |image |                                           |
+|  +------+ +------+ +------+ +------+                                           |
+|  Title    Title    Title    Title                                              |
+|  SAR 1,950 ...                  [chip]                                         |
++--------------------------------------------------------------------------------+
+|  How pre-owned works  (the only numbered block: a real 3-step sequence)        |
+|  1 Browse   2 Read the condition report   3 Order and pay on delivery         |
++--------------------------------------------------------------------------------+
+|  EMERALD FOOTER: contact | cities served | cash on delivery | language         |
++--------------------------------------------------------------------------------+
+
+HOME 390: header = wordmark + icons (search opens a sheet); headline 40px; arch image
+full-width under the text; two buttons stacked full width; category arches scroll with a
+peek of the next; shelf is 2 columns; footer stacks.
+```
+
+```
+LISTING 1440                                   PRODUCT 1440
++--------------------------------------+      +----------------------------------------------+
+| Sofas (128)         Sort: Newest  v  |      | Home / Sofas / Oak sofa                      |
+| [New][Pre-owned]  chips: x Oak       |      | +----------------+  +-----------------------+ |
+| Filters (start side)  | grid 4 cols  |      | | big image      |  | Oak three-seat sofa   | |
+| Category              | tile tile .. |      | | (sand)         |  | SAR 3,450  [chip]     | |
+| Price   ----o---o-    | tile tile .. |      | |                |  | In stock. Delivered   | |
+| Condition [] [] []    |              |      | +--+--+--+--+----+  | in 3 to 5 days        | |
+| Material              | pagination   |      | |th|th|th|th|      | [ Add to cart       ] | |
++--------------------------------------+      |                    | [ ♡ Save ] (sticky)  | |
+390: filters in a bottom sheet,                | Condition report (pre-owned only)             |
+grid 2 columns, sort in the same sheet.        |  Grade [ New | Like new |*Good*| Fair ]      |
+                                               |  Our notes: honest text, 65ch                |
+                                               |  [close-up][close-up][close-up]              |
+                                               |  Photos and notes by Furnixa.                |
+                                               | Details / Delivery & COD                     |
+                                               +----------------------------------------------+
+390: gallery swipes, buy box becomes a sticky bottom bar (price + Add to cart).
+```
+
+```
+CART PAGE 1440                                  AUTH 1440
++-----------------------------------------+    +----------------------------------------+
+| Your cart (3)                           |    | Furnixa_               ,---------.      |
+| [img] Oak sofa      - 1 +    SAR 3,450  |    |                       /   arch    \     |
+|       Remove                            |    | Log in                |  image on  |    |
+| ---------------------------------------  |    | Email [          ]    |  sand      |    |
+| [img] ...                               |    | Password [       ]    |            |    |
+|                                         |    | [ Log in ]            |____________|    |
+|        Free-delivery bar (gold-strong)  |    | New here? Create an account            |
+|        Subtotal / Delivery / VAT / Total|    +----------------------------------------+
+|        [ Checkout ]  (sticky on 390)    |    390: form only, a small arch above the title.
++-----------------------------------------+    OTP: six boxes, answers input only.
+Checkout: one column, address then review, COD is the only payment, summary sticky on desktop.
+```
+
+## 7. Motion
+
+| Where | Library | What |
 |---|---|---|
-| GSAP + ScrollTrigger | Home hero (headline stagger, slow image zoom started after load), home section reveals, "How resale works" pinned section | Home page only; dynamically imported; kill on unmount; never delays the LCP image |
-| Framer Motion | Product cards (hover lift, image crossfade, heart), cart drawer, modals, page **enter** transitions, add-to-cart fly-to-cart + toast | 200–400 ms, ease `[0.22, 1, 0.36, 1]`; the App Router cannot animate route exits, so page transitions are enter-only |
-| AOS | Content-page reveals (static pages, account headings) | `once: true`, offset 80, duration 600 |
+| **Page load, home only (the one orchestrated moment)** | GSAP | The hero arch reveals (clip grows from the base, 700 ms), then the gold arch outline draws, then the headline settles (weight 300, rises 16 px, 500 ms). One timeline, once. The hero image is already painted (LCP); the timeline only animates the clip and transform. |
+| Heart, add to cart (fly dot + toast), cart drawer, OTP boxes, segmented switch, mega-menu | Framer Motion | Answers a user action, 200–350 ms. |
+| Hero rotation | CSS/React | Crossfade between banners every 7 s, paused on hover/focus; under reduced motion no auto-rotation, manual dots only. No zoom, no parallax. |
 
-All motion reads one shared reduced-motion hook: under `prefers-reduced-motion` animation is disabled or reduced to opacity. x-offsets and slide directions flip sign when `dir="rtl"`. Only `transform` and `opacity` are animated. LCP < 2.5 s on mobile (PRD G4): the first hero slide image loads with priority, other slides lazily.
+Removed from v1: scroll reveals on every section, AOS, the page enter transition, the testimonials marquee, the hero zoom and parallax, the shimmer CTA. Under `prefers-reduced-motion` the hero is shown complete and nothing moves except what the user triggers, without the flourish. Only `transform`, `clip-path` and `opacity` animate; the LCP image is never hidden.
 
-## 6. RTL rules
+## 8. Copy rules
 
-Use Tailwind logical utilities (`ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`, `text-start`). Directional icons (arrows, chevrons) use `rtl:rotate-180`. Carousels set `dir`. Never hard-code `left/right`.
+Sentence case, plain words, real furniture vocabulary (sofa, wardrobe, dining table, mattress), buttons name the result. Arabic is written natively, not translated from English:
 
-## 7. Iconography & imagery
+| | en | ar |
+|---|---|---|
+| Hero headline | Sofas, beds and dining tables for your home | كنب وغرف نوم وطاولات سفرة لبيتك |
+| Hero sentence | New pieces and inspected pre-owned furniture, delivered to Riyadh, Jeddah and Dammam. You pay when it arrives. | قطع جديدة وأخرى مستعملة بعد فحصها، توصلك إلى الرياض وجدة والدمام، وتدفع عند الاستلام. |
+| Actions | Shop new / Shop pre-owned | تسوّق الجديد / تسوّق المستعمل المفحوص |
+| Condition report title | Condition report | تقرير الحالة |
+| Grade, draft (needs owner approval) | Like new: used a few times, no marks we could find. | بحالة الجديد: استُخدمت مرات قليلة ولا نجد فيها أي علامات. |
 
-Lucide icons, 1.5 stroke. Photography: warm natural light, neutral backdrops; resale items photographed with the same backdrop for consistency (guideline for client).
+## 9. RTL rules
 
-## 8. Numbers, currency, dates & phone formatting
+Use Tailwind logical utilities (`ms-*`, `me-*`, `ps-*`, `pe-*`, `start-*`, `end-*`, `text-start`). Directional icons use `rtl:rotate-180`. Carousels and the category row set `dir`; scroll-snap start is the inline start. The hero text sits on the start side and the arch on the end side in both directions. Never hard-code `left/right`.
+
+## 10. Iconography & imagery
+
+Lucide, 1.5 stroke, date gold only for the few decorative lines, ink elsewhere. Photography: furniture on a neutral studio backdrop that melts into sand (multiply). Pre-owned pieces get the same backdrop plus close-ups of wear, which are the evidence behind the condition report.
+
+## 11. Numbers, currency, dates & phone formatting
 
 Locale tags: `ar` → `ar-SA` (default), `en` → `en-SA` (ADR-008). Use `Intl` everywhere; never hand-format numbers or hard-code the currency symbol.
 

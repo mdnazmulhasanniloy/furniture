@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (CR-008 redesign v2, docs)
+- **CR-008 (owner 2026-11-24, SRC-009).** Najdi arch visual identity replaces the look of CR-007 (ADR-015 Accepted, supersedes the visual parts of ADR-014; contrast rules stay). Design-system rewritten (paper/ink/emerald/sand/stone, date gold decorative, Readex Pro + IBM Plex, arch clip-path, quiet motion). Contrast corrections: text stone `#5C6360`, price `#7A5E22`, fields on paper only. Tasks: web T-052..T-058, admin T-079. Q-2 default: the condition report never claims inspection. Removed: AOS, scroll reveals, page transition, marquee, contact strip on home.
+
 ## 2026-11-24 (backend T-078 demo-data reset and seed)
 - **backend T-078 (developer tooling, no requirement ID): `npm run demo:reset`.** Local-development reset and seed with the guards, image pipeline, data and tests described in task T-078. Files: `backend/scripts/demo-data/*`, `src/lib/r2.ts` (`putObject`, `listKeys`), `src/modules/orders/service.ts` (`nextOrderNo` exported, no behaviour change), `tests/helpers/s3Mock.ts` (Put/List), `.env.example` (`DEMO_CUSTOMER_PASSWORD`, empty), `.gitignore` (`scripts/demo-data/.cache/`), one `package.json` script (no lifecycle hooks, no new dependency).
 - **TODO (before launch): the seeded home TESTIMONIALS are demo placeholders ("Demo customer" / "عميل تجريبي", text prefixed `[DEMO]`). Replace them with real customer reviews, or hide the section, before the site goes live.** The seeded products, banners, customers (`@example.com`) and orders are demo data too and must never be created in production (the script refuses to run there).

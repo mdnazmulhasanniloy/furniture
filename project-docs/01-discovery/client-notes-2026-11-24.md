@@ -50,3 +50,9 @@ Status: **recorded, not yet confirmed by team + client.** Nothing here is applie
 ## Not stated (raised as open questions in `05-delivery/cr-007-proposal.md`)
 
 Warning "darkest shade" value; dark values for secondary / destructive / success / warning / ring; fate of the `accent` token; form-field border contrast; wishlist PUT/DELETE shape; newsletter vs contact strip; whether the home layout stays admin-section-driven; toast library; brand mark for placeholders (B-006 still open); page-transition limits in the Next.js App Router.
+
+## Addendum (SRC-009, CR-008): "REDESIGN v2, the owner rejected the current look as templated"
+
+Source: owner brief pasted after CR-007 was delivered. Status: **recorded; the plan is proposed in `03-design/design-system.md` v2, `04-architecture/adr/ADR-015-najdi-arch-visual-identity.md` and `05-delivery/cr-008-plan.md`, waiting for approval.**
+
+Key statements: signature element is the Najdi arch (hero and category tiles, mirrored in RTL); palette paper `#FFFFFF`, ink `#14201D`, emerald `#0F4C45`, date gold `#B8913A` (decorative only), sand `#EFE9DD` (backdrops, not the page), stone `#6B726F`; Readex Pro headings, IBM Plex Sans and IBM Plex Sans Arabic body; slim header with prominent search; arched hero with "Shop new" and "Shop pre-owned"; horizontal arch category row; one New / Pre-owned shelf; product grid without borders or shadows; product page with sticky buy box and a condition report for pre-owned; emerald footer; one GSAP moment on load, Framer Motion for user actions only, no generic reveals, AOS dropped; avoid the listed generic AI tells; native en and ar copy; process: plan first, stop for approval, then tasks with screenshots at 390 and 1440 in `/ar` and `/en`, one commit per task, do not push.

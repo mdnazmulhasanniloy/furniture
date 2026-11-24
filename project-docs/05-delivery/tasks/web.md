@@ -144,3 +144,35 @@ Order: T-046 first, then T-047, T-049 (and backend T-031, admin T-077), then T-0
 - Req: CART-01 · Depends: T-046, T-047 · Docs: `screen-specs.md#W-04`
 - Done: thumbnails, stepper, remove with undo toast (sonner added), gold free-delivery bar (`--gold-strong`), totals with VAT only when > 0, sticky mobile checkout, Framer drawer, fly-to-cart + toast; tests en + ar.
 - Closed 2026-11-24: `/review-task T-051` PASS. Tests `CART-01 · redesigned cart` (en + ar, 18) in `web/src/test/cart-01-redesign.test.tsx` (add toast with View cart action and no forced drawer, drawer slide direction mirrors in RTL, thumbnail 4:5 with placeholder or image, 2-line title, stepper, remove with undo toast and Undo restoring the same quantity, no toast on a failed removal, gold-strong bar on an outlined track with progress, VAT line only when > 0, sticky mobile checkout bar on the page only). Web 434 tests, typecheck, lint, i18n 361 keys, build, e2e 68/68. Built: sonner `AppToaster` (token styled, RTL dir), Framer Motion drawer (slide + fade, reduced motion aware, exit via AnimatePresence), summary card on the page, sticky mobile checkout bar. Decision (autopilot) — owner to confirm: adding to the cart no longer forces the drawer open (the fly-to-cart animation and the toast with a "View cart" action replace it, so the drawer does not cover the fly target); this changes the T-036 behaviour. The fly dot is gold.
+
+## CR-008 redesign v2 (owner 2026-11-24, ADR-015)
+
+Order: T-052, T-053, then T-054 to T-058. Each task: plan, screenshots at 390 and 1440 in /ar and /en with demo data, critique and "remove one accessory", tests en + ar, typecheck/lint/i18n/build/e2e/AA gate, one commit. Screenshots in `03-design/screens-v2/`.
+
+### T-052 Foundation v2: tokens, fonts, Arch, cleanup · todo
+- Req: UI-01, UI-02 · Depends: — · Docs: `design-system.md`, `adr/ADR-015`
+- Done: v2 tokens (paper/ink/emerald/sand/stone, price, muted-foreground), Readex Pro + IBM Plex per locale (width axis if next/font accepts it), `Arch` component (clipPath + gold outline), AA tests updated, v1 leftovers removed (`.shimmer`, `.pattern-emerald`, `AosInit`, `HomeReveals`, `template.tsx`, `aos` dependency).
+
+### T-053 Header and footer · todo
+- Req: UI-01, ADM-09 · Depends: T-052
+- Done: slim header with prominent search, mega-menu, favourites/cart/account; emerald footer with contact, cities served, COD sentence, language switch.
+
+### T-054 Home · todo
+- Req: CAT-01, ADM-06, ADM-07, UI-01 · Depends: T-052, T-053
+- Done: GSAP arch moment, arched hero from banners (7 s crossfade, manual only under reduced motion), arch category row, one New / Pre-owned shelf, How pre-owned works, optional admin sections below the shelf.
+
+### T-055 Listing and product tile · todo
+- Req: PROD-01, FAV-01 · Depends: T-052
+- Done: borderless tiles on sand, heart, chip under image, quick add (visible on mobile, hover on desktop), filters (sheet on mobile).
+
+### T-056 Product page and condition report · todo
+- Req: PROD-02 · Depends: T-055
+- Done: gallery, sticky buy box (bottom bar on mobile), condition report for pre-owned (grade scale, notes, close-ups, byline that never claims inspection).
+
+### T-057 Cart and checkout · todo
+- Req: CART-01, ORD-01 · Depends: T-052
+- Done: flat summary, drawer, sticky bar.
+
+### T-058 Auth pages · todo
+- Req: AUTH-01..04 · Depends: T-052
+- Done: arch image panel, form, OTP.

@@ -330,6 +330,8 @@
   },
   "shop": {
     "title": "المتجر",
+    "metaDescription": "تصفّح {category} في {brand}.",
+    "metaDescriptionAll": "تصفّح الأثاث الجديد والمستعمل في {brand}.",
     "filters": "التصفية",
     "close": "إغلاق",
     "apply": "تطبيق التصفية",

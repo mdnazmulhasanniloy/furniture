@@ -330,6 +330,8 @@
   },
   "shop": {
     "title": "Shop",
+    "metaDescription": "Browse {category} at {brand}.",
+    "metaDescriptionAll": "Browse new and pre-owned furniture at {brand}.",
     "filters": "Filters",
     "close": "Close",
     "apply": "Apply filters",

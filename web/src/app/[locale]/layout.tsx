@@ -12,7 +12,7 @@ import { SiteFactsProvider } from "@/lib/site-facts";
 import { getCategories, getSettings } from "@/lib/api/public";
 import { routing } from "@/i18n/routing";
 import { pick } from "@/lib/pick";
-import { siteUrl } from "@/lib/seo";
+import { notFoundMeta, siteUrl } from "@/lib/seo";
 import "../globals.css";
 
 // NFR-03: site-wide title/description from admin SEO settings (fallback "Furnixa"), absolute URLs.
@@ -24,13 +24,24 @@ export async function generateMetadata({
   // The Arabic home title must be Arabic too: the SEO title, else the store name, else the latin brand.
   const brand = pick(settings?.storeName, locale) || "Furnixa";
   const title = pick(settings?.seo?.title, locale) || brand;
-  const description = pick(settings?.seo?.description, locale);
+  // The admin's SEO description when it is set; otherwise the catalogue sentence, so every page has a
+  // description even before the settings are filled in or when they cannot be loaded (QA B7).
+  const t = await getTranslations({ locale, namespace: "shop" });
+  const description =
+    pick(settings?.seo?.description, locale) || t("metaDescriptionAll", { brand });
+  // QA B7 (measured): Next drops the metadata of a segment that calls notFound() and `not-found.tsx`
+  // cannot export any, so `title.default` is the only place a 404 title can come from. Every real page
+  // sets its own title - the home page with `absolute` - so this default is only ever seen on a 404.
+  const missing = await notFoundMeta(locale);
   return {
     metadataBase: new URL(siteUrl()),
-    // "<page> | <brand>" everywhere, "<brand>" on the home page (QA 2026-11-24 item 10)
-    title: { default: title, template: `%s | ${brand}` },
-    description: description || undefined,
-    openGraph: { siteName: "Furnixa", locale },
+    // "<page> | <brand>" everywhere; the home page sets "<brand>" itself (QA 2026-11-24 item 10)
+    title: { default: `${missing.title} | ${brand}`, template: `%s | ${brand}` },
+    description,
+    // QA B7: shared Open Graph defaults, so every page has a title, a description and an image when
+    // it is shared. A page that has its own (a product's photo, a CMS page's meta) overrides them.
+    openGraph: { type: "website", siteName: "Furnixa", locale, title, description },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 

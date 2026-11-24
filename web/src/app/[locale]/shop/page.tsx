@@ -4,17 +4,39 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ShopFrame } from "@/components/shop/shop-controls";
 import { ActiveChips, Pagination, ProductGrid } from "@/components/shop/shop-results";
 import type { Locale } from "@/i18n/routing";
-import { getCategories, getProducts } from "@/lib/api/public";
+import { getCategories, getProducts, getSettings } from "@/lib/api/public";
+import { pick } from "@/lib/pick";
 import { formatNumber } from "@/lib/format";
 import { alternatesFor } from "@/lib/seo";
 import { parseFilters, toApiQuery, type RawParams } from "@/lib/shop";
 
+/**
+ * QA B7: the listing names itself after the category it is filtering by, and carries its own
+ * description built from that category; without a filter it is the shop with the catalogue sentence.
+ */
 export async function generateMetadata({
   params,
-}: Readonly<{ params: Promise<{ locale: string }> }>): Promise<Metadata> {
+  searchParams,
+}: Readonly<{
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<RawParams>;
+}>): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "shop" });
-  return { title: t("title"), alternates: alternatesFor(locale, "/shop") };
+  const filters = parseFilters(await searchParams);
+  const settings = await getSettings();
+  const brand = pick(settings?.storeName, locale) || "Furnixa";
+  const category = filters.category
+    ? (await getCategories())?.find((c) => c.slug === filters.category)
+    : undefined;
+  const name = category ? pick(category.name, locale) : "";
+  return {
+    title: name || t("title"),
+    description: name
+      ? t("metaDescription", { category: name, brand })
+      : t("metaDescriptionAll", { brand }),
+    alternates: alternatesFor(locale, "/shop"),
+  };
 }
 
 export default async function ShopPage({

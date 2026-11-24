@@ -423,5 +423,9 @@
   },
   "pages": {
     "loadError": "We couldn't load this page. Please try again shortly."
+  },
+  "favourites": {
+    "add": "Add to favourites",
+    "remove": "Remove from favourites"
   }
 }

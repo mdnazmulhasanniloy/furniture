@@ -120,9 +120,10 @@ Order: T-046 first, then T-047, T-049 (and backend T-031, admin T-077), then T-0
 
 - Closed 2026-11-24: `/review-task T-046` PASS. Tests `UI-02 · AA contrast ...` (23, reads the real `globals.css` and the Button/Badge class strings) in `src/test/ui-02-aa-contrast.test.ts`, `UI-01 · foundation` (en + ar) in `src/test/ui-01-foundation.test.tsx`; e2e `ui.spec.ts` background assertion updated from linen to white (the palette changed by CR-007). Web 336 tests, typecheck, lint, i18n, build, e2e 62/62. Added: `Badge`, Button `gold` variant, `useMotionPrefs`, `Wordmark` / `ImagePlaceholder` (`.pattern-emerald`), `Price` uses `text-price`, header wordmark. `--accent` call sites: cart/account count badge and unread dot and fly dot -> `gold`; `text-warning`/`text-success` -> `*-foreground`; cart progress fill -> `gold-strong` with an `input` outline. Web has no dark theme, so the AA test covers light only (admin T-077 covers dark).
 
-### T-047 Product card redesign · todo
+### T-047 Product card redesign · done
 - Req: PROD-01 · Depends: T-046 · Docs: `design-system.md` §4
 - Done: 4:5 image, second-image crossfade on hover (Framer Motion), type/condition badge, heart toggle UI, 2-line title, price colour, quick add / disabled "Sold out" at stock 0; tests en + ar.
+- Closed 2026-11-24: `/review-task T-047` PASS. Tests `PROD-01 · product card (en/ar)` (18) in `web/src/test/prod-01-card.test.tsx`: 4:5, 2-line title, price token, crossfade layer (hover and focus), badges, placeholder, quick add + fly, Sold out disabled, heart (hidden until T-048 passes `favourite`), no physical left/right. Web 354 tests, typecheck, lint, i18n 345 keys, build, e2e 62/62. Changes: card is a client component (Framer Motion); the image-overlay Sold out badge was dropped (the disabled button already says Sold out; the image is dimmed) so the label is not duplicated; the ADM-07 order test now filters by section test ids; `favourites.add/remove` messages added.
 
 ### T-048 Favourites (guest store, merge, page, header count) · todo
 - Req: FAV-01 · Depends: T-047, backend T-031 · Docs: `screen-specs.md#W-08`

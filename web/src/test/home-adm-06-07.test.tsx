@@ -121,7 +121,7 @@ describe.each(["en", "ar"] as const)("ADM-07 · sections (%s)", (locale) => {
     const { container } = wrap(locale, <HomeSections sections={sections} locale={locale} />);
     const order = Array.from(container.querySelectorAll("[data-testid]"))
       .map((e) => e.getAttribute("data-testid"))
-      .filter((x) => x !== "marquee");
+      .filter((x) => x === "how-resale" || x?.startsWith("home-section-"));
     expect(order).toEqual([
       "home-section-NEW_ARRIVALS",
       "home-section-CATEGORY_GRID",

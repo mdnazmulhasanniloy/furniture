@@ -160,15 +160,18 @@ function guestSet(product: CartProductLite, qty: number) {
 // ---------------- server cart ----------------
 
 /** `addressId` (checkout): fee uses that address's city and the response carries `address.isDeliverable`. */
+let loadSeq = 0;
 export async function loadCart(addressId?: string): Promise<void> {
+  const seq = ++loadSeq;
   set({ loading: true, error: null });
   try {
     const cart = await apiRequest<ServerCart>(
       addressId ? `/cart?addressId=${encodeURIComponent(addressId)}` : "/cart",
     );
-    set({ cart, loading: false });
+    // A newer load superseded this one (e.g. quick address switch): drop the stale response.
+    if (seq === loadSeq) set({ cart, loading: false });
   } catch (e) {
-    set({ loading: false, error: codeOf(e) });
+    if (seq === loadSeq) set({ loading: false, error: codeOf(e) });
   }
 }
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_SEARCH_LENGTH, MAX_SEARCH_WORDS, searchTerms } from '../../lib/searchText.js';
 
 const MAX_MONEY = 100_000_000; // halalas = 1,000,000 SAR (owner 2026-11-22)
 const MAX_STOCK = 100_000;
@@ -102,7 +103,15 @@ const limit = z.coerce.number().int().min(1).max(100).default(24);
 /** PROD-01. Unknown query params are stripped (shareable URLs may carry extras). */
 export const publicListQuery = z
   .object({
-    q: z.string().max(100).optional(),
+    // Capped (owner 2026-11-24): each word adds six regex conditions to the query, so a long or
+    // many-word `q` is rejected instead of being run.
+    q: z
+      .string()
+      .max(MAX_SEARCH_LENGTH)
+      .refine((v) => searchTerms(v).length <= MAX_SEARCH_WORDS, {
+        message: `Search is limited to ${MAX_SEARCH_WORDS} words`,
+      })
+      .optional(),
     category: z.string().max(60).optional(),
     type: z.enum(['NEW', 'RESALE']).optional(),
     condition: csv(z.enum(['NEW', 'LIKE_NEW', 'GOOD', 'FAIR'])).optional(),

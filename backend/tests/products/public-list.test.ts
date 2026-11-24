@@ -246,6 +246,44 @@ describe('PROD-01 · public product listing', () => {
     expect((await list({ q: 'a'.repeat(101) })).status).toBe(422);
   });
 
+  it('PROD-01 · q is capped at 100 characters and 6 words; beyond that a 422, not a huge regex query (owner 2026-11-24)', async () => {
+    // At the caps: still a normal 200.
+    expect((await list({ q: 'a'.repeat(100) })).status).toBe(200);
+    expect((await list({ q: 'one two three four five six' })).status).toBe(200);
+    // Over either cap: 422, never a 200 with an empty page.
+    for (const q of [
+      'a'.repeat(101),
+      'one two three four five six seven',
+      Array.from({ length: 20 }, (_, i) => `w${i}`).join(' '),
+      '  one   two three four five six seven  ', // extra spaces do not buy another word
+    ]) {
+      const res = await list({ q });
+      expect(res.status, q).toBe(422);
+      expect(res.body.code, q).toBe('VALIDATION_ERROR');
+    }
+  });
+
+  it('PROD-01 · regex metacharacters anywhere in a multi-word q stay literal and never error (rule 9)', async () => {
+    for (const q of [
+      '.*',
+      '[',
+      '(',
+      'sofa .*',
+      '.* sofa',
+      'sofa [a-z]',
+      '\\',
+      '^$',
+      'oak (table)',
+    ]) {
+      const res = await list({ q });
+      expect(res.status, q).toBe(200);
+      expect(Array.isArray(res.body.items), q).toBe(true);
+    }
+    // "[a-z]" as a literal matches nothing, while the same words without the brackets do match
+    expect((await list({ q: 'oak [table]' })).body.items).toEqual([]);
+    expect(slugs(await list({ q: 'oak table' }))).toEqual(['oak-table']);
+  });
+
   it('PROD-01 · q matches the plural and the singular of a word (sofas / sofa, benches / bench)', async () => {
     expect(slugs(await list({ q: 'sofas' }))).toEqual(['velvet-sofa']);
     expect(slugs(await list({ q: 'SOFA' }))).toEqual(['velvet-sofa']);

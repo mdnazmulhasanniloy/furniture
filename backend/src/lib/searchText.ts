@@ -49,12 +49,24 @@ export function stem(word: string): string {
 }
 
 /**
+ * Caps on the public search (owner 2026-11-24): each word becomes an OR of six `$regex` conditions, so the
+ * query length and the number of words are both limited and anything beyond is 422 (see `publicListQuery`).
+ */
+export const MAX_SEARCH_LENGTH = 100;
+export const MAX_SEARCH_WORDS = 6;
+
+/** The words `searchWhere` will look for: normalised, blanks dropped. */
+export function searchTerms(q: string): string[] {
+  return normalizeSearch(q).split(' ').filter(Boolean);
+}
+
+/**
  * Public product search (QA 2026-11-24): every word of the query must be found (AND), a word may be found in its
  * plural/singular form (OR), and in the title text, the description, the category name or the material, in both
  * languages. All strings are regex-escaped (Prisma passes `contains` to $regex unescaped on MongoDB).
  */
 export function searchWhere(q: string): Prisma.ProductWhereInput {
-  const words = normalizeSearch(q).split(' ').filter(Boolean);
+  const words = searchTerms(q);
   return {
     AND: words.map((word) => {
       const variants = [...new Set([word, stem(word)])].map(escapeRegex);

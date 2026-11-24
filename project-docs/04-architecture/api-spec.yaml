@@ -492,7 +492,7 @@ paths:
         does not hide products (it affects navigation only, T-009). Sort `featured` = isFeatured desc, then
         newest; default `newest`. Prices are halalas, min/max inclusive (owner decisions 2026-11-22, T-010).
       parameters:
-        - { name: q, in: query, description: "Words (all must match). A word also matches its plural or singular (sofas / sofa). Searched in the title, the description, the category name and the material, in English and Arabic. Case-insensitive; regex characters are literal.", schema: { type: string, maxLength: 100 } }
+        - { name: q, in: query, description: "Words (all must match). A word also matches its plural or singular (sofas / sofa). Searched in the title, the description, the category name and the material, in English and Arabic. Case-insensitive; regex characters are literal. Capped (owner 2026-11-24): at most 100 characters and at most 6 words after normalisation, otherwise 422 VALIDATION_ERROR.", schema: { type: string, maxLength: 100 } }
         - { name: category, in: query, description: category slug (includes its sub-categories' products), schema: { type: string } }
         - { name: type, in: query, schema: { $ref: '#/components/schemas/ProductType' } }
         - { name: condition, in: query, schema: { type: array, items: { $ref: '#/components/schemas/Condition' } }, style: form, explode: false }

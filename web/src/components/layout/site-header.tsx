@@ -61,6 +61,8 @@ function SearchForm({ onDone, className, autoFocus }: { onDone?: () => void; cla
           type="search"
           autoFocus={autoFocus}
           value={q}
+          // The API caps `q` at 100 characters (owner 2026-11-24), so the box cannot submit a longer one.
+          maxLength={100}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("search")}
           className="h-10 w-full rounded-md border border-input bg-card ps-9 pe-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

@@ -43,6 +43,20 @@ export async function logout(): Promise<void> {
   }
 }
 
+/**
+ * Re-verifies a session the UI already believes in (QA A5): used when the browser restores this
+ * document from the back/forward cache, where the heap of the old session comes back as it was. Unlike
+ * `restoreSession` this drops the local session on any failure - the refresh cookie is still there if
+ * the session is in fact alive, so the next load signs the customer straight back in.
+ */
+export async function recheckSession(): Promise<void> {
+  try {
+    await refreshSession();
+  } catch {
+    useAuthStore.getState().clear();
+  }
+}
+
 /** On app start the in-memory token is gone: try the refresh cookie once. */
 export async function restoreSession(): Promise<void> {
   try {

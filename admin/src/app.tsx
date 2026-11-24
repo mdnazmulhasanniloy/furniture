@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router";
-import { restoreSession } from "@/lib/auth/flows";
+import { recheckSession, restoreSession } from "@/lib/auth/flows";
+import { authStore } from "@/lib/auth/store";
 import { AdminsPage } from "@/routes/admins-page";
 import { AcceptInvitePage } from "@/routes/accept-invite-page";
 import { BannerEditorPage } from "@/routes/banner-editor-page";
@@ -34,6 +35,34 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
   // The access token is memory-only: on every page load try the httpOnly refresh cookie once.
   useEffect(() => {
     void restoreSession();
+  }, []);
+  /**
+   * QA A5 (2026-11-24): a session that ends must leave nothing readable behind. Every path that signs
+   * the admin out (the logout button, a customer cookie, a refresh that failed) ends in
+   * `authStore.clear()`, so the cache is emptied here - one place, not one per call site.
+   */
+  useEffect(() => {
+    let previous = authStore.get().status;
+    const stop = authStore.subscribe(() => {
+      const next = authStore.get().status;
+      if (previous === "authenticated" && next === "anonymous") client.clear();
+      previous = next;
+    });
+    return () => {
+      stop();
+    };
+  }, [client]);
+  /**
+   * A page the browser restored from the back/forward cache keeps the whole heap of the old session,
+   * so Back could paint the dashboard after a logout elsewhere. Re-check with the server instead.
+   */
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      // Only a restore of a document that believes it has a session needs the round trip.
+      if (e.persisted && authStore.get().status === "authenticated") void recheckSession();
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
   }, []);
   return (
     <QueryClientProvider client={client}>

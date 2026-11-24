@@ -45,4 +45,19 @@ export async function restoreSession(): Promise<void> {
   }
 }
 
+/**
+ * Re-verifies a session the UI already believes in (QA A5): used when the browser restores this
+ * document from the back/forward cache, where the whole heap of the old session comes back. Unlike
+ * `restoreSession` this drops the local session on any failure - the refresh cookie is still there if
+ * the session is in fact alive, so the next load signs the admin straight back in.
+ */
+export async function recheckSession(): Promise<void> {
+  try {
+    const session = await refreshSession();
+    if (session.user.role !== ADMIN_ROLE) authStore.clear();
+  } catch {
+    authStore.clear();
+  }
+}
+
 export { logout };

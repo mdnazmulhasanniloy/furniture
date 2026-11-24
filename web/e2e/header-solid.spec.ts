@@ -69,3 +69,54 @@ for (const locale of ["en", "ar"] as const) {
     }
   });
 }
+
+// CR-011 checkpoint 2 review, round 2: the header must follow the hero's real position on every load, whether the
+// page is opened cold or reached by a client-side link, at the viewport sizes the owner uses.
+const SIZES = [
+  [1905, 744],
+  [1440, 900],
+  [390, 844],
+] as const;
+
+async function wheelPastHero(page: Page) {
+  const hero = page.locator("[data-hero]").first();
+  await expect(hero).toBeVisible();
+  const bottom = await hero.evaluate((el) => el.getBoundingClientRect().bottom + window.scrollY);
+  let y = 0;
+  while (y < bottom + 120) {
+    await page.mouse.wheel(0, 300);
+    y += 300;
+  }
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(bottom);
+  // the hero is really out of the viewport (the real position, not what the header believes)
+  expect(await hero.evaluate((el) => el.getBoundingClientRect().bottom)).toBeLessThan(0);
+}
+
+async function expectSolid(page: Page, label: string) {
+  await expect.poll(async () => (await headerState(page)).over, { timeout: 5000, message: `${label}: data-over-hero` }).toBe("false");
+  await expect.poll(async () => opaque((await headerState(page)).bg), { timeout: 5000, message: `${label}: opaque` }).toBe(true);
+}
+
+for (const locale of ["en", "ar"] as const) {
+  for (const [width, height] of SIZES) {
+    test(`UI-04: header follows the hero on a cold load at ${width}x${height} in /${locale}`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto(`/${locale}`, { waitUntil: "load" });
+      await expect.poll(async () => (await headerState(page)).over).toBe("true");
+      await wheelPastHero(page);
+      await expectSolid(page, "cold");
+    });
+
+    test(`UI-04: header follows the hero after a client-side navigation at ${width}x${height} in /${locale}`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto(`/${locale}/shop`, { waitUntil: "load" });
+      await expect.poll(async () => (await headerState(page)).over).toBe("false");
+      await page.getByTestId("site-header").locator("a[href]").first().click(); // the logo: a client-side link home
+      await expect(page).toHaveURL(new RegExp(`/${locale}/?$`));
+      await expect(page.locator("[data-hero]").first()).toBeVisible();
+      await expect.poll(async () => (await headerState(page)).over).toBe("true");
+      await wheelPastHero(page);
+      await expectSolid(page, "after navigation");
+    });
+  }
+}

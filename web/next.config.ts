@@ -12,7 +12,16 @@ if (!r2PublicBaseUrl && process.env.NODE_ENV === "production") {
   );
 }
 
+// `next dev` blocks dev resources requested from any host except localhost; opened from another IP or machine the page
+// is served but never hydrates (no header, carousel or cart logic). Hosts to allow come from ALLOWED_DEV_ORIGINS.
+const devOrigins = (list: string | undefined) =>
+  (list ?? "")
+    .split(",")
+    .map((h) => h.trim())
+    .filter(Boolean);
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins: devOrigins(process.env.ALLOWED_DEV_ORIGINS),
   images: {
     // Qualities the storefront asks for (UI-04, review item 5): 60 for cards, tiles and the look photo, 70 for the hero.
     qualities: [60, 70, 75],

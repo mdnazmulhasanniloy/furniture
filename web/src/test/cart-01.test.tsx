@@ -99,10 +99,19 @@ afterEach(() => {
 for (const locale of ["en", "ar"] as const) {
   const m = messages[locale];
   describe(`CART-01 · cart (${locale})`, () => {
-    it(`CART-01 · guest cart keeps only ids and qty in localStorage, capped at stock (${locale})`, async () => {
+    it(`CART-01 · guest cart keeps only ids and qty in localStorage, and never passes the stock (${locale})`, async () => {
       await act(async () => {
         await addToCart(sofa, 2);
-        await addToCart(sofa, 5); // 2 + 5 > stock 3
+      });
+      await act(async () => {
+        // 2 + 5 > stock 3: refused, and the stored line is untouched (QA 2026-11-24 item 3)
+        expect(await addToCart(sofa, 5)).toBe(false);
+      });
+      expect(JSON.parse(window.localStorage.getItem(GUEST_KEY) as string)).toEqual([
+        { productId: ID1, slug: "sofa", qty: 2 },
+      ]);
+      await act(async () => {
+        expect(await addToCart(sofa, 1)).toBe(true); // exactly the remaining one is fine
       });
       const raw = JSON.parse(window.localStorage.getItem(GUEST_KEY) as string);
       expect(raw).toEqual([{ productId: ID1, slug: "sofa", qty: 3 }]);
@@ -253,10 +262,14 @@ for (const locale of ["en", "ar"] as const) {
         }
         return { body: cartOf() };
       });
-      await act(async () => { await addToCart(sofa, 10); });
+      await act(async () => { await addToCart(sofa, 3); }); // the whole stock: allowed, so the write happens
       const puts = calls.filter((c) => c.method === "PUT");
-      expect(puts).toHaveLength(2);
+      expect(puts).toHaveLength(2); // the 409 CART_CONFLICT was retried once
       expect(puts[1].body).toEqual({ productId: ID1, qty: 3 });
+      // an add beyond the stock never reaches the API at all (QA 2026-11-24 item 3)
+      await act(async () => { expect(await addToCart(sofa, 2)).toBe(false); }); // the mocked cart holds 2 of 3
+      expect(calls.filter((c) => c.method === "PUT")).toHaveLength(2);
+      // the +/- control still caps at the stock
       await act(async () => { await setLineQty(ID1, 9, 3); });
       expect(calls.filter((c) => c.method === "PUT").at(-1)?.body).toEqual({ productId: ID1, qty: 3 });
     });

@@ -100,20 +100,27 @@ const page = z.coerce.number().int().min(1).default(1);
 const limit = z.coerce.number().int().min(1).max(100).default(24);
 
 /** PROD-01. Unknown query params are stripped (shareable URLs may carry extras). */
-export const publicListQuery = z.object({
-  q: z.string().max(100).optional(),
-  category: z.string().max(60).optional(),
-  type: z.enum(['NEW', 'RESALE']).optional(),
-  condition: csv(z.enum(['NEW', 'LIKE_NEW', 'GOOD', 'FAIR'])).optional(),
-  minPrice: z.coerce.number().int().min(0).optional(),
-  maxPrice: z.coerce.number().int().min(0).optional(),
-  material: z.string().max(60).optional(),
-  inStock: boolParam.optional(),
-  featured: boolParam.optional(),
-  sort: z.enum(['newest', 'price_asc', 'price_desc', 'featured']).default('newest'),
-  page,
-  limit,
-});
+export const publicListQuery = z
+  .object({
+    q: z.string().max(100).optional(),
+    category: z.string().max(60).optional(),
+    type: z.enum(['NEW', 'RESALE']).optional(),
+    condition: csv(z.enum(['NEW', 'LIKE_NEW', 'GOOD', 'FAIR'])).optional(),
+    minPrice: z.coerce.number().int().min(0).optional(),
+    maxPrice: z.coerce.number().int().min(0).optional(),
+    material: z.string().max(60).optional(),
+    inStock: boolParam.optional(),
+    featured: boolParam.optional(),
+    sort: z.enum(['newest', 'price_asc', 'price_desc', 'featured']).default('newest'),
+    page,
+    limit,
+  })
+  // QA 2026-11-24: a reversed range (min 3000, max 1000) is a mistake, not "no products found".
+  // Negative and non-numeric values are already rejected by the coercion above.
+  .refine((q) => q.minPrice === undefined || q.maxPrice === undefined || q.minPrice <= q.maxPrice, {
+    path: ['minPrice'],
+    message: 'minPrice must be less than or equal to maxPrice',
+  });
 
 /** ADM-02 list. */
 export const adminListQuery = z.object({

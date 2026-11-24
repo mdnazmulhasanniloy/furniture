@@ -371,7 +371,8 @@
     "pagination": "Pagination",
     "prevPage": "Previous page",
     "nextPage": "Next page",
-    "goToPage": "Go to page {n}"
+    "goToPage": "Go to page {n}",
+    "priceRangeError": "Min price can't be greater than max price."
   },
   "product": {
     "loadError": "We could not load this product right now. Please try again shortly.",

@@ -186,6 +186,20 @@ describe('PROD-01 · public product listing', () => {
     expect(slugs(await list({ minPrice: '150000' }))).toEqual(['velvet-sofa']);
   });
 
+  it('PROD-01 · a reversed or negative price range is a 422, not an empty page (QA 2026-11-24)', async () => {
+    const reversed = await list({ minPrice: '300000', maxPrice: '100000' });
+    expect(reversed.status).toBe(422);
+    expect(reversed.body.code).toBe('VALIDATION_ERROR');
+    expect((await list({ minPrice: '-1' })).status).toBe(422);
+    expect((await list({ maxPrice: 'abc' })).status).toBe(422);
+    // the same bound twice is a valid (single price) range
+    expect((await list({ minPrice: '50000', maxPrice: '50000' })).status).toBe(200);
+    expect(slugs(await list({ minPrice: '50000', maxPrice: '50000' }))).toEqual(['oak-table']);
+    // one bound alone stays valid
+    expect((await list({ minPrice: '100000' })).status).toBe(200);
+    expect((await list({ maxPrice: '100000' })).status).toBe(200);
+  });
+
   it('PROD-01 · material filter matches case-insensitively', async () => {
     expect(slugs(await list({ material: 'oak wood' }))).toEqual(['oak-table']);
     expect(slugs(await list({ material: 'VELVET' }))).toEqual(['velvet-sofa']);

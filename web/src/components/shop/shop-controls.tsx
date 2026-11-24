@@ -23,6 +23,13 @@ const fieldClass =
 
 /** Halalas -> riyal text for the input (the API takes halalas). */
 const toRiyal = (h?: number) => (h === undefined ? "" : String(h / 100));
+/** Keeps digits and at most one decimal point: no minus sign, no letters (QA 2026-11-24 item 6). */
+const priceInput = (v: string): string => {
+  const cleaned = v.replace(/[^\d.]/g, "");
+  const [whole, ...rest] = cleaned.split(".");
+  return rest.length > 0 ? `${whole}.${rest.join("").slice(0, 2)}` : whole;
+};
+
 const toHalalas = (v: string): number | undefined => {
   const n = Number(v.trim());
   return v.trim() !== "" && Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : undefined;
@@ -78,13 +85,19 @@ function ShopFrameInner({
         : [...d.condition, c],
     }));
 
+  // Both bounds given and the wrong way round: say so and do not navigate (QA 2026-11-24 item 6).
+  const minH = toHalalas(min);
+  const maxH = toHalalas(max);
+  const priceReversed = minH !== undefined && maxH !== undefined && minH > maxH;
+
   const apply = (e: React.FormEvent) => {
     e.preventDefault();
+    if (priceReversed) return;
     router.push(
       shopHref(
         withChange(draft, {
-          minPrice: toHalalas(min),
-          maxPrice: toHalalas(max),
+          minPrice: minH,
+          maxPrice: maxH,
           material: draft.material?.trim() || undefined,
         }),
       ),
@@ -233,7 +246,9 @@ function ShopFrameInner({
                 aria-label={t("minPrice")}
                 placeholder={t("minPrice")}
                 value={min}
-                onChange={(e) => setMin(e.target.value)}
+                aria-invalid={priceReversed}
+                aria-describedby={priceReversed ? "price-range-error" : undefined}
+                onChange={(e) => setMin(priceInput(e.target.value))}
               />
               <span aria-hidden>–</span>
               <input
@@ -242,9 +257,16 @@ function ShopFrameInner({
                 aria-label={t("maxPrice")}
                 placeholder={t("maxPrice")}
                 value={max}
-                onChange={(e) => setMax(e.target.value)}
+                aria-invalid={priceReversed}
+                aria-describedby={priceReversed ? "price-range-error" : undefined}
+                onChange={(e) => setMax(priceInput(e.target.value))}
               />
             </div>
+            {priceReversed ? (
+              <p id="price-range-error" role="alert" data-testid="price-range-error" className="text-sm text-destructive">
+                {t("priceRangeError")}
+              </p>
+            ) : null}
           </fieldset>
 
           <label className="block space-y-1 text-sm">

@@ -14,6 +14,9 @@ import type { HomeProduct, ProductDetail, SiteSettings } from "@/lib/api/public"
 import { formatNumber, formatPercent } from "@/lib/format";
 import { pick } from "@/lib/pick";
 
+/** At or below this many units the product page says how many are left (QA 2026-11-24 item 3). */
+const LOW_STOCK = 3;
+
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-4 border-b border-border py-3 text-sm">
@@ -120,7 +123,7 @@ export async function ProductDetailView({
           >
             {soldOut
               ? t("badge.soldOut")
-              : resale
+              : product.stock <= LOW_STOCK // QA 2026-11-24 item 3: say how few are left, for new and pre-owned alike
                 ? t("product.stock.only", { count: product.stock, formatted: num(product.stock) })
                 : t("product.stock.in")}
           </p>

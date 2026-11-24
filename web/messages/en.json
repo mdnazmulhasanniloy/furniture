@@ -146,7 +146,8 @@
       "PRICE_CHANGED": "Price changed from {oldPrice} to {newPrice}"
     },
     "removed": "{title} removed",
-    "undo": "Undo"
+    "undo": "Undo",
+    "stockLimit": "Only {stock} available — you already have {inCart} in your cart."
   },
   "checkout": {
     "title": "Checkout",

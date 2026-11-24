@@ -20,6 +20,8 @@ type CartState = {
   guestProducts: Record<string, HomeProduct | null>;
   cart: ServerCart | null;
   loading: boolean;
+  /** Set when an add was refused because the cart already holds the available stock; `tick` makes repeats visible. */
+  stockLimit: { stock: number; inCart: number; tick: number };
   /** Error code of the last failed operation (mapped to a message by the UI). */
   error: string | null;
   mergeFailed: boolean;
@@ -34,6 +36,7 @@ const initial: CartState = {
   guestProducts: {},
   cart: null,
   loading: false,
+  stockLimit: { stock: 0, inCart: 0, tick: 0 },
   error: null,
   mergeFailed: false,
   drawerOpen: false,
@@ -188,16 +191,28 @@ async function serverSet(productId: string, qty: number) {
 
 // ---------------- public actions ----------------
 
-/** Add `qty` of a product (capped at stock). Resolves true when the cart changed. */
+/**
+ * Add `qty` of a product. Resolves true when the cart changed. When the cart already holds so much of the product
+ * that `qty` more would pass the live stock, NOTHING is added and `stockLimit` is set instead, so the UI can say
+ * what is available rather than claim a silent success (QA 2026-11-24 item 3).
+ */
 export function addToCart(product: CartProductLite, qty: number): Promise<boolean> {
   return enqueue(async () => {
     set({ error: null });
     try {
+      const inCart = isServerCart()
+        ? serverQty(product.id)
+        : (get().guest.find((l) => l.productId === product.id)?.qty ?? 0);
+      if (inCart + qty > product.stock) {
+        set((s) => ({
+          stockLimit: { stock: product.stock, inCart, tick: s.stockLimit.tick + 1 },
+        }));
+        return false;
+      }
       if (isServerCart()) {
-        await serverSet(product.id, Math.min(serverQty(product.id) + qty, product.stock, MAX_QTY));
+        await serverSet(product.id, Math.min(inCart + qty, product.stock, MAX_QTY));
       } else {
-        const existing = get().guest.find((l) => l.productId === product.id)?.qty ?? 0;
-        guestSet(product, existing + qty);
+        guestSet(product, inCart + qty);
       }
       // Feedback is the fly-to-cart animation and a toast with a "View cart" action (CR-007): the drawer is not forced open.
       set((s) => ({ addedTick: s.addedTick + 1 }));

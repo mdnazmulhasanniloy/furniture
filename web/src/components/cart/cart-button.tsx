@@ -2,22 +2,25 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ShoppingBag, X } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { CartContents } from "@/components/cart/cart-contents";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
+import type { Locale } from "@/i18n/routing";
 import { useAuthStore } from "@/lib/auth/store";
 import { cartCount, closeDrawer, openDrawer, setCartConfig, useCartStore } from "@/lib/cart/store";
 import type { CartConfig } from "@/lib/cart/types";
+import { formatNumber } from "@/lib/format";
 import { useDialogA11y } from "@/lib/use-dialog-a11y";
 import { useMotionPrefs } from "@/lib/use-motion-prefs";
 
 /** Header cart link (still a real link to /cart) with a count badge; click opens the drawer. */
 export function CartButton({ config }: { config?: CartConfig }) {
   const t = useTranslations();
+  const locale = useLocale() as Locale;
   const status = useAuthStore((s) => s.status);
   const user = useAuthStore((s) => s.user);
   const server = status === "authenticated" && user?.role === "CUSTOMER";
@@ -25,6 +28,8 @@ export function CartButton({ config }: { config?: CartConfig }) {
   const open = useCartStore((s) => s.drawerOpen);
   const addedTick = useCartStore((s) => s.addedTick);
   const [initialTick] = useState(addedTick);
+  const stockLimit = useCartStore((s) => s.stockLimit);
+  const [initialLimitTick] = useState(stockLimit.tick);
   const trigger = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
@@ -39,6 +44,18 @@ export function CartButton({ config }: { config?: CartConfig }) {
       action: { label: t("cart.viewCart"), onClick: () => openDrawer() },
     });
   }, [addedTick, initialTick, t]);
+
+  // Nothing was added because the cart already holds the available stock (QA 2026-11-24 item 3).
+  useEffect(() => {
+    if (stockLimit.tick === initialLimitTick) return;
+    toast.error(
+      t("cart.stockLimit", {
+        stock: formatNumber(stockLimit.stock, locale),
+        inCart: formatNumber(stockLimit.inCart, locale),
+      }),
+      { id: "cart-stock-limit" },
+    );
+  }, [stockLimit, initialLimitTick, t, locale]);
 
   return (
     <>

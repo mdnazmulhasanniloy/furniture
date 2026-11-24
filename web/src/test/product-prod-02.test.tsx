@@ -27,7 +27,7 @@ import { Gallery } from "@/components/product/gallery";
 import { ProductDetailView } from "@/components/product/product-detail";
 import { PurchaseBox } from "@/components/product/purchase-box";
 import type { HomeProduct, ProductDetail } from "@/lib/api/public";
-import { formatPercent } from "@/lib/format";
+import { formatNumber, formatPercent } from "@/lib/format";
 
 type L = "en" | "ar";
 const wrap = (locale: L, ui: React.ReactNode) => {
@@ -81,6 +81,21 @@ for (const locale of ["en", "ar"] as const) {
       cleanup();
       await view(locale, { stock: 0 });
       expect(screen.queryByTestId("sale-badge")).toBeNull();
+    });
+
+    it(`QA-3 · a product low on stock says how many are left; a well-stocked one just says In stock (${locale})`, async () => {
+      // QA 2026-11-24 item 3: at or below 3 units the page says how few are left, for new products too
+      for (const stock of [1, 2, 3]) {
+        cleanup();
+        await view(locale, { stock });
+        const text = screen.getByTestId("stock-text").textContent ?? "";
+        // the Arabic plural forms spell 1 and 2 as words, so only 3 carries a digit
+        if (stock === 3 || locale === "en") expect(text, `stock ${stock}`).toContain(formatNumber(stock, locale));
+        expect(text, `stock ${stock}`).not.toBe(messages[locale].product.stock.in);
+      }
+      cleanup();
+      await view(locale, { stock: 4 });
+      expect(screen.getByTestId("stock-text").textContent).toBe(messages[locale].product.stock.in);
     });
 
     it(`PROD-02 · sold out disables Add to cart and shows "Sold out" (${locale})`, async () => {

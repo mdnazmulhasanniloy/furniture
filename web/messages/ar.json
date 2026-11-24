@@ -146,7 +146,8 @@
       "PRICE_CHANGED": "تغيّر السعر من {oldPrice} إلى {newPrice}"
     },
     "removed": "تمت إزالة {title}",
-    "undo": "تراجع"
+    "undo": "تراجع",
+    "stockLimit": "المتوفر {stock} فقط — لديك {inCart} في السلة بالفعل."
   },
   "checkout": {
     "title": "إتمام الشراء",

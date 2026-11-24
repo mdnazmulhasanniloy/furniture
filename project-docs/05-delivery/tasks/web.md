@@ -230,6 +230,6 @@ Order: backend T-080 first (seed), then the owner runs `demo:reset`, then T-081 
 - Req: CAT-01, UI-04 · Depends: T-090
 ### T-093 Auth split screen, floating labels, live rules, six-box OTP · done
 - Req: AUTH-01..AUTH-04, UI-04 · Depends: T-090
-### T-094 Remove the Arch component; checkpoint 1 screenshots (screens-v5) · code done; screenshots pending
+### T-094 Remove the Arch component; checkpoint 1 screenshots (screens-v5) · done
 - Req: UI-04 · Depends: T-091..T-093
 ### T-095 to T-103 Checkpoint 2, one task per page group · todo (written after checkpoint 1 approval)

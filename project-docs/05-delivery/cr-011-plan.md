@@ -229,3 +229,27 @@ Per task: plan, tests in en and ar, typecheck, lint, i18n check, build, e2e (`E2
 | Q-10 | Approved. |
 
 The focal point adds two optional numbers to the banner image (`focalX`, `focalY`, 0 to 100); the spec, backend and tests are in T-105 and the editor in T-106. The hero reads them as object-position when present.
+
+## 11. Checkpoint 1 result (2026-11-24): STOP for owner review
+
+Built: T-090 foundation, T-091 hero carousel, T-092 category bento (with additive backend `productCount`), T-093 auth split screen, T-094 Arch removed. Screenshots: `03-design/screens-v5/` (116 JPEGs: hero slide 1 and 2, paused state, categories, hover tile, login, login with empty fields, login with a wrong password, register with a weak password, forgot, reset, verify; 390, 768, 1440, 1920 px; en and ar).
+
+**LCP, CLS and transfer** (`web/scripts/vitals.mjs`, production build, 5 runs, median; mobile 390x844 with 4x CPU and 1.6 Mbit/s; the demo banners from the dev API):
+
+| Page | Before (CR-009 baseline) | After | Budget | Result |
+|---|---|---|---|---|
+| /en 390 | LCP 1368 ms, CLS 0.0351, 706 KB | LCP 1156 ms, CLS 0.0268, 609 KB | 1505 ms, 0.042, 812 KB | pass |
+| /ar 390 | 1436 ms, 0.0417, 852 KB | 1160 ms, 0.0085, 840 KB | 1580 ms, 0.042, 980 KB | pass |
+| /en 1440 | 176 ms, 0.0049, 794 KB | 300 ms, 0.0001, 850 KB | 400 ms, 0.01, 913 KB | pass |
+| /ar 1440 | 208 ms, 0.0082, 941 KB | 320 ms, 0.0008, 979 KB | 400 ms, 0.01, 1082 KB | pass |
+
+Desktop LCP is higher than before because the hero image is now full width; it stays inside the budget. Hidden slides are not downloaded with the page (slide 2 mounts 4 s after load or when shown), which is what kept desktop transfer in budget.
+
+**Deviations and decisions to confirm**
+- `--gold` and `--gold-strong` are not merged into `--champagne` yet (the cart bar and wordmark underline still use them); the merge happens in T-086 with the presets. New tokens: `--blush`, `--blush-foreground`, `--champagne`. The AA gate now also checks every text class on blush and rejects `text-champagne`.
+- Existing keys `auth.otpDigit` and `auth.resendIn` are reused instead of the new `auth.otp.*` keys. `auth.rules.match` and the "mismatched confirmation" state are not built: no auth form has a confirmation field (adding one is a behaviour change you did not ask for). Old keys `auth.panelTitle`, `auth.panelText`, `auth.passwordHint` and `home.hero.*` (except `shopNew`) were removed.
+- Static slide photos carry empty alt text (decorative; the slide title carries the meaning), because no alt copy was in the approved list.
+- Tests replaced, not weakened: the arch hero, arch category row and arch auth tests assert behaviour you cancelled, so they were rewritten as UI-04 tests for the new behaviour (carousel ARIA, one priority image, timer, pause, reduced motion, keyboard, swipe in both directions, bento layout, fallback photos, floating labels, show/hide, live rules, error summary and focus). The Arch component's own tests went with the component (T-094). ADM-06 tests now expect one button per banner (Q-3).
+- Header is still the solid header on the home page; transparent-over-hero is Checkpoint 2.
+- Wrong-password screenshots made one real login attempt with a fake address against the dev API (no data written). Register, forgot and verify error states are client-side only; no account was created and no email was sent.
+- Bodoni Moda: "W a" spacing in the hero headline looks loose at 72 px in /en (Q-10 follow-up); weight 700 is not thin at these sizes.

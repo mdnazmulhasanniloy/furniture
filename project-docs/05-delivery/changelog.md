@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (CR-011 Checkpoint 1 built: STOP for review)
+- Web T-090 to T-094 done (commits beedbbe, 94c0800, 5808f20, 2972516, 2fbaca8): Bodoni Moda / El Messiri, blush and champagne tokens, container and rails utilities, hero carousel, category bento, auth split screen, Arch removed. Backend: additive `productCount` on home CATEGORY_GRID items (spec, code, test). Vitals within the CR-009 budget (table in `cr-011-plan.md` section 11). Screenshots in `03-design/screens-v5/`. Nothing pushed; no data command run.
+
 ## 2026-11-24 (CR-011 approved)
 - **CR-011 plan approved by the owner with answers Q-1 to Q-10** (recorded in `cr-011-plan.md` section 10). ADR-018 Accepted; PRD gains UI-04 and ADM-17 and updates UI-01, ADM-05, ADM-06. Launch blocker B-038 added (final photography must be owner-supplied or commercially licensed). Focal point for banner images added to T-105/T-106. No code in this entry. Nothing pushed.
 

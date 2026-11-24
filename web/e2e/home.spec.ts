@@ -67,3 +67,25 @@ for (const locale of ["en", "ar"] as const) {
     await expect(page.getByRole("contentinfo")).toBeVisible();
   });
 }
+
+// CR-011 review item 4: no large empty band between home sections.
+for (const width of [390, 1440]) {
+  test(`UI-04: the gap between consecutive home sections is at most 80px at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/en");
+    const tops = await page.evaluate(() => {
+      const main = document.querySelector("main")!;
+      // visual gap: the section box ends where its content ends (a plain band has no bottom padding), and the next
+      // section's content starts after its top padding (a filled band is counted by its own box)
+      const top = (el: Element) => el.getBoundingClientRect().top + window.scrollY + (el.classList.contains("band-fill") ? 0 : parseFloat(getComputedStyle(el).paddingTop));
+      const bottom = (el: Element) => el.getBoundingClientRect().bottom + window.scrollY;
+      return [...main.children].filter((el) => el.tagName === "SECTION" && el.getAttribute("data-testid") !== "home-hero" && !el.hasAttribute("aria-roledescription")).map((el) => ({ top: top(el), bottom: bottom(el), id: el.getAttribute("data-testid") }));
+    });
+    expect(tops.length).toBeGreaterThan(0);
+    for (let i = 1; i < tops.length; i++) {
+      const gap = tops[i]!.top - tops[i - 1]!.bottom;
+      expect(gap, `${tops[i - 1]!.id} -> ${tops[i]!.id}`).toBeLessThanOrEqual(80);
+      expect(gap).toBeGreaterThanOrEqual(0);
+    }
+  });
+}

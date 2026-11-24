@@ -53,7 +53,7 @@ export function Shelf({
   }
 
   return (
-    <section data-testid="home-shelf" aria-labelledby={`${uid}-title`} className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-20">
+    <section data-testid="home-shelf" aria-labelledby={`${uid}-title`} className="container-wide band">
       <h2 id={`${uid}-title`} className="sr-only">
         {t("title")}
       </h2>

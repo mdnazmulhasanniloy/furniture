@@ -12,9 +12,9 @@ export function HowResale() {
     <section
       data-testid="how-resale"
       aria-labelledby="how-resale-title"
-      className="bg-muted py-16 md:py-24"
+      className="band-fill bg-muted"
     >
-      <div className="mx-auto w-full max-w-7xl px-4 md:px-8">
+      <div className="container-wide">
         <h2 id="how-resale-title" className="text-3xl font-semibold">
           {t("title")}
         </h2>

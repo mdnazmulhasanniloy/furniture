@@ -31,7 +31,7 @@ function SectionShell({
     <section
       data-testid={`home-section-${section.type}`}
       aria-labelledby={`home-${section.id}`}
-      className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-20"
+      className="container-wide band"
     >
       <h2 id={`home-${section.id}`} className="text-3xl font-semibold">
         {title}
@@ -64,7 +64,7 @@ function OptionalSection({ section, locale }: { section: HomeSection; locale: Lo
         <section
           data-testid="home-section-PROMO_BANNER"
           aria-label={title}
-          className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-20"
+          className="container-wide band"
         >
           <div className="grid items-center gap-8 bg-muted md:grid-cols-2">
             <div className="p-8 md:p-12">

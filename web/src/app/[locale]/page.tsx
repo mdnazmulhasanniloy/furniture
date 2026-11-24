@@ -37,7 +37,7 @@ export default async function HomePage({
   fallback.resale = resale;
 
   return (
-    <main>
+    <main className="band-end">
       {banners.length > 0 ? <Hero banners={banners} /> : <HeroFallback />}
       <HomeSections sections={sections} locale={locale as Locale} fallback={fallback} />
     </main>

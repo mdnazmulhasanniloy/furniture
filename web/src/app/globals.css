@@ -172,13 +172,26 @@ body {
     padding-inline: 48px;
   }
 }
-.band {
-  padding-block: 48px;
+/* ONE vertical rhythm (review item 4): a plain band owns only its top padding, so two bands in a row are
+   exactly one gap apart (40 px mobile, 64 px desktop), never two paddings added together. A filled band
+   (sand, blush) owns its own padding and the same gap above it; the page end gets the gap below. */
+:root {
+  --band-gap: 40px;
 }
 @media (min-width: 1024px) {
-  .band {
-    padding-block: 72px;
+  :root {
+    --band-gap: 64px;
   }
+}
+.band {
+  padding-top: var(--band-gap);
+}
+.band-fill {
+  margin-top: var(--band-gap);
+  padding-block: var(--band-gap);
+}
+.band-end {
+  padding-bottom: var(--band-gap);
 }
 /* Rails: no native scrollbar (arrow buttons and keyboard stay), snap kept. */
 .rail-scroll {

@@ -189,3 +189,5 @@ Each task: plan, tests in en and ar, typecheck, lint, i18n, build, e2e, AA gate,
 8. Step 3 copy fix and the GSAP approach are approved as planned.
 
 Task order now: T-080 (backend, seed) → STOP → owner runs `demo:reset` → T-081, T-082, T-083, T-084 → stop after the home page with screenshots and the before/after LCP and CLS tables. Follow-ups, not built here: T-085 (look editor), T-089 (hero photos in Site Settings).
+
+> **Note 2026-11-24 (CR-011 review):** the line "Cash on delivery across Saudi Arabia" in this cancelled plan is withdrawn: delivery covers only the active cities. See `cr-011-plan.md` section 12.

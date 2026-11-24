@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import Image from "next/image";
+import { getImageProps } from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CtaLink } from "@/components/home/cta-link";
@@ -10,6 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import type { Banner } from "@/lib/api/public";
 import { safeHref } from "@/lib/home";
 import { pick } from "@/lib/pick";
+import { useCityCount } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 
@@ -29,6 +30,29 @@ type Slide = {
 
 const SWIPE_PX = 48;
 const ctaCls = "h-12 px-8";
+
+/**
+ * One <picture> per slide: the browser downloads exactly one source (mobile below 768 px, desktop above), so
+ * there is no hidden duplicate image and slide 1 can be eager with a high fetch priority. Built with
+ * getImageProps so Next still optimises and resizes. Only slide 1 is eager; the rest are lazy.
+ */
+function SlidePicture({ slide, first, active }: { slide: Slide; first: boolean; active: boolean }) {
+  const base = { fill: true as const, sizes: "100vw", priority: first, loading: first ? undefined : ("lazy" as const) };
+  const d = getImageProps({ ...base, src: slide.desktop.src, alt: active ? slide.desktop.alt : "" }).props;
+  const m = slide.mobile ? getImageProps({ ...base, src: slide.mobile.src, alt: "" }).props : null;
+  return (
+    <picture>
+      {m ? <source media="(max-width: 767px)" srcSet={m.srcSet} sizes="100vw" /> : null}
+      <img
+        {...d}
+        alt={d.alt}
+        loading={first ? "eager" : "lazy"}
+        fetchPriority={first ? "high" : undefined}
+        className="object-cover object-center"
+      />
+    </picture>
+  );
+}
 
 function Slides({ slides, testId }: { slides: Slide[]; testId: string }) {
   const t = useTranslations("home.carousel");
@@ -95,7 +119,7 @@ function Slides({ slides, testId }: { slides: Slide[]; testId: string }) {
         if (Math.abs(dx) < SWIPE_PX) return;
         go(current + ((dx < 0) !== rtl ? 1 : -1));
       }}
-      className="group/hero relative isolate h-[70vh] min-h-[480px] w-full overflow-hidden bg-foreground text-primary-foreground md:h-[85vh]"
+      className="group/hero relative isolate h-[70vh] min-h-[480px] w-full overflow-hidden bg-gradient-to-br from-primary to-foreground text-primary-foreground md:h-[85vh]"
     >
       <div aria-live={running ? "off" : "polite"} className="absolute inset-0">
         {slides.map((s, i) => {
@@ -123,31 +147,7 @@ function Slides({ slides, testId }: { slides: Slide[]; testId: string }) {
                 )}
                 style={active && autoplay && !reduced ? { animationPlayState: paused ? "paused" : "running" } : undefined}
               >
-                {mountImage && s.mobile ? (
-                  <Image
-                    src={s.mobile.src}
-                    alt={active ? s.mobile.alt : ""}
-                    fill
-                    priority={first}
-                    fetchPriority={first ? "high" : undefined}
-                    loading={first ? undefined : "lazy"}
-                    sizes="(min-width: 768px) 1px, 100vw"
-                    className="object-cover object-center md:hidden"
-                  />
-                ) : null}
-                {mountImage ? (
-                <Image
-                  src={s.desktop.src}
-                  alt={active ? s.desktop.alt : ""}
-                  fill
-                  priority={first && !s.mobile}
-                  fetchPriority={first && !s.mobile ? "high" : undefined}
-                  loading={first && !s.mobile ? undefined : "lazy"}
-                  quality={70}
-                  sizes="100vw"
-                  className={cn("object-cover object-center", s.mobile && "hidden md:block")}
-                />
-                ) : null}
+                {mountImage ? <SlidePicture slide={s} first={first} active={active} /> : null}
               </div>
               {/* Scrim: ink at 60 to 80 % behind the text block keeps white text above 4.5:1 on any photo. */}
               <div aria-hidden className="absolute inset-x-0 bottom-0 h-[70%] bg-gradient-to-t from-foreground/80 via-foreground/60 via-55% to-transparent" />
@@ -272,6 +272,7 @@ export function Hero({ banners }: { banners: Banner[] }) {
 /** No active banner (or API unreachable): three static slides, so the page is never blank. */
 export function HeroFallback() {
   const t = useTranslations("home.carousel");
+  const cityCount = useCityCount();
   const slides: Slide[] = [
     { n: 1, a: "/shop?type=new", b: "/shop" },
     { n: 2, a: "/shop?type=resale", b: "/#how-resale" },
@@ -279,7 +280,8 @@ export function HeroFallback() {
   ].map(({ n, a, b }) => ({
     id: `static-${n}`,
     title: t(`s${n}.title`),
-    line: t(`s${n}.line`),
+    // slide 3 states the number of active delivery cities; with no count it shows no line (never a guess)
+    line: n === 3 ? (cityCount > 0 ? t("s3.line", { count: cityCount }) : undefined) : t(`s${n}.line`),
     ctas: [
       { href: a, label: t(`s${n}.cta`) },
       ...(b ? [{ href: b, label: t(`s${n}.cta2`) }] : []),

@@ -9,6 +9,7 @@ import { Wordmark } from "@/components/brand";
 import { Input } from "@/components/ui/input";
 import { apiErrorMessage } from "@/lib/api/errors";
 import type { FieldError } from "@/lib/auth/validation";
+import { useCityCount } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
 /**
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 export function AuthShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const t = useTranslations("auth");
   const tHome = useTranslations("home");
+  const cityCount = useCityCount();
   return (
     <main className="grid w-full lg:min-h-[calc(100svh-5rem)] lg:grid-cols-2" data-testid="auth-shell">
       <aside
@@ -31,13 +33,18 @@ export function AuthShell({ children }: Readonly<{ children: React.ReactNode }>)
           alt=""
           fill
           sizes="(min-width: 1024px) 50vw, 100vw"
-          quality={70}
           className="object-cover"
         />
         <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-foreground/85 via-foreground/55 to-foreground/30" />
         <div className="absolute inset-0 flex flex-col justify-between p-6 lg:p-12">
           <Wordmark name={tHome("brand")} className="self-start border-champagne text-2xl lg:text-3xl" />
-          <p className="max-w-sm font-display text-xl font-bold leading-snug lg:text-4xl">{t("brand.line")}</p>
+          {cityCount > 0 ? (
+            <p data-testid="brand-line" className="max-w-sm font-display text-xl font-bold leading-snug lg:text-4xl">
+              {t("brand.line", { count: cityCount })}
+            </p>
+          ) : (
+            <span />
+          )}
         </div>
       </aside>
       <div className="flex items-center justify-center px-5 py-10 sm:px-8 lg:py-16">

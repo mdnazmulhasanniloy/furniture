@@ -7,6 +7,8 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { Providers } from "@/components/providers";
 import { cartConfigFrom } from "@/lib/cart/config";
+import { activeCityCount } from "@/lib/delivery-cities";
+import { SiteFactsProvider } from "@/lib/site-facts";
 import { getCategories, getSettings } from "@/lib/api/public";
 import { routing } from "@/i18n/routing";
 import { pick } from "@/lib/pick";
@@ -63,6 +65,7 @@ export default async function LocaleLayout({
       <body>
         <NextIntlClientProvider>
           <DirectionProvider dir={dir}>
+            <SiteFactsProvider cityCount={activeCityCount(settings)}>
             <Providers>
               <a
                 href="#main-content"
@@ -80,6 +83,7 @@ export default async function LocaleLayout({
               </div>
               <SiteFooter settings={settings} />
             </Providers>
+            </SiteFactsProvider>
           </DirectionProvider>
         </NextIntlClientProvider>
       </body>

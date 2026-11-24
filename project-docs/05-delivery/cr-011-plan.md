@@ -110,7 +110,7 @@ Notes: s1 and s2 lines are reused from CR-009 (approved). s3 is new; "our Saudi 
 ### 5.3 Auth
 | Key | en | ar |
 |---|---|---|
-| `auth.brand.line` | Cash on delivery across Saudi Arabia. | الدفع نقدًا عند التسليم في أنحاء السعودية. |
+| `auth.brand.line` (corrected, see section 12) | Cash on delivery in {count} Saudi cities. (plural) | الدفع نقدًا عند التسليم في {count} مدن سعودية. (plural) |
 | `auth.field.show` / `hide` | Show password / Hide password | إظهار كلمة المرور / إخفاء كلمة المرور |
 | `auth.rules.title` | Your password needs | كلمة المرور يجب أن تحتوي على |
 | `auth.rules.length` | At least {n} characters | {n} أحرف على الأقل |
@@ -253,3 +253,7 @@ Desktop LCP is higher than before because the hero image is now full width; it s
 - Header is still the solid header on the home page; transparent-over-hero is Checkpoint 2.
 - Wrong-password screenshots made one real login attempt with a fake address against the dev API (no data written). Register, forgot and verify error states are client-side only; no account was created and no email was sent.
 - Bodoni Moda: "W a" spacing in the hero headline looks loose at 72 px in /en (Q-10 follow-up); weight 700 is not thin at these sizes.
+
+## 12. Corrections after the Checkpoint 1 review
+
+- **Copy (review item 3):** delivery is only in the active cities, so no copy may claim "across Saudi Arabia" or "all cities". Q-4's line "Cash on delivery across Saudi Arabia." is withdrawn. `auth.brand.line` and `home.carousel.s3.line` now read "Cash on delivery in N Saudi cities." with N computed from the active delivery cities in the public settings (hidden when unavailable). The seed banner subtitle and the seed About text no longer name the whole country. CR-009's plan (cancelled) still contains the old line as history only.

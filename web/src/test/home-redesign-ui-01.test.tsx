@@ -14,6 +14,17 @@ vi.mock("@/i18n/navigation", () => ({
   usePathname: () => "/",
 }));
 vi.mock("next/image", () => ({
+  getImageProps: (p: { src: string; alt: string; priority?: boolean; loading?: string }) => ({
+    props: {
+      src: p.src,
+      srcSet: `${p.src} 1x`,
+      alt: p.alt,
+      "data-priority": p.priority ? "true" : "false",
+      "data-loading": p.loading,
+      loading: p.priority ? undefined : p.loading,
+      fetchPriority: p.priority ? "high" : undefined,
+    },
+  }),
   default: ({ src, alt, priority, loading }: { src: string; alt: string; priority?: boolean; loading?: string }) => (
     // eslint-disable-next-line @next/next/no-img-element
     <img src={src} alt={alt} data-priority={priority ? "true" : "false"} data-loading={loading} />
@@ -49,6 +60,7 @@ const gsapMock = vi.hoisted(() => {
 });
 vi.mock("gsap", () => ({ gsap: gsapMock, default: gsapMock }));
 
+import { SiteFactsProvider } from "@/lib/site-facts";
 import { Hero, HeroFallback } from "@/components/home/hero";
 import { HomeSections } from "@/components/home/home-sections";
 import type { Banner, HomeProduct, HomeSection } from "@/lib/api/public";
@@ -171,6 +183,17 @@ describe.each(["en", "ar"] as const)("UI-04 · hero carousel (%s)", (locale) => 
     ]);
   });
 
+  it(`UI-04 · static slide 3 says how many cities deliver, computed, and shows no line without a count (${locale})`, () => {
+    const { unmount } = wrap(locale, <SiteFactsProvider cityCount={6}><HeroFallback /></SiteFactsProvider>);
+    const lines = [...screen.getByTestId("home-fallback-hero").querySelectorAll("p.mt-4")].map((p) => p.textContent);
+    expect(lines).toContain(locale === "en" ? "Cash on delivery in 6 Saudi cities." : "الدفع نقدًا عند التسليم في 6 مدن سعودية.");
+    expect(lines.join(" ")).not.toMatch(/across Saudi|across our|all cities|أنحاء|جميع مدن|كل مدن|مدننا/);
+    unmount();
+    wrap(locale, <HeroFallback />);
+    const none = [...screen.getByTestId("home-fallback-hero").querySelectorAll("p.mt-4")].map((p) => p.textContent);
+    expect(none).toHaveLength(2); // slides 1 and 2 keep their lines; slide 3 has none
+  });
+
   it(`UI-04 · only slide 1 loads with the page and has priority; the next slide's photo mounts later, lazy (${locale})`, () => {
     vi.useFakeTimers();
     wrap(locale, <Hero banners={[banner("1"), banner("2"), banner("3")]} />);
@@ -181,6 +204,28 @@ describe.each(["en", "ar"] as const)("UI-04 · hero carousel (%s)", (locale) => 
     expect(imgs()[1].getAttribute("data-loading")).toBe("lazy");
     fireEvent.click(screen.getByRole("button", { name: m.home.carousel.next }));
     expect(imgs()).toHaveLength(3); // seen slides stay mounted, slide 3 is now next
+  });
+
+  it(`UI-04 · the first slide image is eager with high fetch priority and exactly one image per slide, mobile via <source> (${locale})`, () => {
+    const withMobile = { ...banner("1"), imageMobile: { url: "https://cdn.test/m1.jpg", alt: { en: "m", ar: "م" } } } as Banner;
+    wrap(locale, <Hero banners={[withMobile, banner("2")]} />);
+    const hero = screen.getByTestId("home-hero");
+    const imgs = [...hero.querySelectorAll("img")];
+    expect(imgs).toHaveLength(1); // the mobile photo is a <source>, not a second (hidden) image
+    expect(imgs[0].getAttribute("src")).toBe("https://cdn.test/1.jpg");
+    expect(imgs[0].getAttribute("fetchpriority")).toBe("high");
+    expect(imgs[0].getAttribute("loading")).toBe("eager"); // not lazy: nothing delays the LCP image
+    expect(imgs[0].className).not.toMatch(/hidden|opacity-0/);
+    const source = hero.querySelector("picture source")!;
+    expect(source.getAttribute("media")).toBe("(max-width: 767px)");
+    expect(source.getAttribute("srcset")).toContain("https://cdn.test/m1.jpg");
+  });
+
+  it(`UI-04 · the hero has a branded gradient behind the photo, never a plain dark void (${locale})`, () => {
+    wrap(locale, <Hero banners={[banner("1")]} />);
+    const cls = screen.getByTestId("home-hero").className;
+    expect(cls).toContain("bg-gradient-to-br");
+    expect(cls).toContain("from-primary");
   });
 
   it(`UI-04 · the progress bar is the timer: it runs 6 s and its end advances the slide, wrapping at the last (${locale})`, () => {

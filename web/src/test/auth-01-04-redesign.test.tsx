@@ -22,6 +22,7 @@ vi.mock("next/image", () => ({
   ),
 }));
 
+import { SiteFactsProvider } from "@/lib/site-facts";
 import { LoginForm } from "@/components/auth/login-form";
 import { OtpInput } from "@/components/auth/otp-input";
 import { RegisterForm } from "@/components/auth/register-form";
@@ -46,7 +47,7 @@ describe.each(["en", "ar"] as const)("AUTH-01 · redesigned auth screens (%s)", 
   const m = locales[locale];
 
   it(`UI-04 · auth split: a photo panel with the wordmark and the one true brand line, the form beside it, no arch (${locale})`, () => {
-    wrap(locale, <LoginForm />);
+    wrap(locale, <SiteFactsProvider cityCount={6}><LoginForm /></SiteFactsProvider>);
     expect(screen.getByTestId("auth-shell").className).toContain("lg:grid-cols-2");
     const panel = screen.getByTestId("auth-panel");
     const shell = screen.getByTestId("auth-shell");
@@ -54,11 +55,24 @@ describe.each(["en", "ar"] as const)("AUTH-01 · redesigned auth screens (%s)", 
     expect(panel.className).toContain("h-[28vh]"); // mobile banner
     expect(panel.className).toContain("lg:h-auto");
     expect(within(panel).getByTestId("wordmark")).toBeTruthy();
-    expect(panel.textContent).toContain(m.auth.brand.line);
+    // the only claim is cash on delivery in the NUMBER of active cities, never the whole country
+    expect(screen.getByTestId("brand-line").textContent).toBe(locale === "en" ? "Cash on delivery in 6 Saudi cities." : "الدفع نقدًا عند التسليم في 6 مدن سعودية.");
+    expect(panel.textContent).not.toMatch(/across Saudi|all cities|أنحاء|جميع مدن|كل مدن/);
     expect(panel.querySelector("img")?.getAttribute("src")).toContain("auth.jpg");
     expect(screen.queryByTestId("arch")).toBeNull();
     expect(screen.queryByTestId("auth-arch-small")).toBeNull();
     expect(shell.innerHTML).toContain("max-w-[440px]");
+  });
+
+  it(`UI-04 · the brand line follows the active city count and is hidden without one (${locale})`, () => {
+    const { unmount } = wrap(locale, <SiteFactsProvider cityCount={1}><LoginForm /></SiteFactsProvider>);
+    expect(screen.getByTestId("brand-line").textContent).toBe(locale === "en" ? "Cash on delivery in 1 Saudi city." : "الدفع نقدًا عند التسليم في مدينة سعودية واحدة.");
+    unmount();
+    const two = wrap(locale, <SiteFactsProvider cityCount={2}><LoginForm /></SiteFactsProvider>);
+    expect(screen.getByTestId("brand-line").textContent).toBe(locale === "en" ? "Cash on delivery in 2 Saudi cities." : "الدفع نقدًا عند التسليم في مدينتين سعوديتين.");
+    two.unmount();
+    wrap(locale, <LoginForm />); // settings unavailable: no count, no claim
+    expect(screen.queryByTestId("brand-line")).toBeNull();
   });
 
   it(`UI-04 · auth v3: floating-label 56 px fields, a 48 px full-width submit, flat alerts (${locale})`, () => {

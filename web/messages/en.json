@@ -27,7 +27,7 @@
       },
       "s3": {
         "title": "Pay when it arrives",
-        "line": "Cash on delivery across our Saudi cities.",
+        "line": "{count, plural, one {Cash on delivery in # Saudi city.} other {Cash on delivery in # Saudi cities.}}",
         "cta": "See how it works"
       }
     },
@@ -240,7 +240,7 @@
       "codeIncomplete": "Enter all 6 digits."
     },
     "brand": {
-      "line": "Cash on delivery across Saudi Arabia."
+      "line": "{count, plural, one {Cash on delivery in # Saudi city.} other {Cash on delivery in # Saudi cities.}}"
     },
     "field": {
       "show": "Show password",

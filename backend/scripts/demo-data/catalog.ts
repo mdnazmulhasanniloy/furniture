@@ -591,8 +591,8 @@ export const BANNERS: DemoBanner[] = [
   {
     title: { en: 'Warm living rooms, ready to deliver', ar: 'غرف معيشة دافئة جاهزة للتوصيل' },
     subtitle: {
-      en: 'New sofas and armchairs across Saudi Arabia',
-      ar: 'أرائك وكراسي جديدة إلى جميع مدن المملكة',
+      en: 'New sofas and armchairs, delivered to your door',
+      ar: 'أرائك وكراسي جديدة نوصلها إلى بابك',
     },
     ctaLabel: { en: 'Shop new furniture', ar: 'تسوق الأثاث الجديد' },
     ctaHref: '/shop?type=new',

@@ -14,6 +14,7 @@ vi.mock("@/i18n/navigation", () => ({
   usePathname: () => "/",
 }));
 vi.mock("next/image", () => ({
+  getImageProps: (p: { src: string; alt: string }) => ({ props: { src: p.src, alt: p.alt, srcSet: `${p.src} 1x` } }),
   // eslint-disable-next-line @next/next/no-img-element
   default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
 }));

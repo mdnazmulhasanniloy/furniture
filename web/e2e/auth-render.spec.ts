@@ -16,10 +16,11 @@ for (const locale of ["en", "ar"] as const) {
       expect(box.width).toBeGreaterThan(300);
       expect(box.height).toBeGreaterThan(300);
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      await expect(page.locator("form")).toBeVisible();
+      const form = main.locator("form");
+      await expect(form).toBeVisible();
       expect((await page.locator("body").innerText()).trim().length).toBeGreaterThan(100);
       // hydrated: a client-only interaction works (the form's first control accepts input)
-      const first = page.locator("form input:not([type=hidden])").first();
+      const first = form.locator("input:not([type=hidden])").first();
       await first.fill("1");
       await expect(first).toHaveValue("1");
       expect(errors).toEqual([]);

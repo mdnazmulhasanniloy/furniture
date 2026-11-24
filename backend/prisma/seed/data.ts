@@ -51,8 +51,8 @@ export const PAGES: {
     slug: 'about',
     title: { en: 'About us', ar: 'من نحن' },
     content: {
-      en: '<p>Furnixa offers new and pre-owned furniture delivered across Saudi Arabia.</p>',
-      ar: '<p>تقدم فرنيكسا أثاثاً جديداً ومستعملاً يصل إلى جميع أنحاء المملكة العربية السعودية.</p>',
+      en: '<p>Furnixa offers new and pre-owned furniture delivered to your door in the cities we serve.</p>',
+      ar: '<p>تقدم فرنيكسا أثاثاً جديداً ومستعملاً يصل إلى بابك في المدن التي نخدمها.</p>',
     },
     isPublished: true,
   },

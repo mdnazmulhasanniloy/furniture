@@ -36,6 +36,22 @@ for (const locale of ["en", "ar"] as const) {
     await expect(hero.getByRole("button", { name: /Next slide|الشريحة التالية/ })).toBeVisible();
   });
 
+  test(`UI-04: the first slide image is visible on load at 1440 and 390 in /${locale}`, async ({ page }) => {
+    for (const [width, height] of [[1440, 900], [390, 844]] as const) {
+      await page.setViewportSize({ width, height });
+      await page.goto(`/${locale}`);
+      const img = page.locator("section[aria-roledescription=carousel] [data-active=true] img").first();
+      await expect(img).toBeVisible();
+      await expect.poll(async () => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 100), { timeout: 8000 }).toBe(true);
+      const box = (await img.boundingBox())!;
+      expect(box.width).toBeGreaterThanOrEqual(width - 20);
+      expect(box.height).toBeGreaterThan(400);
+      await expect(img).toHaveCSS("opacity", "1");
+      expect(await img.evaluate((el: HTMLImageElement) => el.loading)).toBe("eager");
+      await expect(img).toHaveAttribute("fetchpriority", "high");
+    }
+  });
+
   test(`UI-04: reduced motion means no autoplay and no pause button in /${locale}`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(`/${locale}`);

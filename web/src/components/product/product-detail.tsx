@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
 import { Price } from "@/components/format";
-import { ProductCard } from "@/components/home/product-card";
+import { ConnectedProductCard, ProductHeart } from "@/components/favourites/connected-card";
 import { Gallery } from "@/components/product/gallery";
 import { AddToCartBox } from "@/components/product/add-to-cart-box";
 import type { Locale } from "@/i18n/routing";
@@ -60,7 +60,10 @@ export async function ProductDetailView({
               </span>
             ) : null}
           </div>
-          <h1 className="font-display text-3xl font-semibold">{title}</h1>
+          <div className="flex items-start justify-between gap-3">
+            <h1 className="font-display text-3xl font-semibold">{title}</h1>
+            <ProductHeart product={product} />
+          </div>
 
           <p className="flex flex-wrap items-baseline gap-3">
             <span className="text-2xl font-semibold" data-testid="price">
@@ -174,7 +177,7 @@ export async function ProductDetailView({
             data-testid="related"
           >
             {related.map((p) => (
-              <ProductCard key={p.id} product={p} locale={locale} />
+              <ConnectedProductCard key={p.id} product={p} locale={locale} />
             ))}
           </ul>
         </section>

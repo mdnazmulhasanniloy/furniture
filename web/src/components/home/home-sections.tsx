@@ -3,7 +3,7 @@ import Image from "next/image";
 
 import { CtaLink } from "@/components/home/cta-link";
 import { HowResale } from "@/components/home/how-resale";
-import { ProductCard } from "@/components/home/product-card";
+import { ConnectedProductCard } from "@/components/favourites/connected-card";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import type { HomeSection } from "@/lib/api/public";
@@ -76,7 +76,7 @@ function SectionBody({ section, locale }: { section: HomeSection; locale: Locale
         >
           <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {section.products!.map((p) => (
-              <ProductCard key={p.id} product={p} locale={locale} />
+              <ConnectedProductCard key={p.id} product={p} locale={locale} />
             ))}
           </ul>
         </SectionShell>

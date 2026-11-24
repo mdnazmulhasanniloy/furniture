@@ -240,7 +240,9 @@
     "CONFLICT": "Stock was updated while placing your order. Please try again.",
     "VALIDATION_ERROR": "Some details are invalid. Please check and try again.",
     "ADDRESS_LIMIT_REACHED": "You have reached the maximum of 10 saved addresses.",
-    "INVALID_TRANSITION": "This order can no longer be cancelled because it is already being processed."
+    "INVALID_TRANSITION": "This order can no longer be cancelled because it is already being processed.",
+    "WISHLIST_LIMIT_REACHED": "Your favourites are full (100 products). Remove one to add another.",
+    "WISHLIST_CONFLICT": "Your favourites changed on another device. Please try again."
   },
   "orderStatus": {
     "PENDING": "Pending",
@@ -426,6 +428,15 @@
   },
   "favourites": {
     "add": "Add to favourites",
-    "remove": "Remove from favourites"
+    "remove": "Remove from favourites",
+    "title": "Favourites",
+    "linkLabel": "Favourites ({count})",
+    "mergeFailed": "We could not add the favourites saved in this browser to your account.",
+    "retry": "Try again",
+    "full": "Your favourites are full (100 products). Remove one to add another.",
+    "loading": "Loading your favourites…",
+    "emptyTitle": "No favourites yet",
+    "emptyText": "Tap the heart on a product to save it here.",
+    "browse": "Browse the shop"
   }
 }

@@ -4,7 +4,9 @@ import { ChevronDown, Menu, Search, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { Wordmark } from "@/components/brand";
 import { CartButton } from "@/components/cart/cart-button";
+import { FavouritesLink } from "@/components/favourites/favourites-link";
 import { AccountActions } from "@/components/layout/account-menu";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
@@ -242,7 +244,7 @@ export function SiteHeader({ categories, logoUrl, cartConfig }: Props) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logoUrl} alt={t("home.brand")} className="h-8 w-auto" />
           ) : (
-            t("home.brand")
+            <Wordmark name={t("home.brand")} />
           )}
         </Link>
         <nav aria-label={t("nav.main")} className="hidden items-center gap-1 lg:flex">
@@ -262,6 +264,7 @@ export function SiteHeader({ categories, logoUrl, cartConfig }: Props) {
           <div className="hidden sm:block">
             <LanguageSwitcher />
           </div>
+          <FavouritesLink />
           <CartButton config={cartConfig} />
           <AccountActions />
         </div>

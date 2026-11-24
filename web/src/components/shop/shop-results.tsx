@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import { Price } from "@/components/format";
-import { ProductCard } from "@/components/home/product-card";
+import { ConnectedProductCard } from "@/components/favourites/connected-card";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import type { Category, HomeProduct, ProductPageMeta } from "@/lib/api/public";
@@ -135,7 +135,7 @@ export function ProductGrid({
   return (
     <ul className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4" data-testid="shop-grid">
       {items.map((p) => (
-        <ProductCard key={p.id} product={p} locale={locale} />
+        <ConnectedProductCard key={p.id} product={p} locale={locale} />
       ))}
     </ul>
   );

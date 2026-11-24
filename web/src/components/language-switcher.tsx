@@ -15,7 +15,15 @@ import {
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { routing, type Locale } from "@/i18n/routing";
 
-export function LanguageSwitcher({ testId = "language-switcher" }: { testId?: string }) {
+export function LanguageSwitcher({
+  testId = "language-switcher",
+  variant = "outline",
+  className,
+}: {
+  testId?: string;
+  variant?: "outline" | "ghost";
+  className?: string;
+}) {
   const t = useTranslations("lang");
   const locale = useLocale();
   const router = useRouter();
@@ -36,7 +44,7 @@ export function LanguageSwitcher({ testId = "language-switcher" }: { testId?: st
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" data-testid={testId}>
+        <Button variant={variant} className={className} data-testid={testId}>
           <Globe aria-hidden />
           {t(locale as Locale)}
         </Button>

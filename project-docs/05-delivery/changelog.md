@@ -1,5 +1,7 @@
 # Changelog
 
+## 2026-11-24 (web T-053 header and footer done)
+- **web T-053 (UI-01, ADM-09): slim header with prominent search, emerald footer.** See the task note. Strings added: `footer.cities`, `footer.cod` (en, ar). Decision (autopilot) — owner to confirm: the COD sentence is "You pay in cash when your order arrives. No card needed." / «تدفع نقدًا عند وصول طلبك، ولا تحتاج إلى بطاقة.»; button shadows removed globally.
 ## 2026-11-24 (web T-052 foundation v2 done)
 - **web T-052 (UI-01, UI-02): foundation v2.** v2 tokens, Readex Pro + IBM Plex per locale (HEXP axis works), `Arch` component, AA tests updated, v1 leftovers removed (AOS, shimmer, pattern-emerald, marquee, HomeReveals, page template). Decision (autopilot) — owner to confirm: screenshots use the data already in `furniture_dev` (a hosted MongoDB Atlas database per `backend/.env`); `npm run demo:reset --confirm` was NOT run against it because it deletes data on a hosted database.
 ## 2026-11-24 (CR-008 redesign v2, docs)

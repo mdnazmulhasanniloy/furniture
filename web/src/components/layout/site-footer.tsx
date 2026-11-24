@@ -17,6 +17,9 @@ export function safeHttps(url: string | null | undefined): string | null {
   }
 }
 
+const linkCls = "underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary";
+
+/** One emerald block (ADR-015): contact, cities served, cash on delivery in one sentence, language switch. */
 export async function SiteFooter({ settings }: { settings: SiteSettings | null }) {
   const t = await getTranslations();
   const locale = await getLocale();
@@ -25,27 +28,34 @@ export async function SiteFooter({ settings }: { settings: SiteSettings | null }
     const href = safeHttps(settings?.socials?.[key]);
     return href ? [{ key, href }] : [];
   });
+  const cities = (settings?.deliveryCities ?? [])
+    .filter((c) => c.isActive !== false)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+    .map((c) => pick(c.name, locale) || c.code);
 
   return (
-    <footer className="mt-16 border-t border-border bg-muted">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 md:grid-cols-3">
+    <footer className="mt-20 bg-primary text-secondary">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:px-8">
         <div>
-          <p className="font-display text-xl font-semibold text-primary">{t("home.brand")}</p>
-          <p className="mt-2 max-w-xs text-sm text-muted-foreground">{t("footer.about")}</p>
+          <p className="font-display text-2xl font-semibold">{t("home.brand")}</p>
+          <p className="measure mt-3 max-w-xs text-sm">{t("footer.about")}</p>
+          <p data-testid="footer-cod" className="mt-4 max-w-xs text-sm">
+            {t("footer.cod")}
+          </p>
         </div>
         <div>
-          <h2 className="text-sm font-semibold">{t("footer.contact")}</h2>
-          <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+          <h2 className="font-display text-sm font-semibold">{t("footer.contact")}</h2>
+          <ul className="mt-3 space-y-1.5 text-sm">
             {settings?.contactEmail && (
               <li>
-                <a href={`mailto:${settings.contactEmail}`} className="hover:text-foreground">
+                <a href={`mailto:${settings.contactEmail}`} className={linkCls}>
                   {settings.contactEmail}
                 </a>
               </li>
             )}
             {settings?.contactPhone && (
               <li>
-                <a href={`tel:${settings.contactPhone}`} dir="ltr" className="hover:text-foreground">
+                <a href={`tel:${settings.contactPhone}`} dir="ltr" className={linkCls}>
                   {settings.contactPhone}
                 </a>
               </li>
@@ -53,10 +63,10 @@ export async function SiteFooter({ settings }: { settings: SiteSettings | null }
             {address && <li>{address}</li>}
           </ul>
           {socials.length > 0 && (
-            <ul aria-label={t("footer.social")} className="mt-3 flex flex-wrap gap-3 text-sm">
+            <ul aria-label={t("footer.social")} className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm">
               {socials.map(({ key, href }) => (
                 <li key={key}>
-                  <a href={href} rel="noopener noreferrer" target="_blank" className="text-primary hover:underline">
+                  <a href={href} rel="noopener noreferrer" target="_blank" className={linkCls}>
                     {t(`footer.socials.${key}`)}
                   </a>
                 </li>
@@ -65,17 +75,31 @@ export async function SiteFooter({ settings }: { settings: SiteSettings | null }
           )}
         </div>
         <div>
-          <h2 className="text-sm font-semibold">{t("footer.explore")}</h2>
-          <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+          <h2 className="font-display text-sm font-semibold">{t("footer.cities")}</h2>
+          <ul data-testid="footer-cities" className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+            {cities.map((c) => (
+              <li key={c}>{c}</li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h2 className="font-display text-sm font-semibold">{t("footer.explore")}</h2>
+          <ul className="mt-3 space-y-1.5 text-sm">
             <li>
-              <Link href="/shop" className="hover:text-foreground">{t("nav.shop")}</Link>
+              <Link href="/shop" className={linkCls}>{t("nav.shop")}</Link>
             </li>
             <li>
-              <Link href="/shop?type=resale" className="hover:text-foreground">{t("nav.resale")}</Link>
+              <Link href="/shop?type=new" className={linkCls}>{t("nav.new")}</Link>
+            </li>
+            <li>
+              <Link href="/shop?type=resale" className={linkCls}>{t("nav.resale")}</Link>
             </li>
           </ul>
-          <div className="mt-4">
-            <LanguageSwitcher testId="footer-language-switcher" />
+          <div className="mt-5">
+            <LanguageSwitcher
+              testId="footer-language-switcher"
+              className="border-secondary bg-primary text-secondary hover:bg-primary hover:underline hover:text-secondary"
+            />
           </div>
         </div>
       </div>

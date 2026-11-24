@@ -3,6 +3,9 @@
 import { ChevronDown, Menu, Search, X } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+
+import { useMotionPrefs } from "@/lib/use-motion-prefs";
 
 import { Wordmark } from "@/components/brand";
 import { CartButton } from "@/components/cart/cart-button";
@@ -28,7 +31,7 @@ function categoryHref(slug: string) {
   return `/shop?category=${encodeURIComponent(slug)}`;
 }
 
-function SearchForm({ onDone, className }: { onDone?: () => void; className?: string }) {
+function SearchForm({ onDone, className, autoFocus }: { onDone?: () => void; className?: string; autoFocus?: boolean }) {
   const t = useTranslations("nav");
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -50,18 +53,60 @@ function SearchForm({ onDone, className }: { onDone?: () => void; className?: st
       <div className="relative">
         <Search
           aria-hidden
-          className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-stone"
         />
         <input
           id={inputId}
           type="search"
+          autoFocus={autoFocus}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("search")}
-          className="h-9 w-full rounded-md border border-input bg-card ps-9 pe-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-10 w-full rounded-md border border-input bg-card ps-9 pe-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
     </form>
+  );
+}
+
+/** Below md the search is an icon that opens a field under the header (Framer Motion, a user action). */
+function SearchToggle() {
+  const t = useTranslations("nav");
+  const { reduced } = useMotionPrefs();
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+  return (
+    <div className="md:hidden">
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label={t("searchLabel")}
+        aria-expanded={open}
+        data-testid="search-toggle"
+        onClick={() => setOpen((v) => !v)}
+      >
+        {open ? <X aria-hidden /> : <Search aria-hidden />}
+      </Button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            data-testid="search-row"
+            initial={reduced ? false : { opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="absolute inset-x-0 top-full border-b border-border bg-background px-4 py-3"
+          >
+            <SearchForm autoFocus onDone={() => setOpen(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -105,7 +150,7 @@ function MegaMenu({ categories }: { categories: Category[] }) {
         <div
           id={panelId}
           data-testid="mega-panel"
-          className="absolute start-0 top-full z-50 grid w-[36rem] grid-cols-3 gap-6 rounded-lg border border-border bg-popover p-6 text-popover-foreground shadow-[var(--shadow-soft)]"
+          className="absolute start-0 top-full z-50 grid w-[36rem] grid-cols-3 gap-6 rounded-md border border-border bg-popover p-6 text-popover-foreground shadow-float"
         >
           {categories.map((root) => (
             <div key={root.id}>
@@ -177,7 +222,7 @@ function MobileNav({ categories }: { categories: Category[] }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className="absolute inset-y-0 start-0 flex w-80 max-w-[85vw] flex-col gap-4 overflow-y-auto bg-background p-4 shadow-[var(--shadow-soft)]"
+            className="absolute inset-y-0 start-0 flex w-80 max-w-[85vw] flex-col gap-4 overflow-y-auto bg-background p-4 shadow-float"
           >
             <div className="flex items-center justify-between">
               <span id={titleId} className="font-display text-xl font-semibold text-primary">
@@ -187,7 +232,6 @@ function MobileNav({ categories }: { categories: Category[] }) {
                 <X aria-hidden />
               </Button>
             </div>
-            <SearchForm onDone={() => setOpen(false)} />
             <nav aria-label={t("menu")} className="flex flex-col gap-1">
               {NAV.map((item) => (
                 <Link
@@ -226,6 +270,9 @@ function MobileNav({ categories }: { categories: Category[] }) {
                 </div>
               ))}
             </nav>
+            <div className="mt-auto pt-4">
+              <LanguageSwitcher testId="mobile-language-switcher" />
+            </div>
           </div>
         </div>
       )}
@@ -236,8 +283,8 @@ function MobileNav({ categories }: { categories: Category[] }) {
 export function SiteHeader({ categories, logoUrl, cartConfig }: Props) {
   const t = useTranslations();
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4">
+    <header className="sticky top-0 z-40 border-b border-border bg-background">
+      <div className="relative mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 md:gap-4 md:px-8">
         <MobileNav categories={categories} />
         <Link href="/" className="font-display text-2xl font-semibold text-primary">
           {logoUrl ? (
@@ -247,7 +294,9 @@ export function SiteHeader({ categories, logoUrl, cartConfig }: Props) {
             <Wordmark name={t("home.brand")} />
           )}
         </Link>
-        <nav aria-label={t("nav.main")} className="hidden items-center gap-1 lg:flex">
+        {/* The search is the centre of the header: wide from md, an icon below. */}
+        <SearchForm className="mx-auto hidden w-full max-w-xl md:block" />
+        <nav aria-label={t("nav.main")} className="ms-auto hidden items-center gap-1 lg:flex">
           {NAV.map((item) => (
             <Link
               key={item.key}
@@ -259,14 +308,14 @@ export function SiteHeader({ categories, logoUrl, cartConfig }: Props) {
           ))}
           <MegaMenu categories={categories} />
         </nav>
-        <div className="ms-auto flex items-center gap-1">
-          <SearchForm className="hidden w-56 md:block" />
-          <div className="hidden sm:block">
-            <LanguageSwitcher />
+        <div className="ms-auto flex items-center gap-1 md:ms-0 lg:ms-2">
+          <SearchToggle />
+          <div className="hidden lg:block">
+            <LanguageSwitcher variant="ghost" />
           </div>
           <FavouritesLink />
-          <CartButton config={cartConfig} />
           <AccountActions />
+          <CartButton config={cartConfig} />
         </div>
       </div>
     </header>

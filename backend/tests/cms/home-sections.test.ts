@@ -64,7 +64,7 @@ beforeAll(async () => {
     env: { ...process.env },
     stdio: 'pipe',
   });
-  const hash = await hashPassword('Passw0rdOne');
+  const hash = await hashPassword('Passw0rdOne!');
   const admin = await prisma.user.create({
     data: {
       firstName: 'Admin',
@@ -249,14 +249,21 @@ describe('ADM-07 · home sections', () => {
 
   it('ADM-07 · CATEGORY_GRID items carry productCount: PUBLISHED products of the category and its direct children only', async () => {
     const child = await prisma.category.create({
-      data: { name: { en: 'Kid', ar: 'ك' }, slug: 'count-child', parentId: categoryId, image: null },
+      data: {
+        name: { en: 'Kid', ar: 'ك' },
+        slug: 'count-child',
+        parentId: categoryId,
+        image: null,
+      },
     });
     const before = await prisma.product.count({ where: { categoryId, status: 'PUBLISHED' } });
     const made = [
       await createProduct({ categoryId: child.id, status: 'PUBLISHED' }),
       await createProduct({ categoryId: child.id, status: 'DRAFT' }),
     ];
-    const created = await api('post').send(section({ type: 'CATEGORY_GRID', title: { en: 'Shop', ar: 'تسوق' }, sortOrder: 9 }));
+    const created = await api('post').send(
+      section({ type: 'CATEGORY_GRID', title: { en: 'Shop', ar: 'تسوق' }, sortOrder: 9 }),
+    );
     expect(created.status).toBe(201);
     const res = await request(app).get('/api/v1/cms/home');
     const grid = res.body.sections.find((s: { id: string }) => s.id === created.body.id);

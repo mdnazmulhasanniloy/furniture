@@ -25,7 +25,7 @@ import { prisma } from '../../src/lib/prisma.js';
 
 const app = createApp({ env: { ...getEnv(), TRUST_PROXY: 1 } });
 const sendMail = vi.fn().mockResolvedValue({});
-const PASSWORD = 'Passw0rdOne';
+const PASSWORD = 'Passw0rdOne!';
 
 const post = (path: string, ip: string, body?: unknown) => {
   const r = request(app).post(`/api/v1/auth/${path}`).set('X-Forwarded-For', ip);

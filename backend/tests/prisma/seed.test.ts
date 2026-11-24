@@ -6,7 +6,7 @@ import { runSeed, type SeedOptions } from '../../prisma/seed/run.js';
 
 const admin = {
   email: 'Owner@Example.com',
-  password: 'correct-horse-battery',
+  password: 'Correct-Horse-Battery9',
   firstName: 'Sara',
   lastName: 'Alharbi',
 };
@@ -304,9 +304,21 @@ describe('seed (T-002)', () => {
     await expect(runSeed(prisma, { ...base, admin: { email: 'a@b.com' } })).rejects.toThrow(
       /ADMIN_PASSWORD.*ADMIN_FIRST_NAME.*ADMIN_LAST_NAME/,
     );
+    // the one password policy, not a length of its own: the message names every unmet rule
     await expect(
       runSeed(prisma, { ...base, admin: { ...admin, password: 'short' } }),
-    ).rejects.toThrow(/12 to 128/);
+    ).rejects.toThrow(/password policy \(unmet: length, upper, digit, symbol\)/);
+    for (const weak of [
+      'alllower9!',
+      'ALLUPPER9!',
+      'NoDigits!!',
+      'NoSymbol99',
+      'Aa9!' + 'x'.repeat(125),
+    ]) {
+      await expect(
+        runSeed(prisma, { ...base, admin: { ...admin, password: weak } }),
+      ).rejects.toThrow(/password policy/);
+    }
     expect(await prisma.user.count()).toBe(0);
   });
 });

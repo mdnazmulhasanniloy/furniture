@@ -30,7 +30,7 @@ import {
 
 const env = getEnv();
 const app = createApp();
-const PASSWORD = 'Passw0rdOne';
+const PASSWORD = 'Passw0rdOne!';
 const auth = (t: string) => ({ Authorization: `Bearer ${t}` });
 
 let server: TestSocketServer;

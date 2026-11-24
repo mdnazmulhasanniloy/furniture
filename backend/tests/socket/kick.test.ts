@@ -32,7 +32,7 @@ const env = getEnv();
 const app = createApp();
 let server: TestSocketServer;
 const clients: ClientSocket[] = [];
-const PASSWORD = 'Passw0rdOld';
+const PASSWORD = 'Passw0rdOld!';
 let passwordHash = '';
 
 const mkUser = async () =>
@@ -99,7 +99,7 @@ describe('session revocation disconnects live sockets (T-023)', () => {
     const code = await createOtp({ email: user.email, purpose: 'RESET_PASSWORD' });
     const reset = await request(app)
       .post('/api/v1/auth/reset-password')
-      .send({ email: user.email, code, newPassword: 'Br4ndNewPass9' });
+      .send({ email: user.email, code, newPassword: 'Br4ndNewPass9!' });
     expect(reset.status).toBe(200);
 
     await waitForDisconnect(socket);

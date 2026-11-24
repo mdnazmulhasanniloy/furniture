@@ -92,8 +92,8 @@ const en = (s: string) => ({ en: s, ar: `${s} ع` });
 
 // ---- shared session state (the its run in file order)
 const CUSTOMER_EMAIL = 'conf-customer@example.com';
-const PASSWORD_1 = 'Passw0rdOne';
-const PASSWORD_2 = 'Passw0rdTwo';
+const PASSWORD_1 = 'Passw0rdOne!';
+const PASSWORD_2 = 'Passw0rdTwo!';
 let adminToken = '';
 let customer2Id = '';
 let customerToken = '';
@@ -635,7 +635,11 @@ it('NFR-01 · admin user routes conform (customers + admins + accept-invite)', a
     status: 200,
     path: `/admin/customers/${victim.id}`,
     token: adminToken,
-    body: { expectedUpdatedAt: victim.updatedAt.toISOString(), firstName: 'Changed', phone: '0551112233' },
+    body: {
+      expectedUpdatedAt: victim.updatedAt.toISOString(),
+      firstName: 'Changed',
+      phone: '0551112233',
+    },
   });
   await call('delete', '/admin/customers/{id}', {
     status: 200,

@@ -51,7 +51,8 @@ paths:
       security: []
       summary: Register and send email OTP (AUTH-01)
       description: |
-        Email is trimmed and lower-cased. Password: 8-128 characters, at least one letter and one number.
+        Email is trimmed and lower-cased. Password policy (owner 2026-11-24): at least 8 characters with one uppercase letter, one lowercase letter, one digit and one special character (not a letter, digit or space), max 128.
+        A password that breaks it is 400 `PASSWORD_TOO_WEAK`, where `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`).
         The OTP email is sent in the locale of `Accept-Language` (`ar`|`en`), else `preferredLocale`, else `ar`.
         Registering an email that already has an **unverified** account never changes that account: the submitted
         data (password hash, names, locale) is stored on the new OTP row and applied only when *that* OTP is verified
@@ -68,10 +69,11 @@ paths:
                 firstName: { type: string, minLength: 1, maxLength: 40 }
                 lastName: { type: string, minLength: 1, maxLength: 40 }
                 email: { type: string, format: email }
-                password: { type: string, minLength: 8, maxLength: 128, description: At least one letter and one number }
+                password: { type: string, minLength: 8, maxLength: 128, description: "Policy (owner 2026-11-24): at least 8 characters with one uppercase letter, one lowercase letter, one digit and one special character (not a letter, digit or space). Max 128. A password that breaks it is 400 `PASSWORD_TOO_WEAK` and `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`)." }
                 preferredLocale: { $ref: '#/components/schemas/Locale' }
       responses:
         '201': { $ref: '#/components/responses/Message' }
+        '400': { $ref: '#/components/responses/Error', description: "`PASSWORD_TOO_WEAK` - no account and no OTP are created; `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`)" }
         '409': { $ref: '#/components/responses/Error', description: "`EMAIL_IN_USE` - the email belongs to a verified account" }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` - cooldown, hourly OTP cap, or the per-IP cap (20/hour)" }
@@ -258,12 +260,12 @@ paths:
               properties:
                 email: { type: string, format: email }
                 code: { type: string, pattern: '^[0-9]{6}$' }
-                newPassword: { type: string, minLength: 8, maxLength: 128, description: "At least one letter and one number (same rule as registration)" }
+                newPassword: { type: string, minLength: 8, maxLength: 128, description: "Policy (owner 2026-11-24): at least 8 characters with one uppercase letter, one lowercase letter, one digit and one special character (not a letter, digit or space). Max 128. A password that breaks it is 400 `PASSWORD_TOO_WEAK` and `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`)." }
       responses:
         '200': { $ref: '#/components/responses/Message' }
-        '400': { $ref: '#/components/responses/Error', description: "`OTP_INVALID` (any failure to match a live code; see above)" }
+        '400': { $ref: '#/components/responses/Error', description: "`OTP_INVALID` (any failure to match a live code; see above), or `PASSWORD_TOO_WEAK` - the password is checked first, so the code stays usable; `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`)" }
         '403': { description: "`ACCOUNT_BLOCKED`, only after a correct code", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { $ref: '#/components/responses/Error', description: "Validation error (malformed email or code, weak password); the code stays usable" }
+        '422': { $ref: '#/components/responses/Error', description: "Validation error (malformed email or code, or a password over 128 characters); the code stays usable" }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (per-IP limit on failed attempts)" }
   /auth/accept-invite:
     post:
@@ -278,7 +280,7 @@ paths:
         expired — invites live `INVITE_TTL_SECONDS`, default 48 h —, already used, wrong code) is the identical
         400 `OTP_INVALID`, and each failure path spends one argon2 verify so timing matches. The 5th wrong code
         for an email burns every live code. `ACCOUNT_BLOCKED` (403) is returned only after a correct code.
-        A weak password -> 422 and the code stays usable.
+        A password that breaks the policy -> 400 `PASSWORD_TOO_WEAK`, checked before the code so the code stays usable.
 
         **On success, in one transaction:** the chosen password's argon2id hash is stored, `isVerified` is set,
         and every `INVITE_ADMIN` OTP of the email is consumed. The invitee is logged in (same response shape as
@@ -297,7 +299,7 @@ paths:
               properties:
                 email: { type: string, format: email }
                 code: { type: string, pattern: '^[0-9]{6}$' }
-                password: { type: string, minLength: 8, maxLength: 128, description: "At least one letter and one number (same rule as registration)" }
+                password: { type: string, minLength: 8, maxLength: 128, description: "Policy (owner 2026-11-24): at least 8 characters with one uppercase letter, one lowercase letter, one digit and one special character (not a letter, digit or space). Max 128. A password that breaks it is 400 `PASSWORD_TOO_WEAK` and `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`)." }
       responses:
         '200':
           description: Verified and logged in (sets the `fx_rt` refresh cookie, same flags as login)
@@ -308,9 +310,9 @@ paths:
                 properties:
                   accessToken: { type: string }
                   user: { $ref: '#/components/schemas/User' }
-        '400': { $ref: '#/components/responses/Error', description: "`OTP_INVALID` (any failure to match a live code; see above)" }
+        '400': { $ref: '#/components/responses/Error', description: "`OTP_INVALID` (any failure to match a live code; see above), or `PASSWORD_TOO_WEAK` - the password is checked first, so the code stays usable; `details.rules` names every unmet rule (`length`, `upper`, `lower`, `digit`, `symbol`)" }
         '403': { description: "`ACCOUNT_BLOCKED`, only after a correct code", content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { $ref: '#/components/responses/Error', description: "Validation error (malformed email or code, weak password); the code stays usable" }
+        '422': { $ref: '#/components/responses/Error', description: "Validation error (malformed email or code, or a password over 128 characters); the code stays usable" }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (per-IP limit on failed attempts)" }
   /auth/me:
     get:

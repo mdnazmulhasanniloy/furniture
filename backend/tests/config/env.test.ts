@@ -79,7 +79,19 @@ describe('env', () => {
     expect(parseEnv({ ...prod, AUTH_COOKIE_SECURE: '' }).AUTH_COOKIE_SECURE).toBe(true);
     expect(parseEnv({ ...dev, AUTH_COOKIE_SECURE: '' }).AUTH_COOKIE_SECURE).toBe(false);
     expect(parseEnv({ ...dev, AUTH_COOKIE_SECURE: 'true' }).AUTH_COOKIE_SECURE).toBe(true);
-    expect(parseEnv({ ...prod, AUTH_COOKIE_SECURE: 'false' }).AUTH_COOKIE_SECURE).toBe(false);
+  });
+
+  it('NFR-01 · production refuses to run with the auth cookie protections turned off (QA 2026-11-24)', () => {
+    expect(() => parseEnv({ ...prod, AUTH_COOKIE_SECURE: 'false' })).toThrow(/AUTH_COOKIE_SECURE/);
+    expect(() => parseEnv({ ...prod, AUTH_COOKIE_SAME_SITE: 'none' })).toThrow(
+      /AUTH_COOKIE_SAME_SITE/,
+    );
+    // outside production both stay configurable (http://localhost has no Secure cookies)
+    expect(parseEnv({ ...dev, AUTH_COOKIE_SECURE: 'false' }).AUTH_COOKIE_SECURE).toBe(false);
+    expect(parseEnv({ ...dev, AUTH_COOKIE_SAME_SITE: 'none' }).AUTH_COOKIE_SAME_SITE).toBe('none');
+    // the defaults production actually uses
+    expect(parseEnv(prod).AUTH_COOKIE_SECURE).toBe(true);
+    expect(parseEnv(prod).AUTH_COOKIE_SAME_SITE).toBe('lax');
   });
 
   it('NFR-01 · TRUST_PROXY is 1 in production by default and parses false / numbers', () => {

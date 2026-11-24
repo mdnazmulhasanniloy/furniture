@@ -31,8 +31,8 @@ const app = createApp();
 const sendMail = vi.fn().mockResolvedValue({});
 const env = getEnv();
 
-const OLD = 'Passw0rdOld';
-const NEW = 'Br4ndNewPass';
+const OLD = 'Passw0rdOld!';
+const NEW = 'Br4ndNewPass!';
 const EMAIL = 'user@example.com';
 const UNKNOWN = 'nobody@example.com';
 let oldHash = '';
@@ -210,7 +210,7 @@ describe('POST /auth/reset-password (AUTH-03)', () => {
         advance(61);
         return requestCode();
       })(),
-      'An0therPass1',
+      'An0therPass1!',
       { 'Accept-Language': 'ar' },
     );
     expect(ar.status).toBe(200);
@@ -303,16 +303,25 @@ describe('POST /auth/reset-password (AUTH-03)', () => {
     expect(res.body.code).toBe('UNAUTHORIZED');
   });
 
-  it('AUTH-03 · a weak new password → 422 and the code stays usable', async () => {
+  it('AUTH-03 · a new password that breaks the policy → 400 PASSWORD_TOO_WEAK and the code stays usable', async () => {
     await mkUser();
     const code = await requestCode();
-    for (const newPassword of ['Ab1', 'abcdefghij', '1234567890', 'a1'.repeat(65)]) {
+    const cases: [string, string[]][] = [
+      ['Ab1!', ['length']],
+      ['abcdefghij', ['upper', 'digit', 'symbol']],
+      ['1234567890', ['upper', 'lower', 'symbol']],
+      ['FurnixaPass9', ['symbol']],
+    ];
+    for (const [newPassword, rules] of cases) {
       const res = await reset(EMAIL, code, newPassword);
-      expect(res.status, newPassword).toBe(422);
-      expect(res.body.code).toBe('VALIDATION_ERROR');
+      expect(res.status, newPassword).toBe(400);
+      expect(res.body.code).toBe('PASSWORD_TOO_WEAK');
+      expect(res.body.details, newPassword).toEqual({ rules });
     }
+    // over the 128-character ceiling is still a shape error
+    expect((await reset(EMAIL, code, `Aa1!${'x'.repeat(125)}`)).status).toBe(422);
     expect((await reset(EMAIL, 'abc123')).status).toBe(422); // malformed code
-    expect((await reset(EMAIL, code)).status).toBe(200);
+    expect((await reset(EMAIL, code)).status).toBe(200); // the code survived every rejection
   });
 
   it('AUTH-03 · a wrong code → 400 OTP_INVALID; the 5th wrong code burns the live code', async () => {
@@ -446,8 +455,8 @@ describe('POST /auth/reset-password (AUTH-03)', () => {
     await mkUser();
     const code = await requestCode();
     const [a, b] = await Promise.all([
-      reset(EMAIL, code, 'Winner1Password'),
-      reset(EMAIL, code, 'Winner2Password'),
+      reset(EMAIL, code, 'Winner1Password!'),
+      reset(EMAIL, code, 'Winner2Password!'),
     ]);
     expect([a.status, b.status].sort()).toEqual([200, 400]);
     const loser = a.status === 400 ? a : b;
@@ -521,7 +530,7 @@ describe('password-changed notice (AUTH-03)', () => {
     const code = await requestCode();
     const before = mailCount();
     expect((await reset(EMAIL, wrong(code))).status).toBe(400);
-    expect((await reset(EMAIL, code, 'weak')).status).toBe(422);
+    expect((await reset(EMAIL, code, 'weak')).status).toBe(400); // PASSWORD_TOO_WEAK
     await new Promise((r) => setTimeout(r, 50));
     expect(mailCount()).toBe(before);
   });

@@ -105,7 +105,7 @@ beforeEach(async () => {
         firstName: 'C',
         lastName: 'Ron',
         email: 'cron@example.com',
-        passwordHash: await hashPassword('Passw0rdOne'),
+        passwordHash: await hashPassword('Passw0rdOne!'),
         isVerified: true,
       },
     })

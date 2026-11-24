@@ -240,8 +240,16 @@ describe('PROD-01 · public product listing', () => {
   });
 
   it('PROD-01 · q also searches the category name, the description and the material, in both languages; every word must match', async () => {
-    const extra = await seedProduct({ slug: 'chesterfield', title: { en: 'Classic Chesterfield Three-Seater', ar: 'تشيسترفيلد' }, categoryId: sofasId, material: 'Leather' });
-    await prisma.product.update({ where: { id: extra.id }, data: { description: { en: 'Deep buttoned seat', ar: 'مقعد مبطن' } } });
+    const extra = await seedProduct({
+      slug: 'chesterfield',
+      title: { en: 'Classic Chesterfield Three-Seater', ar: 'تشيسترفيلد' },
+      categoryId: sofasId,
+      material: 'Leather',
+    });
+    await prisma.product.update({
+      where: { id: extra.id },
+      data: { description: { en: 'Deep buttoned seat', ar: 'مقعد مبطن' } },
+    });
     try {
       expect(slugs(await list({ q: 'sofa' })).sort()).toEqual(['chesterfield', 'velvet-sofa']); // category name
       expect(slugs(await list({ q: 'كنب' })).sort()).toEqual(['chesterfield', 'velvet-sofa']); // category name, Arabic

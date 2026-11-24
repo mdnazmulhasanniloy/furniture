@@ -1,6 +1,7 @@
 import argon2 from 'argon2';
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { buildSearchText } from '../../src/lib/searchText.js';
+import { failedPasswordRules } from '../../src/lib/passwordPolicy.js';
 import { CATEGORIES, DELIVERY_CITIES, DEMO_PRODUCTS, HOME_SECTIONS, PAGES } from './data.js';
 
 export const PLACEHOLDER_CONTACT_EMAIL = 'placeholder@example.com';
@@ -43,8 +44,12 @@ export async function runSeed(prisma: PrismaClient, opts: SeedOptions): Promise<
     throw new Error(`Missing admin seed settings: ${names.join(', ')}`);
   }
   const password = a.password as string;
-  if (password.length < 12 || password.length > 128) {
-    throw new Error('ADMIN_PASSWORD must be 12 to 128 characters');
+  // The same policy the API enforces (src/lib/passwordPolicy.ts): never seed an admin with a weak password.
+  const weak = failedPasswordRules(password);
+  if (weak.length > 0) {
+    throw new Error(
+      `ADMIN_PASSWORD does not meet the password policy (unmet: ${weak.join(', ')}): at least 8 characters with one uppercase letter, one lowercase letter, one digit and one special character, at most 128`,
+    );
   }
   const email = (a.email as string).trim().toLowerCase();
 

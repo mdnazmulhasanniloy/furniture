@@ -117,7 +117,7 @@ beforeAll(async () => {
     env: { ...process.env },
     stdio: 'pipe',
   });
-  const hash = await hashPassword('Passw0rdOne');
+  const hash = await hashPassword('Passw0rdOne!');
   admin = await prisma.user.create({
     data: {
       firstName: 'Admin',

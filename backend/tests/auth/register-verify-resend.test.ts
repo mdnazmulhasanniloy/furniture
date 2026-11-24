@@ -21,8 +21,8 @@ import { createApp } from '../../src/app.js';
 const app = createApp();
 const sendMail = vi.fn().mockResolvedValue({});
 
-const PASSWORD_1 = 'Passw0rdOne';
-const PASSWORD_2 = 'Passw0rdTwo';
+const PASSWORD_1 = 'Passw0rdOne!';
+const PASSWORD_2 = 'Passw0rdTwo!';
 const EMAIL = 'user@example.com';
 const body = (over: Record<string, unknown> = {}) => ({
   firstName: 'Sara',
@@ -134,14 +134,29 @@ describe('POST /auth/register (AUTH-01)', () => {
     expect(sendMail).not.toHaveBeenCalled();
   });
 
-  it('AUTH-01 · password must be 8-128 characters with at least one letter and one number → 422', async () => {
-    for (const password of ['Ab1', 'abcdefghij', '1234567890', 'a1'.repeat(65)]) {
+  it('AUTH-03 · a password that breaks the policy → 400 PASSWORD_TOO_WEAK naming every unmet rule', async () => {
+    const cases: [string, string[]][] = [
+      ['Ab1!', ['length']],
+      ['abcdefghij', ['upper', 'digit', 'symbol']],
+      ['1234567890', ['upper', 'lower', 'symbol']],
+      ['FurnixaPass9', ['symbol']],
+      ['FURNIXA#9A', ['lower']],
+      ['furnixa#9a', ['upper']],
+    ];
+    for (const [password, rules] of cases) {
       const res = await register({ password });
-      expect(res.status, password).toBe(422);
-      expect(res.body.code).toBe('VALIDATION_ERROR');
+      expect(res.status, password).toBe(400);
+      expect(res.body.code).toBe('PASSWORD_TOO_WEAK');
+      expect(res.body.details, password).toEqual({ rules });
       expect(res.body.requestId).toEqual(expect.any(String));
+      expect(await prisma.user.findUnique({ where: { email: EMAIL } })).toBeNull(); // nothing created
+      expect(sendMail).not.toHaveBeenCalled(); // and no OTP mail
     }
-    expect((await register({ password: 'a1'.repeat(64) })).status).toBe(201); // exactly 128
+    // over the 128-character API ceiling is a shape error, not a policy one
+    const long = await register({ password: `Aa1!${'x'.repeat(125)}` });
+    expect(long.status).toBe(422);
+    expect(long.body.code).toBe('VALIDATION_ERROR');
+    expect((await register({ password: `Aa1!${'x'.repeat(124)}` })).status).toBe(201); // exactly 128
   });
 
   it('AUTH-01 · "User@Example.COM " and "user@example.com" are the same account', async () => {

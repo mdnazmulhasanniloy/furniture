@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { randomBytes } from 'node:crypto';
 import { hashPassword } from '../src/lib/password.js';
+import { isStrongPassword } from '../src/lib/passwordPolicy.js';
 import { prisma } from '../src/lib/prisma.js';
 
 /**
@@ -26,8 +27,13 @@ async function main(): Promise<void> {
   }
 
   const email = `preview-customer-${randomBytes(3).toString('hex')}@example.com`;
-  // Registration policy (AUTH-03): 8-128 chars, at least one letter and one number.
-  const password = `${randomBytes(12).toString('base64url')}a1`;
+  // The one shared password policy (src/lib/passwordPolicy.ts, owner 2026-11-24): the prefix guarantees an
+  // uppercase letter, a lowercase letter, a digit and a special character whatever the random part contains.
+  const password = `Aa1!${randomBytes(12).toString('base64url')}`;
+  if (!isStrongPassword(password)) {
+    console.error('Generated password does not meet the password policy; nothing was created.');
+    process.exit(1);
+  }
 
   const user = await prisma.user.create({
     data: {

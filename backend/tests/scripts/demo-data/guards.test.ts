@@ -13,7 +13,8 @@ const DEV_URL =
 const GOOD_ENV = {
   NODE_ENV: 'development',
   DATABASE_URL: DEV_URL,
-  DEMO_CUSTOMER_PASSWORD: 'a-long-demo-password',
+  // meets the one shared password policy (owner 2026-11-24), like any usable demo password
+  DEMO_CUSTOMER_PASSWORD: 'DemoPassw0rd!',
 };
 
 /** A prisma stand-in that fails the test on any call: guards must trip before the database is touched. */
@@ -109,16 +110,34 @@ describe('T-078 · demo reset guards', () => {
     err.mockRestore();
   });
 
-  it('T-078 · run() with --confirm but no usable DEMO_CUSTOMER_PASSWORD exits 1 before touching anything', async () => {
+  it('T-078 · run() with --confirm and a DEMO_CUSTOMER_PASSWORD that breaks the shared policy exits 1 before touching anything (owner 2026-11-24)', async () => {
     const deps = vi.fn(async () => ({ prisma: forbiddenPrisma() }));
-    const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-    for (const pw of [undefined, '', 'short-pw']) {
+    const messages: string[] = [];
+    const err = vi
+      .spyOn(console, 'error')
+      .mockImplementation((...args: unknown[]) => void messages.push(args.join(' ')));
+    // one failing case per rule of the shared policy, plus missing and empty
+    const cases: [string | undefined, string][] = [
+      [undefined, 'length'],
+      ['', 'length'],
+      ['Ab1!xyz', 'length'], // 7 characters
+      ['passw0rd!', 'upper'],
+      ['PASSW0RD!', 'lower'],
+      ['Password!', 'digit'],
+      ['Passw0rdOne', 'symbol'],
+      ['averylongdemopassword', 'upper'], // the old 12-character rule would have allowed this
+    ];
+    for (const [pw, rule] of cases) {
+      messages.length = 0;
       const code = await run({
         argv: ['--confirm'],
         env: { ...GOOD_ENV, DEMO_CUSTOMER_PASSWORD: pw },
         deps,
       });
-      expect(code).toBe(1);
+      expect(code, String(pw)).toBe(1);
+      // the message names the unmet rule, so the developer knows what to change
+      expect(messages.join('\n'), String(pw)).toContain(rule);
+      expect(messages.join('\n'), String(pw)).toContain('password policy');
     }
     expect(deps).not.toHaveBeenCalled();
     err.mockRestore();

@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { PrismaClient } from '@prisma/client';
+import { failedPasswordRules } from '../../src/lib/passwordPolicy.js';
 import { assertSafeTarget, DemoGuardError, hasConfirmFlag, maskDatabaseUrl } from './guards.js';
 import { getImage, loadManifest, type ManifestImage } from './images.js';
 
@@ -17,7 +18,9 @@ import { getImage, loadManifest, type ManifestImage } from './images.js';
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const MANIFEST_FILE = path.join(here, 'images.json');
 export const CACHE_DIR = path.join(here, '.cache');
-export const MIN_PASSWORD_LENGTH = 12;
+/** Rule names of the shared policy, for the refusal message (`src/lib/passwordPolicy.ts`). */
+export const PASSWORD_POLICY_TEXT =
+  'at least 8 characters with one uppercase letter, one lowercase letter, one digit and one special character, at most 128';
 
 export interface RunDeps {
   prisma: PrismaClient;
@@ -41,9 +44,12 @@ export async function run({ argv, env, deps }: RunOptions): Promise<number> {
     const { dbName } = assertSafeTarget({ nodeEnv: env.NODE_ENV, databaseUrl: env.DATABASE_URL });
     const confirm = hasConfirmFlag(argv);
     const password = env.DEMO_CUSTOMER_PASSWORD ?? '';
-    if (confirm && password.length < MIN_PASSWORD_LENGTH) {
+    // The one shared policy the API enforces (owner 2026-11-24), not a length of its own: the demo
+    // customers must be able to log in with a password the register and reset endpoints would accept.
+    const weak = failedPasswordRules(password);
+    if (confirm && weak.length > 0) {
       throw new DemoGuardError(
-        `Refusing to run: DEMO_CUSTOMER_PASSWORD must be set to at least ${MIN_PASSWORD_LENGTH} characters.`,
+        `Refusing to run: DEMO_CUSTOMER_PASSWORD does not meet the password policy (unmet: ${weak.join(', ')}): ${PASSWORD_POLICY_TEXT}.`,
       );
     }
 

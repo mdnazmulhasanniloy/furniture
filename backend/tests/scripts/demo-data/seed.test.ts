@@ -30,7 +30,8 @@ import { run } from '../../../scripts/demo-data/reset-and-seed.js';
 import { seedDemoData, type SeedResult } from '../../../scripts/demo-data/seed.js';
 import { resetS3, s3State } from '../../helpers/s3Mock.js';
 
-const PASSWORD = 'demo-password-123';
+// meets the one shared password policy (owner 2026-11-24): demo:reset refuses anything weaker
+const PASSWORD = 'DemoPassw0rd!';
 const jpegBytes = Uint8Array.from([
   0xff, 0xd8, 0xff, 0xe0, 0, 0x10, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0xff, 0xd9,
 ]);

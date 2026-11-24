@@ -157,15 +157,19 @@
     "vat": "VAT ({rate}%)",
     "totalLabel": "Total",
     "invoice": {
-      "title": "Simplified tax invoice",
+      "title": "Invoice",
+      "titleTax": "Simplified tax invoice",
+      "seller": "Seller",
       "number": "Invoice no.",
-      "date": "Date",
+      "date": "Issue date and time",
       "vatReg": "VAT registration no.",
       "language": "Invoice language",
       "print": "Print",
       "pricesIncludeVat": "Prices include VAT.",
       "pricesExcludeVat": "Prices exclude VAT; VAT is added to the total.",
-      "vatOnDelivery": "VAT applies to the delivery fee."
+      "vatOnDelivery": "VAT applies to the delivery fee.",
+      "totalInclVat": "Total including VAT",
+      "qr": "QR code of this tax invoice"
     }
   },
   "auth": {

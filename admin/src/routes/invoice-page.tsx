@@ -1,47 +1,70 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
+import { QrCode } from "@/components/qr-code";
 import { Button } from "@/components/ui/button";
 import { errorMessage } from "@/lib/api/messages";
 import { formatDateTime, formatNumber, formatPrice, toLocale, type Locale } from "@/lib/format";
 import { dirOf } from "@/lib/i18n";
 import { useOrder } from "@/lib/orders";
 import { pickText } from "@/lib/products";
+import { useSettings } from "@/lib/settings";
+import { phase1QrPayload } from "@/lib/zatca";
 
 /**
- * Printable invoice (ADM-04). Everything comes from the order snapshot: amounts are shown exactly as
- * stored (never recomputed); the VAT breakdown and registration number appear only when the snapshot
- * `vatRate` > 0; a fee of 0 reads "Free delivery". Marked "Simplified tax invoice" pending B-013.
- * The invoice language (ar | en) defaults to the UI language and can be switched for printing.
+ * Printable invoice (ADM-04). Every amount comes from the order snapshot and is shown exactly as
+ * stored, never recomputed; a fee of 0 reads "Free delivery". The invoice language (ar | en) defaults
+ * to the UI language and can be switched for printing.
+ *
+ * Owner 2026-11-24 (A6), closes the Phase 1 half of B-013: the seller is the store name from settings
+ * (ADM-09), and the VAT registration number on the snapshot decides what kind of document this is.
+ * Without it the sheet is a plain "Invoice" with no VAT line and no QR; with it, it is a simplified tax
+ * invoice carrying the seller name, the VAT number, the issue date and time, the line totals, the VAT
+ * amount, the total including VAT and the ZATCA Phase 1 QR. ZATCA Phase 2 (e-invoicing integration) is
+ * launch blocker B-041. The VAT line also shows whenever the snapshot rate is above 0, so a charged VAT
+ * can never be hidden by a registration number that was not configured at the time.
  */
 export function InvoicePage() {
   const { i18n } = useTranslation();
   const { id } = useParams();
   const q = useOrder(id);
+  const settings = useSettings();
   const [lang, setLang] = useState<Locale | null>(null);
   const ui = toLocale(i18n.language);
   const locale = lang ?? ui;
   const t = i18n.getFixedT(locale);
   const tUi = i18n.getFixedT(ui);
 
-  if (q.isPending) {
+  if (q.isPending || settings.isPending) {
     return (
       <p role="status" className="text-muted-foreground">
         {tUi("orders.loading")}
       </p>
     );
   }
-  if (q.isError || !q.data) {
+  if (q.isError || !q.data || settings.isError || !settings.data) {
     return (
       <p role="alert" className="text-destructive">
-        {errorMessage(tUi, ui, q.error)}
+        {errorMessage(tUi, ui, q.error ?? settings.error)}
       </p>
     );
   }
   const o = q.data;
   const vat = o.vat;
-  const showVat = vat.vatRate > 0;
+  // A simplified tax invoice needs a seller VAT number; without one this is an ordinary invoice.
+  const taxInvoice = !!vat.registrationNumber;
+  const showVat = taxInvoice || vat.vatRate > 0;
+  const sellerName = pickText(settings.data.storeName, locale);
   const row = "flex justify-between gap-4 py-1";
+  const qrPayload = taxInvoice
+    ? phase1QrPayload({
+        sellerName,
+        vatNumber: vat.registrationNumber!,
+        issuedAt: o.createdAt,
+        totalWithVat: o.total,
+        vatTotal: vat.vatAmount,
+      })
+    : null;
 
   return (
     <section aria-label={tUi("orders.printInvoice")}>
@@ -75,18 +98,20 @@ export function InvoicePage() {
         <header className="flex flex-wrap items-start justify-between gap-3 border-b border-border pb-3">
           <div>
             <h1 className="font-display text-2xl font-semibold" data-testid="invoice-title">
-              {t("orders.invoice.title")}
+              {t(taxInvoice ? "orders.invoice.titleTax" : "orders.invoice.title")}
             </h1>
-            <p className="text-sm">{t("app.title")}</p>
+            <p className="text-sm" data-testid="invoice-seller">
+              {t("orders.invoice.seller")}: {sellerName}
+            </p>
           </div>
           <div className="text-sm">
             <p>
               {t("orders.invoice.number")}: <bdi dir="ltr">{o.orderNo}</bdi>
             </p>
-            <p>
+            <p data-testid="invoice-date">
               {t("orders.invoice.date")}: {formatDateTime(o.createdAt, locale)}
             </p>
-            {showVat && vat.registrationNumber && (
+            {vat.registrationNumber && (
               <p data-testid="invoice-vat-reg">
                 {t("orders.invoice.vatReg")}: <bdi dir="ltr">{vat.registrationNumber}</bdi>
               </p>
@@ -164,7 +189,7 @@ export function InvoicePage() {
             </div>
           )}
           <div className={`${row} border-t border-border font-semibold`}>
-            <dt>{t("orders.totalLabel")}</dt>
+            <dt>{t(taxInvoice ? "orders.invoice.totalInclVat" : "orders.totalLabel")}</dt>
             <dd data-testid="invoice-total">{formatPrice(o.total, locale)}</dd>
           </div>
         </dl>
@@ -177,6 +202,13 @@ export function InvoicePage() {
         <p className="mt-3 text-sm">
           {t("orders.payment.label")}: {t("orders.payment.COD")} · {t(`orders.payment.${o.paymentStatus}`)}
         </p>
+        {qrPayload && (
+          <figure className="mt-3" data-testid="invoice-qr">
+            {/* ZATCA Phase 1: the QR carries the base64 TLV of seller, VAT number, timestamp, total and VAT. */}
+            <QrCode value={qrPayload} label={t("orders.invoice.qr")} testId="invoice-qr-svg" size={128} />
+            <figcaption className="mt-1 text-xs text-muted-foreground">{t("orders.invoice.qr")}</figcaption>
+          </figure>
+        )}
         {o.customerNote && (
           <div className="mt-2 text-sm" data-testid="invoice-customer-note">
             <span className="font-semibold">{t("orders.customerNote")}: </span>

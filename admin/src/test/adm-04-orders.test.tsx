@@ -71,6 +71,14 @@ function stubApi() {
       const method = init?.method ?? "GET";
       if (path === "/auth/csrf") return json({ csrfToken: "csrf-1" });
       if (path === "/auth/refresh") return json({ accessToken: "at-1", user: adminUser });
+      // A6: the invoice takes the seller name from settings.
+      if (path === "/admin/settings")
+        return json({
+          storeName: { en: "Furnixa", ar: "فرنيكسا" }, logo: null, contactEmail: "", contactPhone: "", address: null,
+          socials: null, deliveryFee: 2500, freeDeliveryThreshold: null,
+          vat: { vatRate: 0, applyToDelivery: true, pricesIncludeVat: true, registrationNumber: null },
+          currency: "SAR", deliveryCities: [], defaultLocale: "ar", seo: null, updatedAt: "2026-11-20T09:00:00.000Z",
+        });
       if (path.startsWith("/admin/orders")) {
         const body = init?.body ? JSON.parse(String(init.body)) : undefined;
         calls.push({ method, path, body });
@@ -205,7 +213,8 @@ describe.each([
   });
 
   it("ADM-04 · invoice with VAT 0 shows 'Free delivery' and no VAT line or registration number", async () => {
-    current = order({ deliveryFee: 0, vat: { vatRate: 0, vatAmount: 0, applyToDelivery: true, pricesIncludeVat: true, registrationNumber: "300000000000003" } });
+    // A6: no registration number on the snapshot, so this is a plain invoice with no VAT line and no QR.
+    current = order({ deliveryFee: 0, vat: { vatRate: 0, vatAmount: 0, applyToDelivery: true, pricesIncludeVat: true, registrationNumber: null } });
     mount("/orders/o1/invoice");
     const inv = await screen.findByTestId("invoice");
     expect(within(inv).getByTestId("invoice-title").textContent).toBe(msgs.orders.invoice.title);

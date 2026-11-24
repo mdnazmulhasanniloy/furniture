@@ -44,8 +44,10 @@ function useLines(server: boolean): Line[] {
   if (server) {
     return (
       cart?.items.map((i, n) => ({
-        key: i.product?.id ?? `gone-${n}`,
-        productId: i.product?.id ?? null,
+        // Every line names its product, also an UNAVAILABLE one (api-spec CartLine, B-035), so the
+        // row can offer Remove. The index fallback only covers an older response shape.
+        key: i.productId ?? i.product?.id ?? `gone-${n}`,
+        productId: i.productId ?? i.product?.id ?? null,
         product: i.product,
         qty: i.qty,
         lineTotal: i.lineTotal,
@@ -77,6 +79,8 @@ function useLines(server: boolean): Line[] {
 export function CartContents({ variant, onNavigate }: { variant: "drawer" | "page"; onNavigate?: () => void }) {
   const t = useTranslations("cart");
   const te = useTranslations("errors");
+  // The checkout page's approved wording for the same situation (QA B1), reused rather than reworded.
+  const tc = useTranslations("checkout");
   const locale = useLocale() as Locale;
   const status = useAuthStore((s) => s.status);
   const user = useAuthStore((s) => s.user);
@@ -100,7 +104,10 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
   const subtotal = server ? (cart?.subtotal ?? 0) : guestSubtotal;
   const threshold = config.freeDeliveryThreshold && config.freeDeliveryThreshold > 0 ? config.freeDeliveryThreshold : null;
   const notDeliverable = server && cart?.address?.isDeliverable === false;
-  const canCheckout = effective.length > 0 && !notDeliverable;
+  // QA B1: a line the customer cannot order (gone, or sold out) blocks checkout here, where it can be
+  // removed, instead of letting them reach the checkout page and be stopped there.
+  const blocked = lines.some((l) => !l.loading && (l.issue === "UNAVAILABLE" || l.issue === "OUT_OF_STOCK"));
+  const canCheckout = effective.length > 0 && !notDeliverable && !blocked;
   const count = cartCount({ cart, guest }, server);
   const vat = server ? cart?.vat : null;
   const headingLevel = variant === "page" ? "h1" : "h2";
@@ -113,7 +120,9 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
           {t("title")}
         </Heading>
         {!pending && count > 0 ? (
-          <span className="text-sm text-muted-foreground">{t("itemsCount", { count })}</span>
+          <span className="text-sm text-muted-foreground" data-testid="cart-items-count">
+            {t("itemsCount", { count })}
+          </span>
         ) : null}
       </div>
 
@@ -182,6 +191,11 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
           {notDeliverable ? (
             <p role="alert" className="text-sm text-destructive" data-testid="cart-not-deliverable">
               {t("notDeliverable")}
+            </p>
+          ) : null}
+          {blocked ? (
+            <p role="alert" className="text-sm text-destructive" data-testid="cart-blocked">
+              {tc("reviewIssue")}
             </p>
           ) : null}
         </div>
@@ -323,9 +337,9 @@ function LineRow({ line, locale }: { line: Line; locale: Locale }) {
               : t(`cart.issue.${line.issue}`)}
           </p>
         ) : null}
-        {p && line.productId ? (
+        {line.productId ? (
           <div className="flex items-center gap-2">
-            {!unavailable ? (
+            {p && !unavailable ? (
               <div className="inline-flex items-center rounded-sm border border-input" role="group" aria-label={t("product.quantity")}>
                 <button
                   type="button"
@@ -350,13 +364,16 @@ function LineRow({ line, locale }: { line: Line; locale: Locale }) {
             ) : null}
             <button
               type="button"
-              aria-label={t("cart.remove", { title })}
+              aria-label={t("cart.remove", { title: title || t("cart.issue.UNAVAILABLE") })}
+              data-testid={p ? undefined : "cart-remove-unavailable"}
               onClick={async () => {
-                // Remove with undo (CR-007): the toast action puts the same quantity back.
+                // Remove with undo (CR-007): the toast action puts the same quantity back. A line whose
+                // product is gone (QA B1) is removed without the offer - putting it back would fail.
                 const productId = line.productId as string;
                 const qty = line.qty;
                 await setLineQty(productId, 0, stock);
                 if (useCartStore.getState().error) return;
+                if (!p) return;
                 toast(t("cart.removed", { title }), {
                   id: `cart-removed-${productId}`,
                   action: { label: t("cart.undo"), onClick: () => void setLineQty(productId, qty, stock) },

@@ -132,7 +132,14 @@ export async function resolveGuestProducts(): Promise<void> {
         }
       } catch (e) {
         if (e instanceof ApiError && e.status === 404) {
-          set((s) => ({ guestProducts: { ...s.guestProducts, [l.productId]: null } }));
+          // QA B1: a guest line is local, stale data once its product is gone - drop it from storage
+          // and from the badge instead of showing a line nobody can act on.
+          commitGuest(get().guest.filter((g) => g.productId !== l.productId));
+          set((s) => {
+            const rest = { ...s.guestProducts };
+            delete rest[l.productId];
+            return { guestProducts: rest };
+          });
         } else {
           set({ error: codeOf(e) });
         }
@@ -179,7 +186,7 @@ export async function loadCart(addressId?: string): Promise<void> {
 }
 
 function serverQty(productId: string): number {
-  return get().cart?.items.find((i) => i.product?.id === productId)?.qty ?? 0;
+  return get().cart?.items.find((i) => i.productId === productId)?.qty ?? 0;
 }
 
 async function serverSet(productId: string, qty: number) {
@@ -282,7 +289,10 @@ export function resetToGuest() {
   set({ cart: null, error: null, mergeFailed: false, guest: readGuest() });
 }
 
-/** Item count shown in the header badge. */
+/**
+ * Item count shown in the header badge. A line whose product is gone counts 0 (QA B1); a guest line
+ * for a deleted product is dropped by `resolveGuestProducts`, so it can never reach the badge either.
+ */
 export function cartCount(s: Pick<CartState, "cart" | "guest">, server: boolean): number {
   if (server) return s.cart?.items.reduce((n, i) => n + (i.product ? i.qty : 0), 0) ?? 0;
   return s.guest.reduce((n, l) => n + l.qty, 0);

@@ -646,8 +646,12 @@ paths:
       description: |
         Upserts one line and refreshes its `priceSeen` to the live price. `qty` above live stock -> 409
         `OUT_OF_STOCK` with `details: {productId, stock}`, nothing written. Unknown or non-PUBLISHED
-        product -> 404. Adding a 51st distinct line -> 409 `CART_LIMIT_REACHED`. Concurrent writes that
-        keep conflicting after 3 attempts -> 409 `CART_CONFLICT` (client retries).
+        product -> 404 **when adding or changing a quantity**. Adding a 51st distinct line -> 409
+        `CART_LIMIT_REACHED`. Concurrent writes that keep conflicting after 3 attempts -> 409
+        `CART_CONFLICT` (client retries).
+        **`qty: 0` always removes** (owner 2026-11-24, QA B1): it succeeds even when the product was
+        deleted or unpublished, which is the only way to clear an UNAVAILABLE line, and removing a
+        product that is not in the cart is an idempotent 200 that changes nothing.
       requestBody:
         required: true
         content:
@@ -665,7 +669,7 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/Cart' } } }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error', description: Not a customer }
-        '404': { $ref: '#/components/responses/Error', description: Product unknown or not PUBLISHED }
+        '404': { $ref: '#/components/responses/Error', description: Product unknown or not PUBLISHED, for `qty` above 0 only (a `qty: 0` remove always succeeds) }
         '409': { $ref: '#/components/responses/Error', description: "`OUT_OF_STOCK` (details: {productId, stock}), `CART_LIMIT_REACHED` (max 50 distinct lines) or `CART_CONFLICT` (concurrent writes, retry)" }
   /cart/merge:
     post:
@@ -2168,7 +2172,13 @@ components:
           type: array
           items:
             type: object
+            required: [productId, qty, lineTotal, issue]
             properties:
+              productId:
+                $ref: '#/components/schemas/ObjectId'
+                description: >-
+                  The stored line's product id. Present on EVERY line, including UNAVAILABLE ones whose
+                  `product` is null (owner, B-035), so the client can always remove the line.
               product:
                 anyOf: [{ $ref: '#/components/schemas/Product' }, { type: 'null' }]
                 description: Null when the product no longer exists (issue UNAVAILABLE)

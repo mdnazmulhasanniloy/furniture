@@ -46,7 +46,7 @@ const sofa: HomeProduct = {
 };
 const vat0 = { vatRate: 0, vatAmount: 0, applyToDelivery: true, pricesIncludeVat: true };
 const cartOf = (over: Partial<ServerCart> = {}, product: HomeProduct = sofa): ServerCart => ({
-  items: [{ product, qty: 2, lineTotal: 259900, issue: null }],
+  items: [{ productId: product.id, product, qty: 2, lineTotal: 259900, issue: null }],
   subtotal: 259900, deliveryFee: 0, vat: vat0, total: 259900, ...over,
 });
 
@@ -145,14 +145,14 @@ describe.each(["en", "ar"] as const)("CART-01 · redesigned cart (%s)", (locale)
     // QA 2026-11-24 item 10: the unit price used to appear only above quantity 1, and a pre-owned item is
     // always a single piece, so those lines showed no price under the name at all.
     login();
-    useCartStore.setState({ cart: cartOf({ items: [{ product: sofa, qty: 1, lineTotal: 129950, issue: null }], subtotal: 129950, total: 129950 }) });
+    useCartStore.setState({ cart: cartOf({ items: [{ productId: sofa.id, product: sofa, qty: 1, lineTotal: 129950, issue: null }], subtotal: 129950, total: 129950 }) });
     const { unmount } = wrap(locale, <CartContents variant="page" />);
     expect(screen.getByTestId("line-unit-price").textContent).toContain("1,299.50");
     expect(screen.getByTestId("line-total")).toBeTruthy();
     unmount();
     // a pre-owned line (stock 1, quantity 1) shows it too
     const resale = { ...sofa, type: "RESALE", condition: "GOOD", stock: 1 } as HomeProduct;
-    useCartStore.setState({ cart: cartOf({ items: [{ product: resale, qty: 1, lineTotal: 129950, issue: null }], subtotal: 129950, total: 129950 }) });
+    useCartStore.setState({ cart: cartOf({ items: [{ productId: resale.id, product: resale, qty: 1, lineTotal: 129950, issue: null }], subtotal: 129950, total: 129950 }) });
     const second = wrap(locale, <CartContents variant="page" />);
     expect(screen.getByTestId("line-unit-price").textContent).toContain("1,299.50");
     second.unmount();

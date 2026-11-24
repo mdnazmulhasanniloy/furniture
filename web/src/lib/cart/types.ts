@@ -5,6 +5,8 @@ import type { HomeProduct } from "@/lib/api/public";
 export type CartIssue = "UNAVAILABLE" | "OUT_OF_STOCK" | "QTY_REDUCED" | "PRICE_CHANGED";
 
 export type ServerCartItem = {
+  /** Always present, also when `product` is null (api-spec CartLine, B-035): removing needs it. */
+  productId: string;
   product: HomeProduct | null;
   qty: number;
   lineTotal: number;

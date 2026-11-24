@@ -65,7 +65,7 @@ export function OrdersList() {
             <li key={o.id}>
               <Link
                 href={`/account/orders/${o.id}`}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 hover:bg-muted"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-5 hover:bg-muted"
                 data-testid="order-row"
               >
                 <span className="space-y-1">

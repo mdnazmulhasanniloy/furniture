@@ -33,8 +33,8 @@ export function AccountShell({
 
   const ready = status === "authenticated" && user?.role === "CUSTOMER";
   return (
-    <main className="mx-auto max-w-4xl px-4 py-8" data-testid="account-page">
-      <h1 className="font-display text-2xl font-semibold">{t("title")}</h1>
+    <main className="band mx-auto w-full max-w-5xl px-5 sm:px-8 lg:px-12" data-testid="account-page">
+      <h1 className="text-4xl md:text-5xl">{t("title")}</h1>
       <nav aria-label={t("title")} className="rail-scroll mt-4 flex gap-1 border-b border-border">
         {TABS.map((x) => (
           <Link
@@ -42,7 +42,7 @@ export function AccountShell({
             href={x.href}
             aria-current={x.key === tab ? "page" : undefined}
             className={cn(
-              "whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium",
+              "whitespace-nowrap border-b-2 px-4 py-2.5 text-base font-medium",
               x.key === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >

@@ -47,8 +47,8 @@ export function FavouritesPage() {
   const busy = server ? loading && !loaded : guestItems === null && guest.length > 0;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-10" data-testid="favourites-page">
-      <h1 className="font-display text-3xl font-semibold">{t("title")}</h1>
+    <main className="container-wide band" data-testid="favourites-page">
+      <h1 className="text-4xl md:text-5xl">{t("title")}</h1>
       {mergeFailed ? (
         <p role="alert" data-testid="merge-failed" className="mt-4 rounded-md border border-destructive/40 bg-card p-3 text-sm text-destructive">
           {t("mergeFailed")}{" "}
@@ -64,7 +64,7 @@ export function FavouritesPage() {
       {busy ? (
         <p className="mt-8 text-muted-foreground" role="status">{t("loading")}</p>
       ) : list.length === 0 ? (
-        <div className="mt-10 rounded-lg border border-border bg-muted p-10 text-center" data-testid="favourites-empty">
+        <div className="mt-10 rounded-lg bg-blush p-10 text-center text-blush-foreground" data-testid="favourites-empty">
           <p className="font-display text-xl">{t("emptyTitle")}</p>
           <p className="mt-1 text-sm text-muted-foreground">{t("emptyText")}</p>
           <Button asChild className="mt-6">

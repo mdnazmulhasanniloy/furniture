@@ -91,7 +91,7 @@ export function ProfileForm() {
         </p>
       ) : null}
       {saved ? (
-        <p role="status" className="rounded-md border border-border bg-muted p-3 text-sm" data-testid="profile-saved">
+        <p role="status" className="rounded-lg bg-blush p-3 text-sm text-blush-foreground" data-testid="profile-saved">
           {t("saved")}
         </p>
       ) : null}

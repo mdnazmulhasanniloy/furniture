@@ -32,8 +32,8 @@ export default async function StaticPageRoute({ params }: Props) {
   if (result.status === "error") {
     const t = await getTranslations("pages");
     return (
-      <main className="mx-auto max-w-3xl px-4 py-10">
-        <p role="alert" className="rounded-lg border border-border p-6 text-center text-sm" data-testid="static-page-error">
+      <main className="band mx-auto w-full max-w-3xl px-5 sm:px-8">
+        <p role="alert" className="rounded-lg bg-blush p-6 text-center text-base text-blush-foreground" data-testid="static-page-error">
           {t("loadError")}
         </p>
       </main>

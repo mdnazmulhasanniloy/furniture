@@ -31,3 +31,15 @@ test("I18N-01: header mirrors in RTL (logo on the right, cart on the left)", asy
   const cartEn = await page.getByTestId("cart-link").boundingBox();
   expect(logoEn!.x).toBeLessThan(cartEn!.x);
 });
+
+// UI-04: an unknown path under a locale renders the styled 404 inside the site layout, with status 404.
+for (const locale of ["en", "ar"] as const) {
+  test(`UI-04: /${locale}/no-such-page is a styled 404 with the header and footer`, async ({ page }) => {
+    const res = await page.goto(`/${locale}/no-such-page`);
+    expect(res?.status()).toBe(404);
+    await expect(page.getByTestId("not-found")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("banner")).toBeVisible();
+    await expect(page.getByRole("contentinfo")).toBeVisible();
+  });
+}

@@ -249,7 +249,7 @@ describe.each([
     });
   });
 
-  it("ADM-14 · saving VAT keeps General, Delivery, SEO, phone and socials untouched and sends no currency", async () => {
+  it("ADM-14 · saving VAT keeps General, Delivery, SEO, the contact details and socials untouched and sends no currency", async () => {
     await openVat();
     fill(v.rate, "7.5");
     fireEvent.click(screen.getByTestId("settings-save"));
@@ -261,7 +261,8 @@ describe.each([
     expect(b.contactEmail).toBe(o.contactEmail);
     expect(b.address).toEqual(o.address);
     expect(b.seo).toEqual(o.seo);
-    expect(b.contactPhone).toBe(o.contactPhone);
+    // the same number, in the canonical form the API stores (owner 2026-11-24)
+    expect(b.contactPhone).toBe("+966112345678");
     expect(b.socials).toEqual(o.socials);
     expect(b.defaultLocale).toBe("ar");
     expect(b.deliveryFee).toBe(o.deliveryFee);

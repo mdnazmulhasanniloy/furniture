@@ -28,7 +28,7 @@ type Section = "general" | "delivery" | "vat" | "social" | "seo";
 type Lang = "ar" | "en";
 const SOCIALS = ["facebook", "instagram", "whatsapp", "tiktok"] as const;
 
-const GENERAL_FIELDS = ["storeNameEn", "storeNameAr", "addressEn", "addressAr", "contactEmail", "defaultLocale"] as const;
+const GENERAL_FIELDS = ["storeNameEn", "storeNameAr", "addressEn", "addressAr", "contactEmail", "contactPhone", "defaultLocale"] as const;
 const DELIVERY_FIELDS = ["deliveryFee", "freeThreshold"] as const;
 const VAT_FIELDS = ["vatRate", "vatNumber"] as const;
 const SEO_FIELDS = ["seoTitleEn", "seoTitleAr", "seoDescEn", "seoDescAr"] as const;
@@ -218,8 +218,19 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
         <Field label={t("settings.form.contactEmail")} htmlFor="set-email" error={msg(errs.contactEmail?.message)}>
           <Input id="set-email" type="email" dir="ltr" aria-invalid={!!errs.contactEmail} {...register("contactEmail")} />
         </Field>
-        <Field label={t("settings.form.contactPhone")} htmlFor="set-phone" hint={t("settings.form.phoneBlocked")}>
-          <Input id="set-phone" dir="ltr" value={settings.contactPhone} readOnly data-testid="settings-phone" />
+        <Field
+          label={t("settings.form.contactPhone")}
+          htmlFor="set-phone"
+          hint={t("settings.form.phoneHint")}
+          error={msg(errs.contactPhone?.message)}
+        >
+          <Input
+            id="set-phone"
+            dir="ltr"
+            aria-invalid={!!errs.contactPhone}
+            data-testid="settings-phone"
+            {...register("contactPhone")}
+          />
         </Field>
         <Field label={t("settings.form.defaultLocale")} htmlFor="set-locale" hint={t("settings.form.defaultLocaleHint")}>
           <select

@@ -1,13 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { api } from "@/lib/api/client";
+import {
+  isContactPhoneInput,
+  normalizeSaudiContactPhone,
+  SAUDI_CONTACT_PHONE_MAX_LENGTH,
+} from "@/lib/contact-phone";
 import { halalasToSar, parseSar } from "@/lib/delivery";
 import type { LocalizedText, StoredImage } from "@/lib/products";
 import { bpToRate, isRegistrationNumber, parseRate, rateToText, readVat, type VatSetting } from "@/lib/vat";
 
 // api-spec.yaml /admin/settings (ADM-09). PUT is a FULL REPLACE with `expectedUpdatedAt` (409
-// STALE_UPDATE, owner 2026-11-22). The fields whose rules
-// are still blocked (contact phone B-033, social links B-034) are sent back exactly as received. Delivery
+// STALE_UPDATE, owner 2026-11-22). Contact email and phone are optional and editable here (owner
+// 2026-11-24: empty publishes none, the storefront then hides the line). Social links, whose rules are
+// still blocked (B-034), are sent back exactly as received. Delivery
 // fee, threshold and cities (T-073) are edited on the Delivery tab, VAT (T-074) on the VAT tab.
 
 export type DeliveryCity = {
@@ -46,6 +52,8 @@ export type SettingsEdit = {
   storeName: LocalizedText;
   logo: { key: string; alt?: LocalizedText } | null;
   contactEmail: string;
+  /** Normalised `+966XXXXXXXXX`, or "" to publish no phone (B-033, owner 2026-11-24). */
+  contactPhone: string;
   address: LocalizedText | null;
   defaultLocale: "ar" | "en";
   seo: { title?: LocalizedText; description?: LocalizedText } | null;
@@ -74,7 +82,7 @@ export function buildSettingsBody(base: SiteSettings, edit: SettingsEdit): Recor
     storeName: edit.storeName,
     logo: edit.logo,
     contactEmail: edit.contactEmail,
-    contactPhone: base.contactPhone,
+    contactPhone: edit.contactPhone,
     address: edit.address,
     deliveryFee: edit.delivery ? edit.delivery.deliveryFee : base.deliveryFee,
     vat: edit.vat ?? base.vat,
@@ -121,6 +129,13 @@ export const settingsSchema = z
       .trim()
       .max(120, "settings.form.tooLong")
       .refine((v) => v === "" || EMAIL.test(v), "settings.form.emailInvalid"),
+    // Editable since 2026-11-24 (B-033 resolved): empty is allowed, anything else must be a Saudi number
+    // (mobile, landline or unified 9200/800), checked with the same rule as the API.
+    contactPhone: z
+      .string()
+      .trim()
+      .max(SAUDI_CONTACT_PHONE_MAX_LENGTH, "settings.form.tooLong")
+      .refine(isContactPhoneInput, "settings.form.phoneInvalid"),
     defaultLocale: z.enum(["ar", "en"]),
     seoTitleEn: z.string().trim().max(120, "settings.form.tooLong"),
     seoTitleAr: z.string().trim().max(120, "settings.form.tooLong"),
@@ -154,6 +169,7 @@ export function settingsDefaults(s: SiteSettings): SettingsFormValues {
     addressEn: s.address?.en ?? "",
     addressAr: s.address?.ar ?? "",
     contactEmail: s.contactEmail,
+    contactPhone: s.contactPhone,
     defaultLocale: s.defaultLocale === "en" ? "en" : "ar",
     seoTitleEn: s.seo?.title?.en ?? "",
     seoTitleAr: s.seo?.title?.ar ?? "",
@@ -181,6 +197,8 @@ export function formToEdit(
     storeName: { en: v.storeNameEn, ar: v.storeNameAr },
     logo,
     contactEmail: v.contactEmail,
+    // Stored canonical, so the value that comes back is the value the form will load next time.
+    contactPhone: normalizeSaudiContactPhone(v.contactPhone) ?? "",
     address: pair(v.addressEn, v.addressAr),
     defaultLocale: v.defaultLocale,
     delivery: deliveryCities && {

@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient } from "@tanstack/react-query";
 import { I18nextProvider } from "react-i18next";
@@ -6,6 +8,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { App } from "@/app";
 import { configureApiClient } from "@/lib/api/client";
 import { authStore } from "@/lib/auth/store";
+import {
+  isContactPhoneInput,
+  normalizeSaudiContactPhone,
+  SAUDI_CONTACT_PHONE_MAX_LENGTH,
+  SAUDI_CONTACT_PHONE_PATTERN,
+} from "@/lib/contact-phone";
 import { initI18n, setLocale } from "@/lib/i18n";
 import { buildSettingsBody, settingsDefaults, type SiteSettings } from "@/lib/settings";
 import { ThemeProvider } from "@/lib/theme";
@@ -107,13 +115,47 @@ afterEach(() => configureApiClient(null));
 const fill = (label: string, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 const puts = () => calls.filter((c) => c.method === "PUT");
 
+describe("ADM-09 · contact phone rule (B-033)", () => {
+  it("ADM-09 · the pattern and max length are the backend's, so the form and the API can never disagree", () => {
+    const api = fs
+      .readFileSync(path.resolve(__dirname, "../../../backend/src/lib/phone.ts"), "utf8")
+      .replace(/\r\n/g, "\n");
+    const pattern = /export const SAUDI_CONTACT_PHONE_PATTERN = (\/.+\/);/.exec(api)?.[1];
+    const max = /export const SAUDI_CONTACT_PHONE_MAX_LENGTH = (\d+);/.exec(api)?.[1];
+    expect(pattern).toBe(String(SAUDI_CONTACT_PHONE_PATTERN));
+    expect(Number(max)).toBe(SAUDI_CONTACT_PHONE_MAX_LENGTH);
+  });
+
+  it("ADM-09 · accepts a mobile, a landline and a unified number, in any local spelling; empty is allowed", () => {
+    for (const [input, stored] of [
+      ["0551234567", "+966551234567"],
+      ["055 123 4567", "+966551234567"],
+      ["+966 55 123 4567", "+966551234567"],
+      ["٠٥٥١٢٣٤٥٦٧", "+966551234567"],
+      ["011-234-5678", "+966112345678"],
+      ["9200 12345", "+966920012345"],
+      ["800 123 4567", "+9668001234567"],
+    ] as const) {
+      expect(normalizeSaudiContactPhone(input), input).toBe(stored);
+      expect(isContactPhoneInput(input), input).toBe(true);
+    }
+    expect(isContactPhoneInput("")).toBe(true);
+    expect(isContactPhoneInput("   ")).toBe(true);
+    for (const bad of ["+1 202 555 0147", "05512345", "0051234567", "seed-phone", "0".repeat(45)]) {
+      expect(isContactPhoneInput(bad), bad).toBe(false);
+      expect(normalizeSaudiContactPhone(bad), bad).toBeNull();
+    }
+  });
+});
+
 describe("ADM-09 · request body (full replace)", () => {
-  it("ADM-09 · keeps delivery, VAT, phone and socials exactly as loaded and never sends currency or updatedAt", () => {
+  it("ADM-09 · keeps delivery, VAT and socials exactly as loaded and never sends currency or updatedAt", () => {
     const s = base();
     const body = buildSettingsBody(s, {
       storeName: { en: "New", ar: "جديد" },
       logo: null,
       contactEmail: "a@b.co",
+      contactPhone: "+966112345678",
       address: null,
       defaultLocale: "en",
       seo: null,
@@ -122,7 +164,7 @@ describe("ADM-09 · request body (full replace)", () => {
     expect(body.freeDeliveryThreshold).toBe(20000);
     expect(body.vat).toEqual(base().vat);
     expect(body.deliveryCities).toEqual(base().deliveryCities);
-    expect(body.contactPhone).toBe("011 234 5678");
+    expect(body.contactPhone).toBe("+966112345678");
     expect(body.socials).toEqual(base().socials);
     expect(body.expectedUpdatedAt).toBe("2026-11-20T10:00:00.000Z");
     expect("currency" in body).toBe(false);
@@ -172,7 +214,8 @@ describe.each([
     expect(b.freeDeliveryThreshold).toBe(o.freeDeliveryThreshold);
     expect(b.vat).toEqual(o.vat);
     expect(b.deliveryCities).toEqual(o.deliveryCities);
-    expect(b.contactPhone).toBe(o.contactPhone);
+    // the loaded phone is sent back normalised (it was typed with spaces)
+    expect(b.contactPhone).toBe("+966112345678");
     expect(b.socials).toEqual(o.socials);
     expect("currency" in b).toBe(false);
     expect(await screen.findByTestId("settings-saved")).toBeTruthy();
@@ -195,14 +238,40 @@ describe.each([
     expect(puts().length).toBe(0);
   });
 
-  it("ADM-09 · an empty contact email saves, so no other setting depends on contact details (owner 2026-11-24)", async () => {
+  it("ADM-09 · an empty contact email and phone save, so no other setting depends on contact details (owner 2026-11-24)", async () => {
     mount();
     await screen.findByTestId("settings-form");
     fill(m.form.contactEmail, "");
+    fill(m.form.contactPhone, "");
     fireEvent.click(screen.getByTestId("settings-save"));
     await waitFor(() => expect(puts().length).toBe(1));
     expect(puts()[0].body.contactEmail).toBe("");
+    expect(puts()[0].body.contactPhone).toBe("");
     expect(screen.queryByText(m.form.emailInvalid)).toBeNull();
+    expect(screen.queryByText(m.form.phoneInvalid)).toBeNull();
+  });
+
+  it("ADM-09 · the contact phone is editable and saved normalised; a number that is not Saudi is refused (B-033, owner 2026-11-24)", async () => {
+    mount();
+    await screen.findByTestId("settings-form");
+    const field = screen.getByTestId("settings-phone") as HTMLInputElement;
+    // it is a real field now, loaded with the stored value, with the format hint beside it
+    expect(field.readOnly).toBe(false);
+    expect(field.value).toBe("011 234 5678");
+    expect(screen.getByText(m.form.phoneHint)).toBeTruthy();
+
+    // not a Saudi number: the message appears and nothing is sent
+    fill(m.form.contactPhone, "+1 202 555 0147");
+    fireEvent.click(screen.getByTestId("settings-save"));
+    expect(await screen.findByText(m.form.phoneInvalid)).toBeTruthy();
+    expect(puts().length).toBe(0);
+    expect(field.getAttribute("aria-invalid")).toBe("true");
+
+    // a mobile written with spaces is accepted and stored canonical
+    fill(m.form.contactPhone, "055 123 4567");
+    fireEvent.click(screen.getByTestId("settings-save"));
+    await waitFor(() => expect(puts().length).toBe(1));
+    expect(puts()[0].body.contactPhone).toBe("+966551234567");
   });
 
   it("ADM-09 · SEO is edited per language and omitted when emptied", async () => {
@@ -218,10 +287,9 @@ describe.each([
     expect("seo" in puts()[0].body).toBe(false);
   });
 
-  it("ADM-09 · social links and the phone are shown read-only and survive a save", async () => {
+  it("ADM-09 · social links are shown read-only and survive a save (B-034 still open)", async () => {
     mount();
     await screen.findByTestId("settings-form");
-    expect((screen.getByTestId("settings-phone") as HTMLInputElement).readOnly).toBe(true);
     fireEvent.click(screen.getByRole("tab", { name: m.section.social }));
     const fb = screen.getByLabelText(m.social.facebook) as HTMLInputElement;
     expect(fb.value).toBe("https://facebook.com/furnixa");

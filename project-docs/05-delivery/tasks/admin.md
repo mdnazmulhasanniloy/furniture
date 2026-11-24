@@ -67,6 +67,19 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 ### T-075 Upgrade admin to zod 4 and vitest 5 (npm audit) · todo
 - Req: NFR (security) · Depends: T-074 · Same approach as backend T-029: upgrade `zod` to 4 and `vitest` (and related packages) to 5, fix breaking changes, no force flags, `--ignore-scripts` installs, no lifecycle script edits. Run every check (i18n:check, typecheck, lint, test, build, e2e) and `npm audit`; record remaining advisories.
 
+#### Audit triage 2026-11-25 (QA B8, owner asked for it)
+`npm audit` in `admin/`: **39 advisories (36 moderate, 1 high, 2 critical)**. `npm audit --omit=dev`: **29 (28 moderate, 1 high, 0 critical)**, so **both criticals are dev-only**. Three root causes carry all 29 production entries, and **every one of them is only fixable by a major upgrade**, so nothing was changed here (owner: no `--force`, no majors without asking).
+
+| What | Severity | Where | Advisory | Fix | Real exposure |
+| --- | --- | --- | --- | --- | --- |
+| `zod` < 4.6.6 | **high** | production (1 entry) | Memory exhaustion validating oversized constrained collections (CWE-770) | `zod@4` (**major**) - this is T-075's own first half | Admin-only: zod runs in the browser on admin form input, so the worst case is the admin's own tab. **`backend` and `web` are already on `zod@^4.6.7`**, so no server is affected. |
+| `@tiptap/*` <= 3.30.3 | moderate | production (26 entries, one cause) | `@tiptap/core` `mergeAttributes()` turns an own `__proto__` key into inherited executable DOM attributes (CWE-79 / CWE-1321) | `@tiptap@3.35` (**major**, we are on 2.x) | The CMS page editor only. Attributes come from an authenticated admin's own editing, and page HTML is sanitised server-side on every write (ADR-013), so an attacker needs an admin session first. |
+| `i18next` < 26.3.4 | moderate | production (1 entry) | `deepExtend` recurses into inherited built-ins, allowing corruption of shared built-ins (DoS, CWE-471 / CWE-1321) | `i18next@27` (**major**, we are on 24.x) | Not reachable: the only resources merged are the two static locale JSON files; nothing user-supplied is ever merged. |
+| `vitest` / `@vitest/mocker` / `tinypool` | **2 critical** + moderate | **dev only** | Tinypool prototype-pollution gadget to RCE in worker options; mocker path traversal / code injection | `vitest@5.1.1` (**major**) - T-075's second half | Test runner only; never shipped and never run against untrusted input. |
+| `typescript-eslint` chain + `minimatch` | moderate | **dev only** | `minimatch` globparts denial of service | **non-major** (`fixAvailable: true`) | Lint tooling only. Left alone deliberately: the owner's instruction was to fix production ones and list the rest here. |
+
+Backend, for completeness (same commands): `npm audit --omit=dev` is **4 high**, all one root cause - the `prisma` **CLI** (`@prisma/config` -> `deepmerge-ts` stack exhaustion, `effect` ReDoS). The offered fix is `prisma@7`, which **ADR-001 forbids**; `@prisma/client`, the only Prisma code in the request path, is not flagged, and the CLI runs at build/migrate time, so there is nothing to patch at runtime. Web: **0** production advisories.
+
 ### T-076 Admin follow-ups from owner answers (2026-11-24) · todo
 - Req: ADM-02, ADM-07, ADM-09 · Depends: T-075, backend T-030
 - B-031: **done 2026-11-24 (QA A3)** - SAR price entry with exact decimal parsing. The rule lives in `src/lib/money.ts` and every admin money input shares it (product price and compare-at price, base delivery fee, free-delivery threshold, per-city fee override; there is no COD-limit field in the API). Tests: `money-qa-a3.test.ts` plus the ADM-02 form cases (150, 150.5, 150.50, 0.01, "1,250.50", Arabic-Indic digits, "abc", negative, 3 decimals).

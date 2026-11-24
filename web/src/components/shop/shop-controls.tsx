@@ -19,7 +19,7 @@ import {
 } from "@/lib/shop";
 
 const fieldClass =
-  "h-9 w-full rounded-md border border-border bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+  "h-10 w-full rounded-sm border border-input bg-card px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 /** Halalas -> riyal text for the input (the API takes halalas). */
 const toRiyal = (h?: number) => (h === undefined ? "" : String(h / 100));
@@ -91,6 +91,24 @@ function ShopFrameInner({
     );
   };
 
+  const sortSelect = (testId: string) => (
+    <select
+      data-testid={testId}
+      aria-label={t("sort.label")}
+      className={`${fieldClass} w-auto`}
+      value={filters.sort}
+      onChange={(e) =>
+        router.push(shopHref(withChange(filters, { sort: e.target.value as ShopFilters["sort"] })))
+      }
+    >
+      {SORTS.map((s) => (
+        <option key={s} value={s}>
+          {t(`sort.${s}`)}
+        </option>
+      ))}
+    </select>
+  );
+
   const typeOptions = [
     { id: "all", value: undefined, label: t("type.all") },
     { id: "new", value: "NEW" as const, label: t("type.new") },
@@ -98,7 +116,17 @@ function ShopFrameInner({
   ];
 
   return (
-    <div className="mt-6 grid gap-6 lg:grid-cols-[16rem_1fr]">
+    <div className="mt-6 grid gap-8 lg:grid-cols-[16rem_1fr]">
+      {open ? (
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden
+          data-testid="filters-backdrop"
+          className="fixed inset-0 z-40 bg-foreground/40 lg:hidden"
+          onClick={() => setOpen(false)}
+        />
+      ) : null}
       <aside
         ref={sheetRef}
         id="shop-filters"
@@ -107,12 +135,12 @@ function ShopFrameInner({
         aria-modal={open ? true : undefined}
         className={
           open
-            ? "fixed inset-0 z-50 overflow-y-auto bg-background p-4 lg:static lg:z-auto lg:overflow-visible lg:p-0"
+            ? "fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-y-auto rounded-t-[10px] bg-background p-4 pb-6 shadow-float lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:p-0 lg:shadow-none"
             : "hidden lg:block"
         }
       >
         <div className="mb-4 flex items-center justify-between lg:hidden">
-          <h2 className="font-display text-lg font-semibold">{t("filters")}</h2>
+          <h2 className="text-lg font-semibold">{t("filters")}</h2>
           <Button
             type="button"
             variant="ghost"
@@ -122,6 +150,10 @@ function ShopFrameInner({
           >
             <X aria-hidden />
           </Button>
+        </div>
+        <div className="mb-6 flex items-center justify-between gap-3 text-sm lg:hidden">
+          <span className="font-semibold">{t("sort.label")}</span>
+          {sortSelect("sort-sheet")}
         </div>
         <form onSubmit={apply} className="space-y-6" aria-label={t("filters")}>
           {categories.length > 0 && (
@@ -240,11 +272,11 @@ function ShopFrameInner({
         </form>
       </aside>
 
-      <div className="min-w-0 space-y-4">
+      <div className="min-w-0 space-y-5">
         <div className="flex items-center justify-between gap-3">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             className="lg:hidden"
             aria-expanded={open}
             aria-controls="shop-filters"
@@ -253,23 +285,9 @@ function ShopFrameInner({
             <SlidersHorizontal aria-hidden />
             {t("filters")}
           </Button>
-          <label className="ms-auto flex items-center gap-2 text-sm">
+          <label className="ms-auto hidden items-center gap-2 text-sm lg:flex">
             <span className="text-muted-foreground">{t("sort.label")}</span>
-            <select
-              className={`${fieldClass} w-auto`}
-              value={filters.sort}
-              onChange={(e) =>
-                router.push(
-                  shopHref(withChange(filters, { sort: e.target.value as ShopFilters["sort"] })),
-                )
-              }
-            >
-              {SORTS.map((s) => (
-                <option key={s} value={s}>
-                  {t(`sort.${s}`)}
-                </option>
-              ))}
-            </select>
+            {sortSelect("sort-toolbar")}
           </label>
         </div>
         {children}

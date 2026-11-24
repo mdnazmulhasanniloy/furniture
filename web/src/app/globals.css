@@ -95,20 +95,26 @@ html[lang="ar"] {
 }
 
 /* Type (design-system section 2): Readex Pro headings, tight in Latin, never tracked in Arabic. */
-h1,
-h2,
-h3,
-h4 {
-  font-family: var(--font-display);
-  font-weight: 600;
-  line-height: 1.2;
-}
-html[lang="en"] :is(h1, h2, h3, h4) {
-  letter-spacing: -0.02em;
-}
-html[lang="ar"] :is(h1, h2, h3, h4) {
-  line-height: 1.5;
-  letter-spacing: 0;
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  html[lang="en"] :is(h1, h2, h3, h4) {
+    letter-spacing: -0.02em;
+  }
+  html[lang="ar"] :is(h1, h2, h3, h4) {
+    line-height: 1.5;
+    letter-spacing: 0;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--primary);
+  }
 }
 /* Hero headline: light and wide, one weight, the only 72 px text on the site. */
 .type-hero {

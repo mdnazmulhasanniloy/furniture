@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
  * the real token values for 4.5:1.
  */
 export const badgeVariants = cva(
-  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap",
+  "inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-[0.8125rem] font-medium leading-5 whitespace-nowrap",
   {
     variants: {
       variant: {

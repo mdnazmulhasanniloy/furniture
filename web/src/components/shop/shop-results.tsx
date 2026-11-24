@@ -91,7 +91,7 @@ export function ActiveChips({
           <Link
             href={c.href}
             data-chip={c.key}
-            className="inline-flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1 text-xs hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center gap-1.5 rounded-sm bg-muted px-3 py-1.5 text-[0.8125rem] text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {c.label}
             <X className="size-3" aria-hidden />
@@ -116,15 +116,15 @@ export function ProductGrid({
   if (items.length === 0) {
     return (
       <div
-        className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-border py-16 text-center"
+        className="flex flex-col items-center gap-4 bg-muted px-4 py-16 text-center"
         data-testid="shop-empty"
       >
-        <p className="font-display text-lg font-semibold">{t("empty.title")}</p>
+        <p className="font-display text-xl font-semibold">{t("empty.title")}</p>
         <p className="max-w-sm text-sm text-muted-foreground">{t("empty.body")}</p>
         {hasActiveFilters(filters) && (
           <Link
             href="/shop"
-            className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="inline-flex h-10 items-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             {t("clearFilters")}
           </Link>
@@ -133,7 +133,7 @@ export function ProductGrid({
     );
   }
   return (
-    <ul className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4" data-testid="shop-grid">
+    <ul className="grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-3 lg:gap-x-6 xl:grid-cols-4" data-testid="shop-grid">
       {items.map((p) => (
         <ConnectedProductCard key={p.id} product={p} locale={locale} />
       ))}
@@ -147,7 +147,7 @@ export function Pagination({ filters, meta }: { filters: ShopFilters; meta: Prod
   const current = filters.page;
   const href = (page: number) => shopHref({ ...filters, page });
   const cls =
-    "inline-flex size-9 items-center justify-center rounded-md border border-border text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+    "inline-flex size-10 items-center justify-center rounded-md text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
   return (
     <nav
       aria-label={t("pagination")}

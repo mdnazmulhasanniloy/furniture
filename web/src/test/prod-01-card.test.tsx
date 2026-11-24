@@ -15,7 +15,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 vi.mock("next/image", () => ({
   // eslint-disable-next-line @next/next/no-img-element
-  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+  default: ({ src, alt, className }: { src: string; alt: string; className?: string }) => <img src={src} alt={alt} className={className} />,
 }));
 const addToCart = vi.fn(async () => true);
 vi.mock("@/lib/cart/store", () => ({ addToCart: (...a: unknown[]) => addToCart(...(a as [])) }));
@@ -89,7 +89,7 @@ describe.each(["en", "ar"] as const)("PROD-01 · product card (%s)", (locale) =>
     expect(screen.getByText(m.badge.preowned.replace("{grade}", m.condition.GOOD))).toBeTruthy();
   });
 
-  it(`PROD-01 · a missing image shows the emerald placeholder with the wordmark (${locale})`, () => {
+  it(`PROD-01 · a missing image shows the flat sand placeholder with the wordmark (${locale})`, () => {
     wrap(locale, <ProductCard product={{ ...base, images: [] }} locale={locale} />);
     expect(screen.getByTestId("image-placeholder").getAttribute("aria-label")).toBe(m.home.brand);
   });
@@ -122,6 +122,64 @@ describe.each(["en", "ar"] as const)("PROD-01 · product card (%s)", (locale) =>
     expect(heart.getAttribute("aria-label")).toBe(m.favourites.remove);
     fireEvent.click(heart);
     expect(toggle).toHaveBeenCalledTimes(1);
+  });
+
+  it(`UI-01 · the tile has no border, no shadow, no radius: depth comes from the sand backdrop (${locale})`, () => {
+    wrap(locale, <ProductCard product={base} locale={locale} favourite={{ active: false, toggle: vi.fn() }} />);
+    const tile = screen.getByTestId("product-card");
+    expect(tile.className).not.toMatch(/(?:border|shadow|rounded)/);
+    const media = screen.getByTestId("card-media");
+    expect(media.className).toContain("bg-muted");
+    expect(media.className).not.toMatch(/rounded/); // product images have square corners
+    expect(media.querySelector("img")!.className).toContain("mix-blend-multiply");
+  });
+
+  it(`UI-01 · the condition chip sits under the image beside the price, never on the photo (${locale})`, () => {
+    wrap(locale, <ProductCard product={{ ...base, type: "RESALE", condition: "LIKE_NEW", isFeatured: true }} locale={locale} />);
+    const chips = screen.getByTestId("card-chips");
+    expect(screen.getByTestId("card-media").contains(chips)).toBe(false);
+    expect(chips.textContent).toContain(m.condition.LIKE_NEW);
+    expect(chips.textContent).toContain(m.badge.featured);
+    expect(chips.parentElement!.querySelector("bdi")).not.toBeNull(); // same row as the price
+  });
+
+  it(`UI-01 · chips use the sm radius, pre-owned is sand with ink, new is emerald with white (${locale})`, () => {
+    const { unmount } = wrap(locale, <ProductCard product={base} locale={locale} />);
+    const tag = (el: HTMLElement) => el.querySelector('[data-slot="badge"]')!.className;
+    expect(tag(screen.getByTestId("card-chips"))).toMatch(/bg-primary.*text-primary-foreground|text-primary-foreground.*bg-primary/);
+    expect(tag(screen.getByTestId("card-chips"))).toContain("rounded-sm");
+    unmount();
+    wrap(locale, <ProductCard product={{ ...base, type: "RESALE", condition: "GOOD" }} locale={locale} />);
+    expect(tag(screen.getByTestId("card-chips"))).toContain("bg-secondary");
+    expect(tag(screen.getByTestId("card-chips"))).toContain("text-secondary-foreground");
+  });
+
+  it(`UI-01 · quick add is visible on mobile and revealed on hover or focus only on hovering desktops (${locale})`, () => {
+    wrap(locale, <ProductCard product={base} locale={locale} />);
+    const cls = screen.getByTestId("quick-add").className;
+    expect(cls).toContain("w-full");
+    expect(cls).toContain("border-primary"); // outlined secondary button, not a filled slab on every tile
+    expect(cls).toContain("lg:[@media(hover:hover)]:opacity-0");
+    expect(cls).toContain("lg:[@media(hover:hover)]:group-hover:opacity-100");
+    expect(cls).toContain("lg:[@media(hover:hover)]:focus-visible:opacity-100");
+    expect(cls.split(" ")).not.toContain("opacity-0"); // never hidden below lg or on touch
+  });
+
+  it(`UI-01 · the heart sits in the top-end corner as a plain paper circle (${locale})`, () => {
+    wrap(locale, <ProductCard product={base} locale={locale} favourite={{ active: false, toggle: vi.fn() }} />);
+    const heart = screen.getByTestId("favourite-toggle");
+    expect(heart.className).toContain("end-2");
+    expect(heart.className).toContain("top-2");
+    expect(heart.className).toContain("size-9");
+    expect(heart.className).toContain("bg-card");
+    expect(heart.className).not.toMatch(/border|shadow/);
+  });
+
+  it(`UI-01 · the second image is a desktop-only hover layer (${locale})`, () => {
+    wrap(locale, <ProductCard product={base} locale={locale} />);
+    const cls = screen.getByTestId("card-second-image").className.split(" ");
+    expect(cls).toContain("hidden");
+    expect(cls).toContain("lg:block");
   });
 
   it(`PROD-01 · the card has no physical left/right utilities (RTL-safe) (${locale})`, () => {

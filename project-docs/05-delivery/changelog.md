@@ -1,5 +1,7 @@
 # Changelog
 
+## 2026-11-24 (web T-055 listing and product tile done)
+- **web T-055 (PROD-01, FAV-01): borderless product tile, listing restyle.** See the task note; no new strings. Heading base rules moved into `@layer base` so utilities can override them (affects every page, checked in the screenshots).
 ## 2026-11-24 (web T-054 home done)
 - **web T-054 (CAT-01, ADM-06, ADM-07, UI-01): home v2.** Arched hero with the single GSAP moment, arch category row, one New / Pre-owned shelf, static How pre-owned works; contact strip removed from home. Strings added (en, ar): `home.hero.headline/sentence/shopNew/shopResale`, `home.shelf.*`; removed: `home.contact.*`, `home.tagline`, `home.intro`, `home.hero.prev/next`. See the task note for the decisions to confirm (hero actions, type-split shelf, copy without "inspected").
 ## 2026-11-24 (web T-053 header and footer done)

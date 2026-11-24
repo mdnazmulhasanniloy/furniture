@@ -141,8 +141,18 @@ describe.each(["en", "ar"] as const)("PROD-01 · shop UI (%s)", (locale) => {
 
   it("PROD-01 · sort select resets to page 1 and keeps filters", () => {
     wrap(locale, <ShopFrame filters={parseFilters({ type: "new", page: "3" })} categories={[]} locale={locale}><p>r</p></ShopFrame>);
-    fireEvent.change(screen.getByLabelText(messages[locale].shop.sort.label), { target: { value: "price_desc" } });
+    fireEvent.change(screen.getByTestId("sort-toolbar"), { target: { value: "price_desc" } });
     expect(push).toHaveBeenCalledWith("/shop?type=new&sort=price_desc");
+  });
+
+  it("PROD-01 · on mobile the sort lives in the filter sheet and behaves the same", () => {
+    wrap(locale, <ShopFrame filters={parseFilters({ type: "new", page: "3" })} categories={[]} locale={locale}><p>r</p></ShopFrame>);
+    fireEvent.click(screen.getByRole("button", { name: messages[locale].shop.filters, expanded: false }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.className).toContain("bottom-0"); // a bottom sheet, not a full-screen page
+    fireEvent.change(within(dialog).getByTestId("sort-sheet"), { target: { value: "price_asc" } });
+    expect(push).toHaveBeenCalledWith("/shop?type=new&sort=price_asc");
+    expect(screen.getByTestId("filters-backdrop")).toBeTruthy();
   });
 
   it("CAT-01 · category filter lists active categories with one level of children, localized", () => {

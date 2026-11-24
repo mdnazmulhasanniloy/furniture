@@ -17,14 +17,16 @@ import { flyToCart } from "@/lib/cart/fly";
 import { addToCart } from "@/lib/cart/store";
 import { pick } from "@/lib/pick";
 import { useMotionPrefs } from "@/lib/use-motion-prefs";
+import { cn } from "@/lib/utils";
 
 const SIZES = "(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 50vw";
 
 /**
- * Product card (PROD-01, design-system section 4): 4:5 image with a second-image crossfade on hover,
- * type/condition badge, heart toggle (shown when `favourite` is passed, FAV-01), 2-line title, price in
- * the price colour, quick add / disabled "Sold out". Hover lift and crossfade are Framer Motion and
- * switch off under prefers-reduced-motion.
+ * Product tile (PROD-01, design-system section 5): no border, no shadow, square image on a sand backdrop with
+ * the photo multiplied onto it, heart in the top-end corner, 2-line title, price with the condition chip
+ * beside it (never on the photo). Quick add is a full-width outlined button: always visible on touch and
+ * small screens, revealed on hover or focus on a hovering desktop. The second image crossfades on hover
+ * (Framer Motion, off under reduced motion).
  */
 export function ProductCard({
   product,
@@ -45,19 +47,14 @@ export function ProductCard({
 
   return (
     <li>
-      <motion.div
-        data-testid="product-card"
-        whileHover={reduced ? undefined : { y: -4 }}
-        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-        onHoverStart={() => setHover(true)}
-        onHoverEnd={() => setHover(false)}
-        className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card shadow-card"
-      >
+      <div data-testid="product-card" className="group relative flex h-full flex-col">
         <Link
           href={`/shop/${encodeURIComponent(product.slug)}`}
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
           onFocus={() => setHover(true)}
           onBlur={() => setHover(false)}
-          className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <div className="relative aspect-[4/5] overflow-hidden bg-muted" data-testid="card-media">
             {first ? (
@@ -66,7 +63,7 @@ export function ProductCard({
                 alt={pick(first.alt, locale) || title}
                 fill
                 sizes={SIZES}
-                className={soldOut ? "object-cover opacity-60" : "object-cover"}
+                className={cn("object-cover mix-blend-multiply", soldOut && "opacity-60")}
               />
             ) : (
               <ImagePlaceholder name={t("home.brand")} />
@@ -75,35 +72,37 @@ export function ProductCard({
               <motion.div
                 data-testid="card-second-image"
                 aria-hidden
-                className="absolute inset-0"
+                className="absolute inset-0 hidden bg-muted lg:block"
                 initial={false}
                 animate={{ opacity: hover ? 1 : 0 }}
                 transition={{ duration: reduced ? 0 : 0.35 }}
               >
-                <Image src={second.url} alt="" fill sizes={SIZES} className="object-cover" />
+                <Image src={second.url} alt="" fill sizes={SIZES} className="object-cover mix-blend-multiply" />
               </motion.div>
             ) : null}
-            <div className="absolute start-2 top-2 flex flex-col items-start gap-1">
-              <Badge variant={resale ? "preowned" : "new"}>
-                {resale
-                  ? t("badge.preowned", { grade: t(`condition.${product.condition}`) })
-                  : t("badge.new")}
-              </Badge>
-              {product.isFeatured ? <Badge variant="featured">{t("badge.featured")}</Badge> : null}
-            </div>
           </div>
-          <div className="space-y-1 p-3">
+          <div className="mt-3 space-y-1.5">
             <h3 className="line-clamp-2 min-h-10 text-sm font-medium leading-5">{title}</h3>
-            <p className="flex items-baseline gap-2 text-sm">
-              <span className="font-semibold">
-                <Price halalas={product.price} locale={locale} />
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+              <span className="flex items-baseline gap-2">
+                <span className="font-semibold">
+                  <Price halalas={product.price} locale={locale} />
+                </span>
+                {product.compareAtPrice && product.compareAtPrice > product.price ? (
+                  <s className="text-xs text-muted-foreground">
+                    <Price halalas={product.compareAtPrice} locale={locale} />
+                  </s>
+                ) : null}
               </span>
-              {product.compareAtPrice && product.compareAtPrice > product.price ? (
-                <s className="text-xs text-muted-foreground">
-                  <Price halalas={product.compareAtPrice} locale={locale} />
-                </s>
-              ) : null}
-            </p>
+              <span data-testid="card-chips" className="flex flex-wrap items-center gap-1.5">
+                <Badge variant={resale ? "preowned" : "new"}>
+                  {resale
+                    ? t("badge.preowned", { grade: t(`condition.${product.condition}`) })
+                    : t("badge.new")}
+                </Badge>
+                {product.isFeatured ? <Badge variant="featured">{t("badge.featured")}</Badge> : null}
+              </span>
+            </div>
           </div>
         </Link>
         {favourite ? (
@@ -113,12 +112,12 @@ export function ProductCard({
             className="absolute end-2 top-2"
           />
         ) : null}
-        <div className="mt-auto p-3 pt-0">
+        <div className="mt-auto pt-3">
           <Button
             type="button"
             size="sm"
-            variant={soldOut ? "outline" : "default"}
-            className="w-full"
+            variant="secondary"
+            className="w-full lg:[@media(hover:hover)]:opacity-0 lg:[@media(hover:hover)]:group-hover:opacity-100 lg:[@media(hover:hover)]:focus-visible:opacity-100"
             data-testid="quick-add"
             disabled={soldOut}
             onClick={async (e) => {
@@ -129,7 +128,7 @@ export function ProductCard({
             {soldOut ? t("badge.soldOut") : t("cart.addToCart")}
           </Button>
         </div>
-      </motion.div>
+      </div>
     </li>
   );
 }

@@ -18,7 +18,7 @@ for (const locale of ["en", "ar"] as const) {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto(`/${locale}/shop?type=new`);
     await expect(page.locator("#shop-filters")).toBeVisible();
-    await page.locator("main select").selectOption("price_asc");
+    await page.getByTestId("sort-toolbar").selectOption("price_asc");
     await expect(page).toHaveURL(/type=new/);
     await expect(page).toHaveURL(/sort=price_asc/);
   });

@@ -1620,6 +1620,10 @@ paths:
         instead); a missing code (removal or code change) -> 409 `CITY_CODE_IMMUTABLE` with the offending
         codes in `details.missingCodes`, nothing written. At least one submitted city must be active -> 422
         otherwise. Max 100 cities.
+        VAT (owner 2026-11-24): only a VAT-registered seller may charge VAT, so `vat.vatRate` above 0 requires
+        `vat.registrationNumber` -> 422 `VAT_NUMBER_REQUIRED` otherwise, checked before anything is written.
+        A rate of 0 needs no number. Order snapshots already stored are never changed, so an invoice still
+        shows the VAT line of an order that charged VAT.
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/SiteSettingInput' } } }
@@ -1631,7 +1635,7 @@ paths:
           description: "`STALE_UPDATE` (current settings in `details.current`), or `CITY_CODE_IMMUTABLE` — an existing city code was removed (deactivate it instead) or changed; the missing codes are in `details.missingCodes` (T-022)"
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
         '422':
-          description: VALIDATION_ERROR — no active delivery city or more than 100 cities (T-022), duplicate city code, missing ar/en city name, negative fee (base or per-city override), VAT rate outside 0–50% or more than 2 decimals, or invalid VAT registration number
+          description: "`VALIDATION_ERROR` — no active delivery city or more than 100 cities (T-022), duplicate city code, missing ar/en city name, negative fee (base or per-city override), VAT rate outside 0–50% or more than 2 decimals, or invalid VAT registration number; or `VAT_NUMBER_REQUIRED` — `vat.vatRate` is above 0 and `vat.registrationNumber` is not set (owner 2026-11-24), nothing written"
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /admin/admins:
     get:
@@ -1812,7 +1816,7 @@ components:
         vatRate: { type: number, minimum: 0, maximum: 50, multipleOf: 0.01, default: 0, description: 'VAT percentage, e.g. 15 = 15%. 0 (default) means no VAT line anywhere.' }
         applyToDelivery: { type: boolean, default: true, description: 'Apply VAT to the delivery fee; only effective when vatRate > 0' }
         pricesIncludeVat: { type: boolean, default: true }
-        registrationNumber: { type: [string, 'null'], pattern: '^3[0-9]{13}3$', description: 15-digit VAT registration number, printed on invoices }
+        registrationNumber: { type: [string, 'null'], pattern: '^3[0-9]{13}3$', description: "15-digit VAT registration number, printed on invoices. Required whenever `vatRate` is above 0 (owner 2026-11-24): PUT /admin/settings answers 422 `VAT_NUMBER_REQUIRED` without it. It also decides the printed document: with a number the invoice is a simplified tax invoice with the ZATCA Phase 1 QR, without one a plain invoice (ADM-04, A6)." }
     OrderVat:
       type: object
       description: Immutable snapshot taken at order placement (ADR-009)
@@ -1834,7 +1838,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, WISHLIST_LIMIT_REACHED, WISHLIST_CONFLICT, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, ALREADY_VERIFIED, CUSTOMER_HAS_OPEN_ORDERS, FORBIDDEN_TARGET, CUSTOMER_DELETED, CONFIRM_EMAIL_MISMATCH] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, WISHLIST_LIMIT_REACHED, WISHLIST_CONFLICT, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, VAT_NUMBER_REQUIRED, EMAIL_SEND_FAILED, ALREADY_VERIFIED, CUSTOMER_HAS_OPEN_ORDERS, FORBIDDEN_TARGET, CUSTOMER_DELETED, CONFIRM_EMAIL_MISMATCH] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }

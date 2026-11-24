@@ -159,6 +159,12 @@ export const settingsSchema = z
     both("addressEn", "addressAr");
     both("seoTitleEn", "seoTitleAr");
     both("seoDescEn", "seoDescAr");
+    // Owner 2026-11-24: only a VAT-registered seller may charge VAT in Saudi Arabia, so a rate above 0
+    // needs a registration number. The API enforces it too (422 VAT_NUMBER_REQUIRED).
+    const rate = parseRate(v.vatRate);
+    if (rate.ok && rate.bp > 0 && v.vatNumber.trim() === "") {
+      ctx.addIssue({ code: "custom", path: ["vatNumber"], message: "settings.vat.numberRequired" });
+    }
   });
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
 

@@ -67,6 +67,22 @@ const assertNoCityRemoved = (current: SiteSetting, submitted: PutSettingsBody): 
   }
 };
 
+/**
+ * ADM-09 (owner 2026-11-24): in Saudi Arabia only a VAT-registered seller may charge VAT, so a rate
+ * above 0 needs a registration number. Checked before the transaction, so a rejected save writes
+ * nothing. Order snapshots already stored are never touched - an invoice still shows the VAT line of
+ * an order that charged VAT, so history is never hidden (A6).
+ */
+const assertVatRegistered = (body: PutSettingsBody): void => {
+  if (body.vat.vatRate > 0 && !body.vat.registrationNumber) {
+    throw new AppError(
+      422,
+      'VAT_NUMBER_REQUIRED',
+      'A VAT registration number is required before VAT can be charged',
+    );
+  }
+};
+
 const staleUpdate = (current: SiteSetting) =>
   new AppError(409, 'STALE_UPDATE', 'Settings were changed by someone else; reload and retry', {
     current: toSettings(current, { activeCitiesOnly: false }),
@@ -94,11 +110,14 @@ const jsonOrNull = (v: unknown): Prisma.InputJsonValue | null =>
 /**
  * Full replace (owner 2026-11-22): absent optional fields are cleared. ADM-13 (T-022): existing city
  * codes must all be present (409 CITY_CODE_IMMUTABLE otherwise); >= 1 active city enforced in zod.
+ * A VAT rate above 0 needs a registration number (422 VAT_NUMBER_REQUIRED, owner 2026-11-24), checked
+ * first of all, so that body rule is answered the same whether or not the save would also be stale.
  */
 export async function update(
   body: PutSettingsBody,
   ctx: SaveContext,
 ): Promise<{ settings: SettingsResponse; release: () => Promise<void> }> {
+  assertVatRegistered(body);
   const logo = body.logo ? buildImageAsset(body.logo.key, { alt: body.logo.alt }) : null;
   let release = noRelease;
   try {

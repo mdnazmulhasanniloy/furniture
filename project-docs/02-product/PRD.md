@@ -198,6 +198,7 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 - Given `vatRate` > 0 and prices include VAT, Then totals do not change and the VAT amount is shown as a breakdown; Given prices exclude VAT, Then VAT is added to the total.
 - VAT base = subtotal, plus delivery fee when "Apply VAT to delivery fee" is on; rounded half up in halalas at order level (B-016 resolved).
 - Given `vatRate` is 0, Then no VAT line appears on the cart, checkout, order or invoice.
+- **Owner 2026-11-24:** in Saudi Arabia VAT may only be charged by a VAT-registered seller, so a `vatRate` above 0 **requires** the VAT registration number. Saving settings without it is rejected (422 `VAT_NUMBER_REQUIRED`) and the VAT tab says so under the number field ("Add your VAT registration number before charging VAT." / «أضف رقم التسجيل الضريبي قبل فرض ضريبة القيمة المضافة.»). Order snapshots already stored are never changed, and the invoice still shows the VAT line of an order that charged VAT, so history is never hidden.
 - Seed: all values at their defaults (0 / empty); no VAT rate is pre-set.
 - Out of scope: ZATCA e-invoicing (B-013), per-product VAT rates or exemptions.
 

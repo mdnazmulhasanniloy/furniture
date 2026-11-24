@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -254,6 +254,22 @@ for (const locale of ["en", "ar"] as const) {
       expect(screen.getByTestId("co-delivery").textContent).toBe(m.cart.freeDelivery);
       expect(screen.queryByTestId("co-vat")).toBeNull();
       expect(screen.getByTestId("co-total").textContent).toContain("2,000");
+    });
+
+    it(`UI-01 · checkout v2: flat sand summary, outlined address and payment options, no card around the form (${locale})`, async () => {
+      login();
+      mockApi(baseHandler());
+      await ready(locale);
+      const summary = screen.getByTestId("checkout-summary");
+      expect(summary.className).toContain("bg-muted");
+      expect(summary.className).not.toMatch(/shadow|rounded|border/);
+      const options = within(screen.getByTestId("address-list")).getAllByRole("radio").map((r) => r.closest("label")!);
+      expect(options[0].className).toContain("border-primary"); // the selected address
+      expect(options[1].className).toContain("border-input"); // fields and options sit on paper with the input border
+      expect(options[0].className).not.toMatch(/bg-card|bg-muted/);
+      const cod = screen.getByRole("radio", { name: new RegExp(m.checkout.cod) }).closest("label")!;
+      expect(cod.className).toContain("border-primary");
+      expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-3xl");
     });
 
     it(`ORD-01 · VAT label follows pricesIncludeVat and the total is the API's (${locale})`, async () => {

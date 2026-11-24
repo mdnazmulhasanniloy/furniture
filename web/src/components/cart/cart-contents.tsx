@@ -107,7 +107,7 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4" data-testid={`cart-${variant}`}>
       <div className="flex items-baseline justify-between gap-2">
-        <Heading id={variant === "drawer" ? "cart-drawer-title" : undefined} className="font-display text-xl font-semibold">
+        <Heading id={variant === "drawer" ? "cart-drawer-title" : undefined} className={variant === "page" ? "text-3xl font-semibold" : "text-xl font-semibold"}>
           {t("title")}
         </Heading>
         {count > 0 ? (
@@ -116,14 +116,14 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
       </div>
 
       {mergeFailed ? (
-        <div role="alert" className="rounded-md border border-border bg-muted p-3 text-sm" data-testid="cart-merge-error">
+        <div role="alert" className="bg-muted p-3 text-sm" data-testid="cart-merge-error">
           <p>{t("mergeError")}</p>
           <button type="button" className="mt-2 font-medium text-primary underline" onClick={() => void syncAfterLogin()}>
             {t("retry")}
           </button>
         </div>
       ) : error ? (
-        <p role="alert" className="rounded-md border border-border bg-muted p-3 text-sm text-destructive" data-testid="cart-error">
+        <p role="alert" className="bg-muted p-3 text-sm text-destructive" data-testid="cart-error">
           {te(errorMessageKey(error))}
         </p>
       ) : null}
@@ -192,7 +192,7 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
                 href={server ? "/checkout" : "/login"}
                 onClick={onNavigate}
                 data-testid="cart-checkout"
-                className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {server ? t("checkout") : t("loginToCheckout")}
               </Link>
@@ -200,7 +200,7 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
               <span
                 aria-disabled="true"
                 data-testid="cart-checkout"
-                className="inline-flex h-10 cursor-not-allowed items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground opacity-50"
+                className="inline-flex h-12 cursor-not-allowed items-center justify-center rounded-md bg-primary px-6 text-sm font-medium text-primary-foreground opacity-50"
               >
                 {t("checkout")}
               </span>
@@ -262,9 +262,9 @@ function LineRow({ line, locale }: { line: Line; locale: Locale }) {
   }
   return (
     <li className="flex gap-3 py-3" data-testid="cart-line">
-      <div className="relative aspect-[4/5] w-20 shrink-0 overflow-hidden rounded-md bg-muted" data-testid="line-thumb">
+      <div className="relative aspect-[4/5] w-20 shrink-0 overflow-hidden bg-muted" data-testid="line-thumb">
         {image ? (
-          <Image src={image.url} alt={pick(image.alt, locale) || title} fill sizes="80px" className="object-cover" />
+          <Image src={image.url} alt={pick(image.alt, locale) || title} fill sizes="80px" className="object-cover mix-blend-multiply" />
         ) : (
           <ImagePlaceholder name={t("home.brand")} className="[&_[data-testid=wordmark]]:text-xs" />
         )}
@@ -277,8 +277,8 @@ function LineRow({ line, locale }: { line: Line; locale: Locale }) {
         ) : (
           <p className="text-sm font-medium">{t("cart.issue.UNAVAILABLE")}</p>
         )}
-        {p ? (
-          <p className="text-sm">
+        {p && line.qty > 1 ? (
+          <p className="text-sm" data-testid="line-unit-price">
             <Price halalas={p.price} locale={locale} />
           </p>
         ) : null}
@@ -295,7 +295,7 @@ function LineRow({ line, locale }: { line: Line; locale: Locale }) {
         {p && line.productId ? (
           <div className="flex items-center gap-2">
             {!unavailable ? (
-              <div className="inline-flex items-center rounded-full border border-input" role="group" aria-label={t("product.quantity")}>
+              <div className="inline-flex items-center rounded-sm border border-input" role="group" aria-label={t("product.quantity")}>
                 <button
                   type="button"
                   aria-label={t("product.decrease")}

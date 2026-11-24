@@ -15,7 +15,7 @@ vi.mock("@/i18n/navigation", () => ({
 }));
 vi.mock("next/image", () => ({
   // eslint-disable-next-line @next/next/no-img-element
-  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+  default: ({ src, alt, className }: { src: string; alt: string; className?: string }) => <img src={src} alt={alt} className={className} />,
 }));
 const toast = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn() }));
 vi.mock("sonner", () => ({ toast, Toaster: () => null }));
@@ -122,6 +122,35 @@ describe.each(["en", "ar"] as const)("CART-01 · redesigned cart (%s)", (locale)
     expect(screen.getByRole("link", { name: titleOf(sofa) }).className).toContain("line-clamp-2");
     expect(screen.getByTestId("line-qty").textContent).toBe("2");
     expect(screen.getByTestId("line-total")).toBeTruthy();
+  });
+
+  it(`UI-01 · cart v2: square thumbnails, a flat summary with no card, a square-cornered stepper, a full-height checkout button (${locale})`, () => {
+    login();
+    const withImage = { ...sofa, images: [{ url: "https://cdn.test/1.jpg", alt: { en: "x", ar: "س" } }] } as HomeProduct;
+    useCartStore.setState({ cart: cartOf({}, withImage) });
+    wrap(locale, <CartContents variant="page" />);
+    expect(screen.getByTestId("line-thumb").className).not.toMatch(/rounded/);
+    expect(screen.getByTestId("line-thumb").querySelector("img")!.className).toContain("mix-blend-multiply");
+    expect(screen.getByRole("group", { name: m.product.quantity }).className).toContain("rounded-sm");
+    const summary = screen.getByTestId("cart-summary");
+    expect(summary.className).not.toMatch(/shadow|rounded|bg-card/);
+    expect(summary.className).not.toMatch(/border(?!-t)/); // a hairline above it, no box
+    const checkout = screen.getByTestId("cart-checkout");
+    expect(checkout.className).toContain("h-12");
+    expect(checkout.className).toContain("bg-primary");
+    expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-3xl");
+  });
+
+  it(`UI-01 · the unit price is shown only when the quantity is above one, so a line never prints its price twice (${locale})`, () => {
+    login();
+    useCartStore.setState({ cart: cartOf({ items: [{ product: sofa, qty: 1, lineTotal: 129950, issue: null }], subtotal: 129950, total: 129950 }) });
+    const { unmount } = wrap(locale, <CartContents variant="page" />);
+    expect(screen.queryByTestId("line-unit-price")).toBeNull();
+    expect(screen.getByTestId("line-total")).toBeTruthy();
+    unmount();
+    useCartStore.setState({ cart: cartOf() });
+    wrap(locale, <CartContents variant="page" />);
+    expect(screen.getByTestId("line-unit-price")).toBeTruthy();
   });
 
   it(`CART-01 · a product image replaces the placeholder (${locale})`, () => {

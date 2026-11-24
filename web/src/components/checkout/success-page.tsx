@@ -40,7 +40,7 @@ export function SuccessPage({ orderId }: { orderId: string | null }) {
   const vat = order?.vat;
   return (
     <main className="mx-auto max-w-2xl px-4 py-10" data-testid="checkout-success">
-      <h1 className="font-display text-2xl font-semibold">{t("success.title")}</h1>
+      <h1 className="text-3xl font-semibold">{t("success.title")}</h1>
       {failed || !orderId ? (
         <p role="alert" className="mt-4 text-sm text-destructive">{t("success.loadError")}</p>
       ) : !order ? (

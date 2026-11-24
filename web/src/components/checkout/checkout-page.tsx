@@ -190,7 +190,7 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
       <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-8">
           <section aria-labelledby="co-address">
-            <h2 id="co-address" className="mb-3 font-display text-lg font-semibold">{t("stepAddress")}</h2>
+            <h2 id="co-address" className="mb-3 text-xl font-semibold">{t("stepAddress")}</h2>
             {addresses.length === 0 ? <p className="mb-3 text-sm text-muted-foreground">{t("noAddress")}</p> : null}
             <ul role="radiogroup" aria-label={t("addressList")} className="space-y-2" data-testid="address-list">
               {addresses.map((a) => {
@@ -198,7 +198,7 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
                 return (
                   <li key={a.id}>
                     <label
-                      className={`flex gap-3 rounded-lg border p-3 text-sm ${a.isDeliverable ? "cursor-pointer" : "cursor-not-allowed opacity-70"} ${selectedId === a.id ? "border-primary bg-muted" : "border-border bg-card"}`}
+                      className={`flex gap-3 rounded-md border p-4 text-sm ${a.isDeliverable ? "cursor-pointer" : "cursor-not-allowed opacity-70"} ${selectedId === a.id ? "border-[1.5px] border-primary" : "border-input"}`}
                     >
                       <input
                         type="radio"
@@ -263,7 +263,7 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
           </section>
 
           <section aria-labelledby="co-review">
-            <h2 id="co-review" className="mb-3 font-display text-lg font-semibold">{t("stepReview")}</h2>
+            <h2 id="co-review" className="mb-3 text-xl font-semibold">{t("stepReview")}</h2>
             {cartError && !cart ? (
               <p role="alert" className="text-sm text-destructive">{te(errorMessageKey(cartError))}</p>
             ) : lines.length === 0 && !cartLoading ? (
@@ -326,8 +326,8 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
           </section>
 
           <section aria-labelledby="co-pay">
-            <h2 id="co-pay" className="mb-3 font-display text-lg font-semibold">{t("stepPayment")}</h2>
-            <label className="flex gap-3 rounded-lg border border-primary bg-muted p-3 text-sm">
+            <h2 id="co-pay" className="mb-3 text-xl font-semibold">{t("stepPayment")}</h2>
+            <label className="flex gap-3 rounded-md border-[1.5px] border-primary p-4 text-sm">
               <input type="radio" name="payment" checked readOnly className="mt-1" aria-describedby="cod-info" />
               <span>
                 <span className="block font-medium">{t("cod")}</span>
@@ -338,7 +338,7 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
         </div>
 
         <aside
-          className="h-fit space-y-2 rounded-lg border border-border bg-card p-4 text-sm lg:sticky lg:top-24"
+          className="h-fit space-y-2 bg-muted p-5 text-sm lg:sticky lg:top-24"
           aria-label={t("title")}
           data-testid="checkout-summary"
         >
@@ -390,8 +390,8 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
 function Shell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("checkout");
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8" data-testid="checkout-page">
-      <h1 className="mb-6 font-display text-2xl font-semibold">{t("title")}</h1>
+    <main className="mx-auto max-w-5xl px-4 py-8 md:px-8 md:py-12" data-testid="checkout-page">
+      <h1 className="mb-8 text-3xl font-semibold">{t("title")}</h1>
       {children}
     </main>
   );

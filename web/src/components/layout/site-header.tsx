@@ -141,7 +141,7 @@ function MegaMenu({ categories }: { categories: Category[] }) {
         data-testid="mega-trigger"
         onClick={() => setOpen((v) => !v)}
         onMouseEnter={() => setOpen(true)}
-        className="inline-flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-md px-3 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {t("categories")}
         <ChevronDown aria-hidden className="size-4" />
@@ -296,12 +296,12 @@ export function SiteHeader({ categories, logoUrl, cartConfig }: Props) {
         </Link>
         {/* The search is the centre of the header: wide from md, an icon below. */}
         <SearchForm className="mx-auto hidden w-full max-w-xl md:block" />
-        <nav aria-label={t("nav.main")} className="ms-auto hidden items-center gap-1 lg:flex">
+        <nav aria-label={t("nav.main")} className="ms-auto hidden shrink-0 items-center gap-1 lg:flex">
           {NAV.map((item) => (
             <Link
               key={item.key}
               href={item.href}
-              className="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium hover:bg-muted"
+              className="inline-flex h-9 items-center whitespace-nowrap rounded-md px-3 text-sm font-medium hover:bg-muted"
             >
               {t(`nav.${item.key}`)}
             </Link>

@@ -104,6 +104,19 @@ describe.each(["en", "ar"] as const)("UI-01 · header and footer v2 (%s)", (loca
     expect(within(screen.getByTestId("search-row")).getByRole("search")).toBeTruthy();
   });
 
+  it(`UI-01 · header links never wrap onto two lines, so "Pre-owned" stays on one (${locale})`, () => {
+    render(
+      <NextIntlClientProvider locale={locale} messages={m}>
+        <SiteHeader categories={[{ id: "1", slug: "a", parentId: null, sortOrder: 0, isActive: true, name: { en: "A", ar: "أ" }, children: [] }]} />
+      </NextIntlClientProvider>,
+    );
+    const nav = screen.getByRole("navigation", { name: m.nav.main });
+    expect(nav.className).toContain("shrink-0");
+    for (const el of [...nav.querySelectorAll("a"), screen.getByTestId("mega-trigger")]) {
+      expect(el.className, el.textContent ?? "").toContain("whitespace-nowrap");
+    }
+  });
+
   it(`UI-01 · header icons are favourites, account and cart; no bell for guests (${locale})`, () => {
     render(
       <NextIntlClientProvider locale={locale} messages={m}>

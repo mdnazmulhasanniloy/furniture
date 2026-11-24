@@ -9,7 +9,7 @@ import type { CartConfig } from "@/lib/cart/types";
 export function CartPage({ config }: { config: CartConfig }) {
   useEffect(() => setCartConfig(config), [config]);
   return (
-    <main className="mx-auto flex max-w-3xl flex-col px-4 py-8">
+    <main className="mx-auto flex max-w-3xl flex-col px-4 py-8 md:px-8 md:py-12">
       <CartContents variant="page" />
     </main>
   );

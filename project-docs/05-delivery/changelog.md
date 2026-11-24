@@ -1,5 +1,7 @@
 # Changelog
 
+## 2026-11-24 (web T-057 cart and checkout restyle done)
+- **web T-057 (CART-01, ORD-01): flat cart and checkout.** No new strings. Fixed the header nav wrapping "Pre-owned" at 1440 (T-053 regression). Checkout screenshots are pending a logged-in demo customer (see the task note).
 ## 2026-11-24 (web T-056 product page and condition report done)
 - **web T-056 (PROD-02): product page v2 and the pre-owned condition report.** Gallery on sand, sticky buy box, mobile bottom bar, condition report built only from real data; it never claims inspection (Q-2 default). Strings added (en, ar): `product.breadcrumb.*`, `product.buyBar`, `product.condition.*`. Owner: grade wording for New, Good and Fair is a draft; the seeded demo notes say "Inspected by our team." (see the task note).
 ## 2026-11-24 (web T-055 listing and product tile done)

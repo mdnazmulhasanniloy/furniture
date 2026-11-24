@@ -9,7 +9,8 @@ export function safeHref(
 ): { href: string; external: boolean } | null {
   if (!href) return null;
   const value = href.trim();
-  if (value.startsWith("/") && !value.startsWith("//") && !value.includes("\\")) {
+  // Browsers drop tab/newline inside URLs, so "/<TAB>/host" would become "//host": reject backslashes and control chars.
+  if (value.startsWith("/") && !value.startsWith("//") && !/[\\\u0000-\u001f\u007f]/.test(value)) {
     return { href: value, external: false };
   }
   try {

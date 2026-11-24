@@ -14,7 +14,7 @@ import {
   type FieldError,
 } from "@/lib/auth/validation";
 
-import { AuthShell, Field, FormAlert } from "./auth-ui";
+import { AuthShell, ErrorSummary, Field, PasswordRules, FormAlert, useErrorSummary } from "./auth-ui";
 
 /** AUTH-01: register, then the OTP screen. Form data is kept in memory only. */
 export function RegisterForm() {
@@ -26,6 +26,7 @@ export function RegisterForm() {
   const [errors, setErrors] = useState<Partial<Record<keyof typeof v, FieldError | null>>>({});
   const [apiError, setApiError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
+  const summary = useErrorSummary();
   const rules: Record<keyof typeof v, (x: string) => FieldError | null> = {
     firstName: validateRequired,
     lastName: validateRequired,
@@ -42,7 +43,7 @@ export function RegisterForm() {
   };
   const blur = (k: keyof typeof v) => (e: React.FocusEvent<HTMLInputElement>) => check(k, e.target.value);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const next = {
       firstName: validateRequired(v.firstName),
@@ -51,7 +52,11 @@ export function RegisterForm() {
       password: validateNewPassword(v.password),
     };
     setErrors(next);
-    if (Object.values(next).some(Boolean)) return;
+    if (Object.values(next).some(Boolean)) {
+      summary.fail(e.currentTarget);
+      return;
+    }
+    summary.clear();
     setBusy(true);
     setApiError(null);
     const data = {
@@ -73,9 +78,10 @@ export function RegisterForm() {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl font-semibold">{t("registerTitle")}</h1>
+      <h1 className="text-4xl">{t("registerTitle")}</h1>
       <p className="mt-1 mb-6 text-sm text-muted-foreground">{t("registerIntro")}</p>
       <form onSubmit={onSubmit} noValidate className="space-y-4">
+        <ErrorSummary show={summary.shown} />
         <FormAlert error={apiError} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("firstName")} autoComplete="given-name" maxLength={40} value={v.firstName}
@@ -86,7 +92,7 @@ export function RegisterForm() {
         <Field label={t("email")} type="email" autoComplete="email" dir="ltr" value={v.email}
           onChange={set("email")} onBlur={blur("email")} error={errors.email} />
         <Field label={t("password")} type="password" autoComplete="new-password" dir="ltr" maxLength={128}
-          value={v.password} onChange={set("password")} onBlur={blur("password")} error={errors.password} hint={t("passwordHint")} />
+          value={v.password} onChange={set("password")} onBlur={blur("password")} error={errors.password} below={<PasswordRules value={v.password} />} />
         <Button type="submit" className="h-12 w-full" disabled={busy}>
           {busy ? t("submitting") : t("register")}
         </Button>

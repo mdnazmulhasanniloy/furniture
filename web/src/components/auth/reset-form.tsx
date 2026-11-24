@@ -10,7 +10,7 @@ import { resetPassword } from "@/lib/auth/flows";
 import { usePendingAuth } from "@/lib/auth/pending";
 import { validateEmail, validateNewPassword, type FieldError } from "@/lib/auth/validation";
 
-import { AuthShell, Field, FormAlert } from "./auth-ui";
+import { AuthShell, ErrorSummary, Field, PasswordRules, FormAlert, useErrorSummary } from "./auth-ui";
 import { OTP_LENGTH, OtpInput } from "./otp-input";
 
 /**
@@ -30,14 +30,19 @@ export function ResetForm() {
   const [incomplete, setIncomplete] = useState(false);
   const [apiError, setApiError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
+  const summary = useErrorSummary();
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const next = { email: validateEmail(email), password: validateNewPassword(password) };
     setErrors(next);
     const short = code.length !== OTP_LENGTH;
     setIncomplete(short);
-    if (next.email || next.password || short) return;
+    if (next.email || next.password || short) {
+      summary.fail(e.currentTarget);
+      return;
+    }
+    summary.clear();
     setBusy(true);
     setApiError(null);
     try {
@@ -55,7 +60,7 @@ export function ResetForm() {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl font-semibold">{t("resetTitle")}</h1>
+      <h1 className="text-4xl">{t("resetTitle")}</h1>
       <p className="mt-1 mb-6 text-sm text-muted-foreground">
         {carried ? <bdi>{t("resetIntro", { email: carried })}</bdi> : t("resetIntroNoEmail")}
       </p>
@@ -70,6 +75,7 @@ export function ResetForm() {
         ) : (
           <FormAlert error={apiError} />
         )}
+        <ErrorSummary show={summary.shown} />
         {carried ? null : (
           <Field label={t("email")} type="email" autoComplete="email" dir="ltr" value={email}
             onChange={(e) => setEmail(e.target.value)} error={errors.email} />
@@ -89,7 +95,7 @@ export function ResetForm() {
         ) : null}
         <Field label={t("newPassword")} type="password" autoComplete="new-password" dir="ltr" maxLength={128}
           value={password} onChange={(e) => setPassword(e.target.value)} error={errors.password}
-          hint={t("passwordHint")} />
+          below={<PasswordRules value={password} />} />
         <Button type="submit" className="h-12 w-full" disabled={busy}>
           {busy ? t("submitting") : t("resetSubmit")}
         </Button>

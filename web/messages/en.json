@@ -212,7 +212,6 @@
     "firstName": "First name",
     "lastName": "Last name",
     "newPassword": "New password",
-    "passwordHint": "At least 8 characters, with a letter and a number.",
     "noAccount": "New to Furnixa?",
     "haveAccount": "Already have an account?",
     "backToLogin": "Back to log in",
@@ -233,14 +232,28 @@
     "codeInvalidReset": "Invalid or expired code.",
     "requestNewCode": "Request a new code",
     "resetDone": "Your password was changed. Log in with your new password.",
-    "panelTitle": "Furniture with a story",
-    "panelText": "New pieces and carefully chosen pre-owned finds, delivered to your door.",
     "submitting": "Please wait…",
     "validation": {
       "required": "This field is required.",
       "emailInvalid": "Enter a valid email address.",
       "passwordWeak": "Use 8 to 128 characters with at least one letter and one number.",
       "codeIncomplete": "Enter all 6 digits."
+    },
+    "brand": {
+      "line": "Cash on delivery across Saudi Arabia."
+    },
+    "field": {
+      "show": "Show password",
+      "hide": "Hide password"
+    },
+    "rules": {
+      "title": "Your password needs",
+      "length": "At least {n} characters",
+      "letter": "A letter",
+      "digit": "A number"
+    },
+    "errors": {
+      "summary": "Please fix the highlighted fields."
     }
   },
   "errors": {

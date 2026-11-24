@@ -11,7 +11,7 @@ import { usePendingAuth } from "@/lib/auth/pending";
 import { useAuthStore } from "@/lib/auth/store";
 import { validateEmail, type FieldError } from "@/lib/auth/validation";
 
-import { AuthShell, Field, FormAlert, FormNotice } from "./auth-ui";
+import { AuthShell, ErrorSummary, Field, FormAlert, FormNotice, useErrorSummary } from "./auth-ui";
 
 /** AUTH-02. `resetDone` shows the post-reset notice (AUTH-03 sends users here). */
 export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
@@ -24,6 +24,7 @@ export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
   const [errors, setErrors] = useState<{ email?: FieldError | null; password?: FieldError | null }>({});
   const [apiError, setApiError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
+  const summary = useErrorSummary();
 
   // Inline validation (W-06): on blur, then live while an error is shown.
   const checkEmail = (v: string) => setErrors((e) => ({ ...e, email: validateEmail(v) }));
@@ -33,11 +34,15 @@ export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
     if (status === "authenticated") router.replace("/");
   }, [status, router]);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const next = { email: validateEmail(email), password: password ? null : ("required" as const) };
     setErrors(next);
-    if (next.email || next.password) return;
+    if (next.email || next.password) {
+      summary.fail(e.currentTarget);
+      return;
+    }
+    summary.clear();
     setBusy(true);
     setApiError(null);
     try {
@@ -58,10 +63,11 @@ export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl font-semibold">{t("loginTitle")}</h1>
+      <h1 className="text-4xl">{t("loginTitle")}</h1>
       <p className="mt-1 mb-6 text-sm text-muted-foreground">{t("loginIntro")}</p>
       <form onSubmit={onSubmit} noValidate className="space-y-4">
         {resetDone ? <FormNotice>{t("resetDone")}</FormNotice> : null}
+        <ErrorSummary show={summary.shown} />
         <FormAlert error={apiError} />
         <Field label={t("email")} type="email" autoComplete="email" dir="ltr" value={email}
           onChange={(e) => {

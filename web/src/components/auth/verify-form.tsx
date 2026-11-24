@@ -102,7 +102,7 @@ export function VerifyForm() {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl font-semibold">{t("verifyTitle")}</h1>
+      <h1 className="text-4xl">{t("verifyTitle")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{t("verifyIntro")}</p>
       <p className="mt-1 mb-6 text-sm text-foreground">
         <bdi>{t("otpSent", { email: pending.email })}</bdi>

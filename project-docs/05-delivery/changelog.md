@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-24 (owner answers to autopilot blockers)
+- B-028 to B-034 resolved by the owner and new B-035 (cart productId) recorded as resolved; see blockers.md. PRD ADM-02, ADM-07, ADM-09 and ADR-010 updated. `@axe-core/playwright` approved as a web devDependency (T-042).
+- New tasks, nothing implemented yet: backend T-030, web T-045, admin T-075 (zod 4 + vitest 5) and T-076.
+
 ## 2026-11-24 (admin T-074 Settings VAT done)
 - **admin T-074 (ADM-14): Settings → VAT.** New VAT tab on `/settings`: VAT rate in percent (0-50, max 2 decimals, more rejected, default 0), "Apply VAT to delivery fee" switch (disabled while rate is 0), "Prices include VAT" switch, optional 15-digit registration number (starts and ends with 3), live example on 100 SAR (ADR-009 half-up formulas); saved through the shared full-replace PUT with `expectedUpdatedAt` / `STALE_UPDATE`, other tabs untouched. Tests `ADM-14 · ...` (en + ar, RTL, dark). No backend change, no blocker. Assumptions (autopilot) — owner to confirm: rate required text input; registration number Western digits only; switch keeps its value at rate 0; example uses a fixed 100 SAR price, indicative only; tab order General · Delivery · VAT · Social · SEO.
 

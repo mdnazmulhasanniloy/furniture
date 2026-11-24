@@ -215,3 +215,9 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 ### T-027 Close the VERIFY_EMAIL resend race · done
 - Req: AUTH-01, AUTH-04 · Depends: T-004 · Docs: `api-spec.yaml` (/auth/resend-otp), `adr/ADR-003`
 - Done: `POST /auth/resend-otp` with purpose `VERIFY_EMAIL` requires `{email, password}` (422 without); the server finds the unexpired VERIFY_EMAIL `Otp` row (also one burnt by the wrong-code lockout) whose `pendingRegistration.passwordHash` verifies against the password (argon2) and binds the new OTP to that row's pending data only. No match (unknown email, wrong password, already verified) -> identical 200 and a decoy row; cooldown and hourly cap behave the same either way; RESET_PASSWORD stays `{email, purpose}`. Spec updated first. Tests: `AUTH-01 · resend with the victim's password binds to the victim's registration even after an attacker registered later`; `AUTH-04 · resend with a wrong password returns the identical 200 response and sends no email`; `AUTH-04 · cooldown and hourly cap still apply to password-matched resend`. Also T-004 review notes: `fx_rt` cookie flags in the spec; English-only error message rule in web/admin CLAUDE.md; en/ar tests that the otp-reset email has the "ignore if you did not request" line. Residual (documented): after the 10-minute OTP TTL a resend finds no live row and the user must register again.
+
+### T-030 Backend follow-ups from owner answers (2026-11-24) · todo
+- Req: ADM-02, ADM-08, CART-01 · Depends: T-029 · Spec first, then code and tests.
+- `GET /cms/pages`: published pages only, `{slug, title{en,ar}}` (B-029). Test named by requirement ID.
+- `ImageAssetInput`: optional `width`/`height`, positive integers <= 10000 (B-030). Tests for 0, negative, 10001, non-integer.
+- Cart response: `productId` on every line including UNAVAILABLE ones (B-035), with a test.

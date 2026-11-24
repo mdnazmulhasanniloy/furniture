@@ -10,7 +10,7 @@ Status: **Accepted 2026-11-20** (team/client decision, SRC-006.1) · **Supersede
   - The presigned URL signs `ContentType` and `ContentLength`, so R2 rejects an upload that differs from what was approved. It expires after 300 s (`expiresIn: 300`).
   - Key format: `furnixa/{env}/{yyyy}/{mm}/{uuid}.{ext}` where `env` = `NODE_ENV`, `uuid` = `crypto.randomUUID()`, `ext` = `jpg` | `png` | `webp` derived from `contentType` (the client's `fileName` is never used in the key).
 - `ImageAsset = { key, url, width?, height?, alt? }`. `publicId` is removed. `url = R2_PUBLIC_BASE_URL + "/" + key`; the server always recomputes `url` from `key` on save and rejects a `key` that does not start with `furnixa/{env}/`.
-- `width`/`height` are optional and supplied by the admin client (read from the file before upload).
+- `width`/`height` are optional and supplied by the admin client (read from the file before upload). The backend accepts optional positive integers <= 10000 (B-030, owner 2026-11-24). Web renders images in fixed aspect-ratio containers so a missing size never causes layout shift.
 - **Deletion:** when an image is removed from a product or banner, or a product is deleted, the backend deletes the object from R2 (`DeleteObject` by `key`). A failed delete is logged (pino, with `key` and `requestId`) and never fails the request. The same rule applies wherever an `ImageAsset` is replaced (category image, site logo) — flagged assumption.
 - Env keys: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`, `R2_PUBLIC_BASE_URL`.
 - The bucket needs a CORS rule allowing `PUT` from the admin origin (`integrations.md#cloudflare-r2`).

@@ -102,3 +102,10 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 - Done: fee line shows "Free delivery" when 0; VAT line and "Incl. VAT / + VAT" note appear only when `vatRate` > 0; fee recalculates after address (city) selection; "Not deliverable" addresses blocked; `PRICE_CHANGED` shows "Totals were updated" and refreshes totals; component tests named `CART-01` / `ORD-01` cover the 0 defaults, city fallback and VAT toggle display (en LTR + ar RTL).
 - Plan (autopilot, pending owner review): T-036/T-038 already render API fee, VAT and total; audit each Done criterion against code and tests, add missing `CART-01` / `ORD-01` tests only, no component change unless a gap is found, no client-side money maths.
 - Closed 2026-11-24 (autopilot): `/review-task T-044` PASS. Already covered by T-036/T-038/T-035 code: Free delivery at fee 0, VAT line hidden at `vatRate` 0, label 'Includes VAT (n%)' / 'VAT (n%)' from `pricesIncludeVat`, `isDeliverable` false blocks checkout, `PRICE_CHANGED` notice + refresh, fee re-fetched via `GET /cart?addressId=`, product-page 'Incl. VAT / + VAT' note. Gap closed with tests only (en + ar): `CART-01 · VAT label ...`, `CART-01 · a non-zero fee ...` in `src/test/cart-01.test.tsx`; `ORD-01 · all-zero defaults ...`, `ORD-01 · VAT label follows pricesIncludeVat ...`, `ORD-01 · the fee is re-fetched ... another address` in `src/test/checkout-ord-01.test.tsx`. Assumption (autopilot) — owner to confirm: the VAT wording is the existing line label ('Includes VAT (15%)' / 'VAT (15%)') rather than a separate note; no legally mandated text is specified, B-012/ADR-009 resolved only the show/hide rule. No code changes.
+
+### T-045 Web follow-ups from owner answers (2026-11-24) · todo
+- Req: ADM-08, SEO, A11Y · Depends: T-041, T-042, backend T-030
+- `/api/revalidate` per B-028 (POST only; `timingSafeEqual` over SHA-256 digests; 401/400; tag allow-list; secret never logged).
+- Footer page links and sitemap from `GET /cms/pages` (B-029).
+- Cart: remove UNAVAILABLE lines by `productId` (B-035).
+- T-042: add `@axe-core/playwright` as a devDependency (owner approved) and run the axe and Lighthouse checks.

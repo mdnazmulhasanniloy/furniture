@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (QA batch A: critical fixes on `fix/qa-2026-11-24`)
+- **A1 registration never 500s again (AUTH-01, AUTH-03, AUTH-04).** Root cause: `register` created the account and the OTP row and only then sent the mail, so a transport failure escaped as 500 `INTERNAL_ERROR` while the OTP row had already started the 60 s cooldown - which is why the reported retry answered 429 and login answered `EMAIL_NOT_VERIFIED`. Sending is now one step with issuing (`issueAndSendOtp`): on a failure the row of the undelivered code is deleted (`discardOtp`), the pending registration is kept, and the caller gets **503 `EMAIL_SEND_FAILED`** and may retry immediately. Same for `resend-otp` and `forgot-password`; an unverified login whose new code cannot be sent still answers 403 `EMAIL_NOT_VERIFIED` (a 503 there would be a password oracle). The code never reaches a log line and the transport error goes through the redacting logger. Spec first. Six new tests, all shown failing with 500 first.
+
 ## 2026-11-24 (CR-011 Checkpoint 3 built: STOP for review)
 - Backend T-104 (customer management: block with a reason, update, soft delete and anonymise, status filter, guards, audit log lines; ADM-17 tests) and T-105 (banner reorder, focal point); admin T-106 (banners list and editor with live preview) and T-107 (customers). Spec and data model first. Screenshots in `03-design/screens-v7`. New copy listed in `cr-011-plan.md` section 15. Nothing pushed; no data command run.
 

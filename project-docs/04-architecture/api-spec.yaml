@@ -58,6 +58,10 @@ paths:
         data (password hash, names, locale) is stored on the new OTP row and applied only when *that* OTP is verified
         (prevents pre-account takeover). Subject to the 60 s cooldown and the 5-per-hour OTP cap (429 `RATE_LIMITED`),
         and to a per-IP cap of 20 register requests per hour (T-019, NFR-01; all requests count).
+
+        A mail that cannot be sent is **503 `EMAIL_SEND_FAILED`**, never a 500 (owner 2026-11-24): the pending
+        registration is kept, the row of the code nobody received is removed again, so neither the 60 s cooldown nor
+        the hourly cap is spent on it, and the next attempt may be made immediately.
       requestBody:
         required: true
         content:
@@ -77,6 +81,7 @@ paths:
         '409': { $ref: '#/components/responses/Error', description: "`EMAIL_IN_USE` - the email belongs to a verified account" }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` - cooldown, hourly OTP cap, or the per-IP cap (20/hour)" }
+        '503': { $ref: '#/components/responses/Error', description: "`EMAIL_SEND_FAILED` - the code could not be mailed; the pending registration is kept, no cooldown is spent, retry immediately" }
   /auth/verify-otp:
     post:
       tags: [Auth]
@@ -124,6 +129,10 @@ paths:
         exactly as for an unknown email; the cooldown and hourly cap behave the same either way. A caller who does not
         know the password of a pending registration can therefore never obtain a code bound to it.
         **RESET_PASSWORD** stays `{email, purpose}`; `password` is ignored. `password` missing for VERIFY_EMAIL -> 422.
+
+        A mail that cannot be sent is **503 `EMAIL_SEND_FAILED`** (owner 2026-11-24): the row of the code nobody
+        received is removed again, so that attempt spends neither the cooldown nor the hourly cap. A decoy row (unknown
+        email, wrong password, purpose that does not apply) sends no mail and still answers 200.
       requestBody:
         required: true
         content:
@@ -139,6 +148,7 @@ paths:
         '200': { $ref: '#/components/responses/Message' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (OTP cooldown, hourly cap, or the per-IP cap)" }
+        '503': { $ref: '#/components/responses/Error', description: "`EMAIL_SEND_FAILED` - the code could not be mailed; no cooldown is spent, retry immediately" }
   /auth/login:
     post:
       tags: [Auth]
@@ -147,7 +157,7 @@ paths:
         Email + password login (AUTH-02). Order: per-IP limit -> email lockout check -> password check -> status checks.
         While an email is locked (LOGIN_MAX_FAILURES failures within LOGIN_LOCKOUT_SECONDS) every attempt gets 429 `ACCOUNT_LOCKED` WITHOUT checking the password, for known and unknown emails alike (no password oracle); `Retry-After` is set.
         An unknown email and a wrong password both give the identical 401 `INVALID_CREDENTIALS`. `EMAIL_NOT_VERIFIED` and `ACCOUNT_BLOCKED` are returned only after the password verified.
-        For an unverified account the password is matched against its pending registrations (same rule as resend-otp), the new OTP is bound to the matching one and sent, and the response is 403 `EMAIL_NOT_VERIFIED` (if the OTP cooldown or cap blocks the mail it is not sent, the response is the same).
+        For an unverified account the password is matched against its pending registrations (same rule as resend-otp), the new OTP is bound to the matching one and sent, and the response is 403 `EMAIL_NOT_VERIFIED` (if the OTP cooldown or cap blocks the mail, or the mail cannot be sent at all, it is not sent and the response is the same; owner 2026-11-24).
         The per-IP limit (10 failed attempts / 15 min) does not count successful logins. The oldest session is revoked when MAX_ACTIVE_SESSIONS would be exceeded.
       requestBody:
         required: true
@@ -215,6 +225,8 @@ paths:
         known and unknown emails (and for blocked or unverified accounts, which get no mail); the 60 s cooldown and
         the 5-per-hour cap apply per email, also for unknown emails, so a 429 does not reveal whether an account exists.
         A per-IP cap of 20 requests per hour (T-019, NFR-01; all requests count) stops mass mail across many emails.
+        A mail that cannot be sent is **503 `EMAIL_SEND_FAILED`** (owner 2026-11-24); the row of the undelivered code
+        is removed again, so that attempt spends neither the cooldown nor the hourly cap.
       requestBody:
         required: true
         content:
@@ -228,6 +240,7 @@ paths:
         '200': { $ref: '#/components/responses/Message' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (OTP cooldown, hourly cap, or the per-IP cap)" }
+        '503': { $ref: '#/components/responses/Error', description: "`EMAIL_SEND_FAILED` - the code could not be mailed; no cooldown is spent, retry immediately" }
   /auth/reset-password:
     post:
       tags: [Auth]

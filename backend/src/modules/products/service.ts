@@ -2,7 +2,12 @@ import { Prisma, type Category, type Product } from '@prisma/client';
 import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
 import { buildImageAsset, syncImages, type ImageAsset, type R2Context } from '../../lib/r2.js';
-import { buildSearchText, escapeRegex, normalizeSearch, searchWhere } from '../../lib/searchText.js';
+import {
+  buildSearchText,
+  escapeRegex,
+  normalizeSearch,
+  searchWhere,
+} from '../../lib/searchText.js';
 import type {
   AdminListQuery,
   CreateProductBody,
@@ -155,7 +160,10 @@ export async function listPublic(query: PublicListQuery) {
   if (query.featured !== undefined) where.isFeatured = query.featured;
   if (query.q !== undefined && query.q.trim() !== '') {
     // words (AND), plural/singular, title + description + category + material in en and ar
-    where.AND = [...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []), searchWhere(query.q)];
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+      searchWhere(query.q),
+    ];
   }
 
   const [total, rows] = await Promise.all([

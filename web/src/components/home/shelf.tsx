@@ -14,18 +14,15 @@ type Tab = "new" | "resale";
 
 /**
  * The one shelf (ADR-015): a New / Pre-owned segmented switch over one product grid. Arrow keys move
- * between the two options (and in RTL the arrows follow the visual direction). A featured product carries
- * the Featured chip. With only one non-empty list the switch is not shown.
+ * between the two options (and in RTL the arrows follow the visual direction). With only one non-empty list the switch is not shown.
  */
 export function Shelf({
   newItems,
   resaleItems,
-  featuredIds,
   locale,
 }: {
   newItems: HomeProduct[];
   resaleItems: HomeProduct[];
-  featuredIds: string[];
   locale: Locale;
 }) {
   const t = useTranslations("home.shelf");
@@ -40,7 +37,6 @@ export function Shelf({
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
   if (tabs.length === 0) return null;
   const current = tabs.find((x) => x.key === active) ?? tabs[0];
-  const featured = new Set(featuredIds);
 
   function onKeyDown(e: React.KeyboardEvent) {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
@@ -111,7 +107,7 @@ export function Shelf({
         >
           <ul className="grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6">
             {x.items.map((p) => (
-              <ConnectedProductCard key={p.id} product={{ ...p, isFeatured: featured.has(p.id) }} locale={locale} />
+              <ConnectedProductCard key={p.id} product={p} locale={locale} />
             ))}
           </ul>
         </div>

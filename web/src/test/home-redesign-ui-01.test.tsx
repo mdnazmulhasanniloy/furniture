@@ -459,12 +459,12 @@ describe.each(["en", "ar"] as const)("UI-01 · home v2 category row and shelf (%
     expect(screen.getByTestId("home-shelf").textContent).toContain(m.nav.resale);
   });
 
-  it(`UI-01 · products of an enabled FEATURED section carry the Featured chip on the shelf (${locale})`, () => {
+  it(`UI-01 · an enabled FEATURED section renders below the shelf, and no card carries a Featured chip (${locale})`, () => {
     const featured = section("f", "FEATURED_PRODUCTS", { products: [product("1", "NEW")] });
     wrap(locale, <HomeSections sections={[both[0], featured]} locale={locale} />);
     const shelf = screen.getByTestId("home-shelf");
-    expect(shelf.textContent).toContain(m.badge.featured);
-    // ...and the section itself renders below the shelf in the same quiet style.
+    expect(shelf.textContent).not.toContain(m.badge.featured); // review: "Featured" is removed from cards
+    // the section itself renders below the shelf in the same quiet style.
     expect(screen.getByTestId("home-section-FEATURED_PRODUCTS")).toBeTruthy();
   });
 

@@ -101,7 +101,8 @@ describe.each(["en", "ar"] as const)("UI-04 · product cards (%s)", (locale) => 
   it(`UI-04 · the card photo has 8 px corners and zooms on hover and focus; the title uses the body face (${locale})`, () => {
     wrap(locale, <ul><ProductCard product={product} locale={locale} /></ul>);
     expect(screen.getByTestId("card-media").className).toContain("rounded-lg");
-    expect(screen.getByRole("link", { name: /Oak table|طاولة بلوط/ }).className).toContain("zoom-on-hover");
+    expect(document.querySelector("a.zoom-on-hover")).not.toBeNull(); // the photo link zooms; it is hidden from assistive tech and the tab order
+    expect(screen.getByRole("link", { name: /Oak table|طاولة بلوط/ })).toBeTruthy(); // the title link is the one named link
     const title = screen.getByRole("heading", { level: 3 });
     expect(title.className).not.toContain("font-display");
     expect(title.className).toContain("text-base");

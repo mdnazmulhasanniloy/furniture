@@ -78,17 +78,17 @@ describe("PROD-01 · filters <-> URL <-> API query", () => {
 });
 
 describe.each(["en", "ar"] as const)("PROD-01 · shop UI (%s)", (locale) => {
-  it("PROD-01 · badge per type/condition on cards and link to detail", () => {
+  it("PROD-01 · a pre-owned card shows its grade, a new card no badge, and the title links to the detail", () => {
     wrap(locale, <ProductGrid items={[prod("a", "NEW"), prod("b", "RESALE")]} locale={locale} filters={parseFilters({})} />);
     const m = messages[locale];
-    expect(screen.getByText(m.badge.new)).toBeTruthy();
+    expect(screen.queryByText(m.badge.new)).toBeNull(); // no "New" badge on new products
     expect(screen.getByText(m.badge.preowned.replace("{grade}", m.condition.GOOD))).toBeTruthy();
     expect((screen.getAllByRole("link")[0]).getAttribute("href")).toBe("/shop/p-a");
   });
 
   it("PROD-01 · sold-out product shows the sold out badge (stock as returned)", () => {
     wrap(locale, <ProductGrid items={[prod("a", "NEW", 0)]} locale={locale} filters={parseFilters({})} />);
-    expect(screen.getByText(messages[locale].badge.soldOut)).toBeTruthy();
+    expect(screen.getAllByText(messages[locale].badge.soldOut).length).toBeGreaterThan(0); // the badge (and the disabled add button)
   });
 
   it("PROD-01 · empty state with Clear filters when filters are active", () => {

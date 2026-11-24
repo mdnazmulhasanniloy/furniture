@@ -52,7 +52,7 @@ function OptionalSection({ section, locale }: { section: HomeSection; locale: Lo
         <SectionShell section={section} locale={locale}>
           <ul className="grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6">
             {section.products!.map((p) => (
-              <ConnectedProductCard key={p.id} product={{ ...p, isFeatured: true }} locale={locale} />
+              <ConnectedProductCard key={p.id} product={p} locale={locale} />
             ))}
           </ul>
         </SectionShell>
@@ -133,7 +133,6 @@ export function HomeSections({
   );
   const newItems = pool.filter((p) => p.type === "NEW");
   const resaleItems = pool.filter((p) => p.type === "RESALE");
-  const featuredIds = fromSections("FEATURED_PRODUCTS").map((p) => p.id);
   const optional = visible.filter((s) => ["FEATURED_PRODUCTS", "PROMO_BANNER", "TESTIMONIALS"].includes(s.type));
   return (
     <>
@@ -141,7 +140,6 @@ export function HomeSections({
       <Shelf
         newItems={newItems.length > 0 ? newItems : (fallback?.new ?? [])}
         resaleItems={resaleItems.length > 0 ? resaleItems : (fallback?.resale ?? [])}
-        featuredIds={featuredIds}
         locale={locale}
       />
       {visible

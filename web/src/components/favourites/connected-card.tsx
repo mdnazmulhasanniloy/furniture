@@ -12,7 +12,7 @@ export function ConnectedProductCard({
   product,
   locale,
 }: {
-  product: HomeProduct & { isFeatured?: boolean };
+  product: HomeProduct;
   locale: Locale;
 }) {
   const server = useAuthStore((s) => s.status === "authenticated" && s.user?.role === "CUSTOMER");

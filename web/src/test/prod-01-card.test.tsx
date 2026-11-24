@@ -80,13 +80,28 @@ describe.each(["en", "ar"] as const)("PROD-01 · product card (%s)", (locale) =>
     expect(screen.queryByTestId("card-second-image")).toBeNull();
   });
 
-  it(`PROD-01 · new products show the New badge, resale the Pre-owned grade, featured the Featured badge (${locale})`, () => {
-    const { unmount } = wrap(locale, <ProductCard product={{ ...base, isFeatured: true }} locale={locale} />);
-    expect(screen.getByText(m.badge.new)).toBeTruthy();
-    expect(screen.getByText(m.badge.featured)).toBeTruthy();
+  it(`UI-04 · a new product shows no badge at all: "New" says nothing, and there is no "Featured" badge (${locale})`, () => {
+    wrap(locale, <ProductCard product={{ ...base, compareAtPrice: null }} locale={locale} />);
+    expect(screen.queryByTestId("card-chips")).toBeNull();
+    expect(screen.queryByText(m.badge.new)).toBeNull();
+    expect(screen.queryByText(m.badge.featured)).toBeNull();
+  });
+
+  it(`UI-04 · a card has at most one badge, by priority: sold out, then the pre-owned grade, then the percentage off (${locale})`, () => {
+    const count = () => document.querySelectorAll('[data-slot="badge"]').length;
+    const { unmount } = wrap(locale, <ProductCard product={{ ...base, type: "RESALE", condition: "GOOD", compareAtPrice: 99900 }} locale={locale} />);
+    expect(screen.getByText(m.badge.preowned.replace("{grade}", m.condition.GOOD))).toBeTruthy(); // grade wins over the sale
+    expect(screen.queryByTestId("sale-badge")).toBeNull();
+    expect(count()).toBe(1);
     unmount();
-    wrap(locale, <ProductCard product={{ ...base, type: "RESALE", condition: "GOOD" }} locale={locale} />);
-    expect(screen.getByText(m.badge.preowned.replace("{grade}", m.condition.GOOD))).toBeTruthy();
+    const sold = wrap(locale, <ProductCard product={{ ...base, type: "RESALE", condition: "GOOD", stock: 0 }} locale={locale} />);
+    expect(count()).toBe(1);
+    expect(screen.getAllByText(m.badge.soldOut).length).toBeGreaterThan(0);
+    expect(screen.queryByText(m.badge.preowned.replace("{grade}", m.condition.GOOD))).toBeNull(); // sold out wins
+    sold.unmount();
+    wrap(locale, <ProductCard product={{ ...base, price: 40000, compareAtPrice: 50000 }} locale={locale} />);
+    expect(count()).toBe(1);
+    expect(screen.getByTestId("sale-badge").textContent).toMatch(/20/); // a bare percentage: no copy needed
   });
 
   it(`PROD-01 · a missing image shows the flat sand placeholder with the wordmark (${locale})`, () => {
@@ -99,14 +114,14 @@ describe.each(["en", "ar"] as const)("PROD-01 · product card (%s)", (locale) =>
     fireEvent.click(screen.getByTestId("quick-add"));
     await waitFor(() => expect(addToCart).toHaveBeenCalledWith(base, 1));
     await waitFor(() => expect(flyToCart).toHaveBeenCalledTimes(1));
-    expect(screen.getByTestId("quick-add").textContent).toBe(m.cart.addToCart);
+    expect(screen.getByTestId("quick-add").getAttribute("aria-label")).toBe(m.cart.addToCart);
   });
 
   it(`PROD-01 · stock 0 disables quick add and labels it Sold out (${locale})`, () => {
     wrap(locale, <ProductCard product={{ ...base, stock: 0 }} locale={locale} />);
     const btn = screen.getByTestId("quick-add") as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
-    expect(btn.textContent).toBe(m.badge.soldOut);
+    expect(btn.getAttribute("aria-label")).toBe(m.badge.soldOut);
     fireEvent.click(btn);
     expect(addToCart).not.toHaveBeenCalled();
   });
@@ -135,34 +150,56 @@ describe.each(["en", "ar"] as const)("PROD-01 · product card (%s)", (locale) =>
   });
 
   it(`UI-01 · the condition chip sits under the image beside the price, never on the photo (${locale})`, () => {
-    wrap(locale, <ProductCard product={{ ...base, type: "RESALE", condition: "LIKE_NEW", isFeatured: true }} locale={locale} />);
+    wrap(locale, <ProductCard product={{ ...base, type: "RESALE", condition: "LIKE_NEW" }} locale={locale} />);
     const chips = screen.getByTestId("card-chips");
     expect(screen.getByTestId("card-media").contains(chips)).toBe(false);
     expect(chips.textContent).toContain(m.condition.LIKE_NEW);
-    expect(chips.textContent).toContain(m.badge.featured);
     expect(chips.parentElement!.querySelector("bdi")).not.toBeNull(); // same row as the price
   });
 
-  it(`UI-01 · chips use the sm radius, pre-owned is sand with ink, new is emerald with white (${locale})`, () => {
-    const { unmount } = wrap(locale, <ProductCard product={base} locale={locale} />);
+  it(`UI-01 · chips use the sm radius; pre-owned is sand with ink, the sale chip is outlined emerald (${locale})`, () => {
     const tag = (el: HTMLElement) => el.querySelector('[data-slot="badge"]')!.className;
-    expect(tag(screen.getByTestId("card-chips"))).toMatch(/bg-primary.*text-primary-foreground|text-primary-foreground.*bg-primary/);
+    const { unmount } = wrap(locale, <ProductCard product={{ ...base, type: "RESALE", condition: "GOOD" }} locale={locale} />);
     expect(tag(screen.getByTestId("card-chips"))).toContain("rounded-sm");
-    unmount();
-    wrap(locale, <ProductCard product={{ ...base, type: "RESALE", condition: "GOOD" }} locale={locale} />);
     expect(tag(screen.getByTestId("card-chips"))).toContain("bg-secondary");
     expect(tag(screen.getByTestId("card-chips"))).toContain("text-secondary-foreground");
+    unmount();
+    wrap(locale, <ProductCard product={base} locale={locale} />); // base has a compare-at price
+    expect(tag(screen.getByTestId("card-chips"))).toContain("border-primary");
   });
 
-  it(`UI-01 · quick add is visible on mobile and revealed on hover or focus only on hovering desktops (${locale})`, () => {
+  it(`UI-04 · quick add is on the photo: a bar that fades in on hover and focus on every hover-capable card, a round bag button always visible on touch (${locale})`, () => {
     wrap(locale, <ProductCard product={base} locale={locale} />);
-    const cls = screen.getByTestId("quick-add").className;
-    expect(cls).toContain("w-full");
-    expect(cls).toContain("border-primary"); // outlined secondary button, not a filled slab on every tile
-    expect(cls).toContain("lg:[@media(hover:hover)]:opacity-0");
-    expect(cls).toContain("lg:[@media(hover:hover)]:group-hover:opacity-100");
-    expect(cls).toContain("lg:[@media(hover:hover)]:focus-visible:opacity-100");
-    expect(cls.split(" ")).not.toContain("opacity-0"); // never hidden below lg or on touch
+    const btn = screen.getByTestId("quick-add");
+    const cls = btn.className;
+    expect(screen.getByTestId("card-media").parentElement!.parentElement!.contains(btn)).toBe(true); // overlays the photo, not the text block
+    expect(btn.parentElement!.className).toContain("relative");
+    expect(cls).toContain("absolute");
+    expect(cls).toContain("bottom-2");
+    expect(cls.split(" ")).not.toContain("opacity-0"); // never hidden on touch
+    expect(cls).toContain("[@media(hover:hover)]:opacity-0"); // hidden only where hover exists...
+    expect(cls).toContain("[@media(hover:hover)]:group-hover:opacity-100");
+    expect(cls).toContain("[@media(hover:hover)]:focus-visible:opacity-100");
+    expect(cls).toContain("size-10"); // the touch button is a 40 px circle
+    expect(cls).toContain("rounded-full");
+    expect(cls).toContain("[@media(hover:hover)]:inset-x-2"); // ...where it becomes a full-width bar
+    expect(btn.querySelector("svg")!.getAttribute("class")).toContain("[@media(hover:hover)]:hidden"); // the bag icon is for touch only
+    expect(btn.getAttribute("aria-label")).toBe(m.cart.addToCart); // one accessible name in both modes
+  });
+
+  it(`UI-04 · the whole card group reveals the bar on focus-within and hover, and the text block has no add-to-cart row (${locale})`, () => {
+    wrap(locale, <ProductCard product={base} locale={locale} />);
+    expect(screen.getByTestId("product-card").className).toContain("group");
+    const text = screen.getByRole("heading", { level: 3 }).parentElement!;
+    expect(text.querySelector("button")).toBeNull(); // no layout shift: the control never takes space under the photo
+  });
+
+  it(`UI-04 · the title sits close to the price (tight gap) and has no reserved empty line (${locale})`, () => {
+    wrap(locale, <ProductCard product={base} locale={locale} />);
+    const h3 = screen.getByRole("heading", { level: 3 });
+    expect(h3.parentElement!.className).toContain("space-y-1");
+    expect(h3.parentElement!.className).not.toContain("space-y-1.5");
+    expect(h3.className).not.toMatch(/min-h/);
   });
 
   it(`UI-01 · the heart sits in the top-end corner as a plain paper circle (${locale})`, () => {

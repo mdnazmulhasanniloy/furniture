@@ -221,3 +221,7 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 - `GET /cms/pages`: published pages only, `{slug, title{en,ar}}` (B-029). Test named by requirement ID.
 - `ImageAssetInput`: optional `width`/`height`, positive integers <= 10000 (B-030). Tests for 0, negative, 10001, non-integer.
 - Cart response: `productId` on every line including UNAVAILABLE ones (B-035), with a test.
+
+### T-031 Wishlist (FAV-01, CR-007) · todo
+- Req: FAV-01 · Depends: T-010, T-012 · Docs: `api-spec.yaml` (/me/wishlist), `data-model.md` (Wishlist), `adr/ADR-014` · Spec first (done in CR-007), then code and tests.
+- Done: Prisma `Wishlist` (userId unique, productIds ObjectId[] ≤ 100, version, updatedAt); `GET /me/wishlist`, `PUT /me/wishlist/{productId}` (idempotent add), `DELETE /me/wishlist/{productId}` (idempotent remove), `DELETE /me/wishlist` (clear), `POST /me/wishlist/merge` (union, existing first, cap 100, unpublished/unknown/malformed skipped, idempotent); customers only (ADMIN → 403); conditional update on `version` with 3 retries then 409 `WISHLIST_CONFLICT`; 404 `PRODUCT_NOT_FOUND`; 409 `WISHLIST_LIMIT_REACHED`; static `merge` route registered before `{productId}`. Tests named `FAV-01 · ...` (cap, idempotency, merge order and truncation, unpublished skipped, customers only, concurrency, 401/403/422).

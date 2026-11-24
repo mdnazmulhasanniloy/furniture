@@ -15,7 +15,7 @@ A bilingual (Arabic default / English) online store for **Saudi Arabia** that se
 
 ## 3. Non-goals (MVP)
 
-Payment gateway, Redis/Kafka/queues, multi-vendor marketplace, mobile app, SMS OTP, reviews/ratings, wishlist, coupons, multi-currency, live chat, customer "Sell to us" / resale submissions (SRC-002.1), delivery outside Saudi Arabia or to cities not enabled in Site Settings (SRC-003.2). (SRC-001.9, SRC-001.11)
+Payment gateway, Redis/Kafka/queues, multi-vendor marketplace, mobile app, SMS OTP, reviews/ratings, coupons, newsletter sign-up (separate future CR, CR-007 Q-6), multi-currency, live chat, customer "Sell to us" / resale submissions (SRC-002.1), delivery outside Saudi Arabia or to cities not enabled in Site Settings (SRC-003.2). (SRC-001.9, SRC-001.11)
 
 ## 4. Roles
 
@@ -63,6 +63,8 @@ As a visitor, I want to sign up with first name, last name, email and password a
 - Given no token, When opening the admin app, Then I am redirected to admin login.
 - Admin accounts are created by seed script or by another admin; no public admin signup.
 
+Visual redesign (CR-007, SRC-008.11): the register, login and OTP screens use a split layout (lifestyle image panel, emerald panel with a gold accent line), inline validation and an animated 6-box OTP with a resend countdown, mirrored in RTL. Behaviour of AUTH-01..04 is unchanged.
+
 ### 5.2 Profile (PROF)
 
 **PROF-01 Profile** · draft — View/edit first name, last name, phone, avatar, preferred language (default `ar`). Changing email is out of scope.
@@ -82,6 +84,7 @@ As a visitor, I want to sign up with first name, last name, email and password a
 - Search by name/description in the active locale.
 - Paginated (24 per page), URL reflects filters (shareable).
 - Given a resale product, Then its card shows a "Pre-owned · {grade}" badge; new products show a "New" badge.
+- Card (CR-007, SRC-008.7): 4:5 image with a second-image crossfade on hover, type/condition badge, animated heart favourite toggle (FAV-01), title in 2 lines, price in the price colour, quick "Add to cart" button; Given stock is 0, Then the button is disabled and reads "Sold out".
 
 **PROD-02 Product detail** · draft
 - Image gallery (zoom on desktop, swipe on mobile), localized title/description, price, compare-at price (optional), condition + condition notes (resale), dimensions (W×D×H cm), material, colour, stock status, delivery note ("Delivery to selected Saudi cities").
@@ -96,6 +99,7 @@ As a visitor, I want to sign up with first name, last name, email and password a
 - Quantity cannot exceed stock; resale items max qty = stock (usually 1).
 - Cart shows subtotal, delivery fee, VAT line (only when `vatRate` > 0), total, all in SAR. Fee and VAT come from admin settings (ADM-14, ADR-009) and default to 0.
 - Given the resolved delivery fee is 0, Then the cart, checkout and order show "Free delivery". Given `vatRate` is 0, Then no VAT line is shown on the cart, checkout, order or invoice.
+- Cart drawer and page (CR-007, SRC-008.13): line thumbnail, quantity stepper, remove with an undo toast (undo re-adds the line), free-delivery progress bar in gold (only when a threshold is set), clear totals, sticky checkout button on mobile.
 - Given a delivery address is selected, Then the fee uses that city's override if set, else the base `deliveryFee`, else 0; Given no address yet, Then the base fee is shown and checkout recalculates once the address is chosen. Given a free-delivery threshold is set and the subtotal reaches it, Then the fee is 0.
 
 **ORD-01 Checkout (COD)** · draft
@@ -135,8 +139,8 @@ Order status flow (owner 2026-11-22, T-014): `PENDING → CONFIRMED → PROCESSI
 
 ### 5.7 UI quality (UI) — SRC-001.5, .7, .8, .12
 
-**UI-01 Look & motion** · draft — Follows `03-design/design-system.md`. Framer Motion for component/page transitions, GSAP for the home hero/scroll storytelling, AOS for simple scroll reveals. `prefers-reduced-motion` disables non-essential animation.
-**UI-02 Responsive & accessible** · draft — 360 px to 1920 px; WCAG 2.1 AA colour contrast; keyboard navigable; images have localized alt text.
+**UI-01 Look & motion** · draft — "Emerald and gold" on white (`03-design/design-system.md`, ADR-014). GSAP + ScrollTrigger for the home hero and section reveals; Framer Motion for product cards, cart drawer, page enter transitions and add-to-cart feedback (fly-to-cart + toast); AOS for content-page reveals. `prefers-reduced-motion` disables non-essential animation and every animation mirrors in RTL. Headings in Fraunces / Noto Kufi Arabic; radius and shadow tokens only; no hex values in components.
+**UI-02 Responsive & accessible** · draft — 360 px to 1920 px; WCAG 2.1 AA colour contrast, enforced by an automated test on the design tokens (body, muted text, price, every button and badge text, light and dark; ≥ 4.5:1, graphics ≥ 3:1); keyboard navigable; images have localized alt text.
 
 ### 5.8 Resale (RESALE)
 
@@ -154,7 +158,7 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 **ADM-05 Customers** · draft — List, view orders of a customer, block/unblock.
 **ADM-06 Hero banners** · draft — CRUD, localized title/subtitle/CTA, desktop + mobile image, link, schedule (start/end), sort, active.
 - Owner 2026-11-22 (T-011): banner images require localized alt text in both en and ar (UI-02); the CTA link must be a same-site path or an absolute https URL (protocol-relative, `javascript:`, `data:` and `http:` rejected).
-**ADM-07 Home sections** · draft — Ordered list of sections the home page renders: `FEATURED_PRODUCTS`, `NEW_ARRIVALS`, `RESALE_PICKS`, `CATEGORY_GRID`, `PROMO_BANNER`, `TESTIMONIALS`; each with localized title, visibility, sort order, config (e.g. product ids, limit). Admins may create and delete sections (B-032, 2026-11-24).
+**ADM-07 Home sections** · draft — (CR-007 Q-7: the hero from banners, "How resale works" and the contact strip are fixed parts of the home page; the sections below stay admin-ordered and hideable.) Ordered list of sections the home page renders: `FEATURED_PRODUCTS`, `NEW_ARRIVALS`, `RESALE_PICKS`, `CATEGORY_GRID`, `PROMO_BANNER`, `TESTIMONIALS`; each with localized title, visibility, sort order, config (e.g. product ids, limit). Admins may create and delete sections (B-032, 2026-11-24).
 **ADM-08 Static pages** · draft — About, Contact, FAQ, Terms, Privacy; rich text per locale; slug; published toggle.
 - Owner 2026-11-22 (T-011): page HTML is sanitised server-side on every write with an allowlist matching the Tiptap editor (ADR-013); a published page needs title and content in both locales, an unpublished one at least one (I18N-02).
 **ADM-09 Site settings** · draft — Store name, logo, contact email/phone/address, social links, delivery fee and VAT (ADM-14), currency (fixed SAR, not editable — ADR-008), delivery cities (ADM-13), default locale (`ar` by default), SEO meta (localized). Contact phone accepts Saudi mobile, landline and unified numbers (9200/800), normalised to E.164 +966, with its own validator separate from the customer mobile rule (B-033). Social links must be https on a per-platform host allowlist (instagram.com, facebook.com, x.com, tiktok.com, snapchat.com, wa.me), max 200 characters (B-034).
@@ -180,6 +184,16 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 - Seed: all values at their defaults (0 / empty); no VAT rate is pre-set.
 - Out of scope: ZATCA e-invoicing (B-013), per-product VAT rates or exemptions.
 
+### 5.10 Favourites (FAV) — SRC-008.8–10 (CR-007)
+
+**FAV-01 Favourites** · draft — Customers save products as favourites with a heart toggle on product cards and the product page.
+- Given I am a guest, When I tap a heart, Then the product id is stored in this browser only (localStorage, max 100) and the header heart count updates.
+- Given I log in, When login completes, Then the guest list is merged into my account list (union: existing account items first, then guest items in saved order; cap 100; unpublished or unknown products skipped) and the local list is cleared **only after** the merge succeeded; on failure it stays and a retry is offered.
+- Given I am logged in as a customer, When I toggle a heart, Then the account list changes per product (add and remove are idempotent) and is the same on every device.
+- Given a favourited product is unpublished or deleted, Then it is not shown and not counted.
+- Given my list has 100 items, When I add another, Then I see a localized "favourites full" message.
+- The favourites page lists my favourites as a card grid with remove and an empty state. Favourites on the account are for customers only; an admin session keeps a guest (localStorage) list that is never merged.
+
 ## 6. Non-functional
 
 - NFR-01 Security: helmet, CORS allow-list, zod validation on every input, argon2id password hashing (cost from env), OTPs stored hashed, login lockout, session cap, CSRF protection for cookie requests, rate limit on auth routes (MongoDB-backed store, ADR-012), no secrets in repo (ADR-011).
@@ -193,4 +207,4 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 
 ## 7. Release criteria (MVP)
 
-All `draft`→`approved` requirements implemented with passing tests (see `05-delivery/test-plan.md`), en/ar parity check passed, client UAT sign-off.
+All `draft`→`approved` requirements implemented with passing tests (see `05-delivery/test-plan.md`), en/ar parity check passed, client UAT sign-off. The design-token AA contrast test (UI-02) is green.

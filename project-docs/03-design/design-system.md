@@ -1,34 +1,37 @@
-# Design System — "Warm Walnut"
+# Design System — "Emerald and gold"
 
-Mood: warm, crafted, calm. Feels like a well-lit showroom — natural wood, linen, clay, a touch of olive green. Works equally in LTR and RTL.
+Mood: calm, bright, showroom. White canvas, deep emerald, brass accents. Works equally in LTR and RTL. (Replaces "Warm Walnut", CR-007 / SRC-008, ADR-014. ADR-004 is unchanged: shadcn/ui stays the base.)
 
 ## 1. Colour tokens
 
-Defined as CSS variables (HSL, shadcn convention) in both `web` and `admin`. daisyUI theme `furnixa` maps to the same values.
+Defined as CSS variables in both `web` (`globals.css`) and `admin` (`index.css`). Components use token classes only, never hex values. All values below are a contract checked by the AA test (UI-02, see "Contrast" below).
 
-| Token | Hex | Use |
-|---|---|---|
-| `--background` | `#FBF8F3` (linen) | Page background |
-| `--foreground` | `#1F1A17` (espresso) | Body text |
-| `--card` | `#FFFFFF` | Cards, sheets |
-| `--muted` | `#F2EBE1` (sand) | Section bands, inputs |
-| `--muted-foreground` | `#6B5E54` | Secondary text |
-| `--primary` | `#8B5A3C` (walnut) | Primary buttons, links |
-| `--primary-foreground` | `#FFFFFF` | Text on primary |
-| `--secondary` | `#5F6F52` (olive) | Resale badge, secondary CTA |
-| `--accent` | `#C8794A` (terracotta) | Highlights, price, sale |
-| `--gold` | `#C9A66B` (brass) | Featured badge, dividers |
-| `--border` | `#E6DCCF` | Borders |
-| `--ring` | `#8B5A3C` | Focus ring |
-| `--destructive` | `#B4442E` | Errors, cancel |
-| `--success` | `#3F7D58` | Delivered, success |
-| `--warning` | `#C98A1A` | Pending, low stock |
+| Token | Light | Dark (admin) | Use |
+|---|---|---|---|
+| `--background` | `#FFFFFF` | `#0E1513` | Page |
+| `--foreground` | `#1C2321` | `#EEF2F0` | Body text |
+| `--card` | `#FFFFFF` | `#15201D` | Cards, sheets |
+| `--muted` | `#F4F6F5` | `#1A2522` | Bands, skeletons, progress track |
+| `--muted-foreground` | `#5F6B66` | `#A3B0AB` | Secondary text |
+| `--primary` / `--primary-foreground` | `#0F4C45` / `#FFFFFF` | `#4FB3A3` / `#0E1513` | Buttons, links, "New" badge |
+| `--secondary` / `--secondary-foreground` | `#F6EFD9` / `#6B5318` | `#2A2616` / `#E9DDB8` | "Pre-owned" badge, soft CTA |
+| `--gold` / `--gold-foreground` | `#C8A24A` / `#1C2321` | `#D9B865` / `#1C2321` | Decoration, icons, CTA fill, "Featured" badge. **Never as text on white.** |
+| `--gold-strong` | `#9C7A2E` | `#D9B865` | Meaningful gold graphics (free-delivery progress fill; ≥ 3:1 on white and muted) |
+| `--price` | `#86672A` | `#D9B865` | Amounts only (`Price` component) |
+| `--border` | `#E6E9E7` | `#24302D` | Decorative dividers only |
+| `--input` | `#7D8A85` | `#6B7A75` | Form-field borders (3:1) |
+| `--ring` | `#0F4C45` | `#4FB3A3` | Focus ring |
+| `--destructive` | `#B42318` | `#F28B82` | Errors, cancel (text and fills) |
+| `--success` | `#1F7A4D` | `#5CC38F` | Delivered, success |
+| `--success-foreground` | `#17603B` | `#5CC38F` | Text on success tint |
+| `--warning` | `#B7791F` | `#E3A93E` | Icons and badge backgrounds **only** |
+| `--warning-foreground` | `#7A4B05` | `#E3A93E` | Text (the "darkest shade") on warning tint |
 
-Dark mode (admin only in MVP): background `#16120F`, card `#1F1A16`, foreground `#F3ECE3`, primary `#C08A62`, border `#3A312A`.
+`--accent` is removed. Amounts use `--price`; decorative highlights use `--gold`; the six former call sites move to `primary` or `gold` by meaning.
 
-Contrast check: walnut `#8B5A3C` on white = 6.0:1 ✓; muted-foreground on linen ≈ 5.6:1 ✓; terracotta on white ≈ 3.2:1 → use only for large text/price ≥ 18 px or icons.
+Contrast (computed, WCAG relative luminance; enforced by tests in `web` and `admin`): foreground and muted-foreground on background, card and muted ≥ 4.5:1; `--price` on the same surfaces ≥ 4.5:1; every Button variant text on its fill and every badge text on its fill ≥ 4.5:1; ring, `--input` and `--gold-strong` against the surface they sit on ≥ 3:1. Known figures: muted-foreground on white 5.55, price on white 5.27, white on primary 9.81, gold button text 6.65, Pre-owned badge 6.35, warning-foreground on white 7.4, `--gold-strong` on white 4.01 and on muted 3.69, `--input` on white 3.59. Raw `--warning` as text (3.64) and raw `--gold` as text on white (2.41) are forbidden.
 
-Order status colours: PENDING warning · CONFIRMED primary · PROCESSING gold · OUT_FOR_DELIVERY secondary · DELIVERED success · CANCELLED destructive.
+Order status colours: PENDING warning badge (text `warning-foreground`) · CONFIRMED primary · PROCESSING gold · OUT_FOR_DELIVERY secondary · DELIVERED success · CANCELLED destructive.
 
 ## 2. Typography
 
@@ -41,27 +44,31 @@ Loaded via `next/font` (web) / `@fontsource` (admin). Scale (rem): 0.75, 0.875, 
 
 ## 3. Space, radius, shadow
 
-- 4 px base grid; container max 1280 px; section padding 96 px desktop / 56 px mobile.
+- 4 px base grid; container max 1280 px; section padding 96 px desktop / 56 px mobile; gap between home sections at least 64 px desktop / 40 px mobile.
 - Radius: `sm 6px`, `md 10px`, `lg 16px`, `xl 24px` (product cards = lg, hero = xl).
-- Shadow: soft warm `0 8px 24px -12px rgb(60 40 25 / 0.18)`; hover lift `translateY(-4px)`.
+- Shadow tokens only (`--shadow-soft`: `0 8px 24px -12px rgb(15 76 69 / 0.18)`); hover lift `translateY(-4px)`. Radius and shadow come from tokens, never literals.
 
 ## 4. Components
 
 - Base: **shadcn/ui** (Radix) for all interactive components in both apps — Button, Input, Select, Dialog, Sheet, DropdownMenu, Tabs, Toast (sonner), Table (+ TanStack Table in admin), Form (react-hook-form + zod).
 - **Magic UI** for showcase pieces on the website only: Marquee (brand/testimonial strip), BlurFade, NumberTicker (stats), ShimmerButton (hero CTA), BentoGrid (category grid).
 - **daisyUI**: not used by default to avoid two competing theme systems (see ADR-004). Allowed only for isolated utility pieces if the team decides.
-- Badges: `New` (primary outline), `Pre-owned · {grade}` (olive filled), `Featured` (brass), `Sold out` (muted).
-- Product card: 4:5 image, second image crossfade on hover, title (2 lines), price + compare-at struck, type badge, quick-add button.
+- Badges: `New` (primary fill, white text) · `Pre-owned · {grade}` (secondary fill, secondary-foreground text) · `Featured` (gold fill, gold-foreground text) · `Sold out` (muted fill, muted-foreground text). Status badges: tinted background of the status colour, text in its `*-foreground` shade (warning uses `--warning-foreground`).
+- Toast: sonner (approved), styled with tokens, RTL-aware position.
+- Product card: 4:5 image with a second-image crossfade on hover (Framer Motion), type/condition badge, animated heart favourite toggle (FAV-01), title in 2 lines, price in `--price` (compare-at struck after it on the end side), quick "Add to cart" button; at stock 0 the button is disabled and reads "Sold out". Hover lift only on hover-capable devices.
+- Placeholder (B-022, B-006): when an image is missing, an emerald pattern with the brand mark. Until a real logo exists the mark is a text wordmark "Furnixa" / "فرنيكسا" in Fraunces / Noto Kufi Arabic with a thin gold underline (also used in header and auth panel). A logo set in Site Settings replaces it.
+- Auth: split layout, emerald side panel with a gold accent line, lifestyle image panel (placeholder), animated 6-box OTP.
+- Cart: gold free-delivery progress bar (`--gold-strong` fill on a muted track with a 1 px `--input` outline; the text label carries the meaning), quantity stepper, remove with undo toast, VAT line only when > 0.
 
 ## 5. Motion
 
 | Library | Where | Rules |
 |---|---|---|
-| Framer Motion | Page transitions, cart drawer, modals, card hover, layout animations, toasts | 200–400 ms, ease `[0.22, 1, 0.36, 1]` |
-| GSAP + ScrollTrigger | Home hero (staggered headline, parallax furniture image), "How resale works" pinned section | Home page only; kill on unmount |
-| AOS | Simple fade-up reveals on content pages and section headings | `once: true`, offset 80, duration 600 |
+| GSAP + ScrollTrigger | Home hero (headline stagger, slow image zoom started after load), home section reveals, "How resale works" pinned section | Home page only; dynamically imported; kill on unmount; never delays the LCP image |
+| Framer Motion | Product cards (hover lift, image crossfade, heart), cart drawer, modals, page **enter** transitions, add-to-cart fly-to-cart + toast | 200–400 ms, ease `[0.22, 1, 0.36, 1]`; the App Router cannot animate route exits, so page transitions are enter-only |
+| AOS | Content-page reveals (static pages, account headings) | `once: true`, offset 80, duration 600 |
 
-All motion is disabled/reduced under `prefers-reduced-motion`. GSAP x-translations flip sign in RTL.
+All motion reads one shared reduced-motion hook: under `prefers-reduced-motion` animation is disabled or reduced to opacity. x-offsets and slide directions flip sign when `dir="rtl"`. Only `transform` and `opacity` are animated. LCP < 2.5 s on mobile (PRD G4): the first hero slide image loads with priority, other slides lazily.
 
 ## 6. RTL rules
 

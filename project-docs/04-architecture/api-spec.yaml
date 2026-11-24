@@ -16,6 +16,7 @@ tags:
   - name: Catalog
   - name: CMS
   - name: Cart
+  - name: Wishlist
   - name: Orders
   - name: Notifications
   - name: Admin
@@ -678,6 +679,104 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error', description: Not a customer }
         '409': { $ref: '#/components/responses/Error', description: "`CART_CONFLICT` (concurrent writes, retry)" }
+
+  # ---------------- WISHLIST (FAV-01, CR-007) ----------------
+  # Customers only (requireRole CUSTOMER): an admin gets 403. Bearer auth only (no CSRF header), like /cart. Register the static /me/wishlist/merge route before /me/wishlist/{productId}.
+  # Per-item writes (owner 2026-11-24): add and remove are idempotent, so two tabs or devices never overwrite
+  # each other's list. Writes are optimistic-concurrent on Wishlist.version (conditional update, re-read and
+  # re-apply up to 3 attempts, then 409 WISHLIST_CONFLICT). Rate limit: same as /cart writes.
+  /me/wishlist:
+    get:
+      tags: [Wishlist]
+      summary: My favourites (FAV-01)
+      description: |
+        Returns the stored ids and the PUBLISHED products among them, newest first. Ids of products that were
+        unpublished or deleted are not returned and not counted (`total` counts what `items` holds).
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Wishlist' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+    delete:
+      tags: [Wishlist]
+      summary: Clear all my favourites (FAV-01)
+      description: Idempotent. Removes every stored id.
+      responses:
+        '204': { description: Cleared }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+  /me/wishlist/{productId}:
+    parameters:
+      - name: productId
+        in: path
+        required: true
+        schema: { $ref: '#/components/schemas/ObjectId' }
+    put:
+      tags: [Wishlist]
+      summary: Add one product to my favourites (FAV-01)
+      description: |
+        Idempotent add: adding a product that is already saved returns 200 with the unchanged list. Unknown or
+        non-PUBLISHED product -> 404 `PRODUCT_NOT_FOUND`. A 101st distinct product -> 409
+        `WISHLIST_LIMIT_REACHED` (max 100). Concurrent writes that keep conflicting after 3 attempts -> 409
+        `WISHLIST_CONFLICT` (client retries). No request body.
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Wishlist' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+        '404': { $ref: '#/components/responses/Error', description: `PRODUCT_NOT_FOUND` (unknown or not PUBLISHED) }
+        '409': { $ref: '#/components/responses/Error', description: `WISHLIST_LIMIT_REACHED` (max 100) or `WISHLIST_CONFLICT` (concurrent writes, retry) }
+    delete:
+      tags: [Wishlist]
+      summary: Remove one product from my favourites (FAV-01)
+      description: Idempotent remove (also for ids of deleted products and for ids that are not saved) -> 200 with the list.
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Wishlist' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+        '409': { $ref: '#/components/responses/Error', description: `WISHLIST_CONFLICT` (concurrent writes, retry) }
+  /me/wishlist/merge:
+    post:
+      tags: [Wishlist]
+      summary: Merge guest favourites after login (FAV-01)
+      description: |
+        Idempotent union: existing account ids first (order kept), then the given ids in the given order.
+        Duplicates, malformed ids, unknown and non-PUBLISHED products are skipped (counted in `skipped`); the
+        result is truncated at 100 (counted in `truncated`). Repeating the same merge changes nothing. The web
+        client clears the localStorage list only after a successful response (web T-048).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productIds]
+              additionalProperties: false
+              properties:
+                productIds:
+                  type: array
+                  maxItems: 100
+                  items: { type: string, maxLength: 64, description: 'ObjectId; malformed values are skipped, not rejected' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  productIds: { type: array, items: { $ref: '#/components/schemas/ObjectId' } }
+                  total: { type: integer }
+                  skipped: { type: integer, description: Given ids dropped (duplicate, malformed, unknown, unpublished) }
+                  truncated: { type: integer, description: Valid ids dropped by the 100 cap }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: Not a customer }
+        '409': { $ref: '#/components/responses/Error', description: `WISHLIST_CONFLICT` (concurrent writes, retry) }
+        '422': { $ref: '#/components/responses/Error', description: VALIDATION_ERROR (body not {productIds: string[≤100]}) }
 
   # ---------------- ORDERS ----------------
   /orders:
@@ -1628,7 +1727,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, ALREADY_VERIFIED] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, WISHLIST_LIMIT_REACHED, WISHLIST_CONFLICT, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, ALREADY_VERIFIED] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }
@@ -1907,6 +2006,12 @@ components:
       properties:
         items: { type: array, items: { $ref: '#/components/schemas/Product' } }
         meta: { $ref: '#/components/schemas/PageMeta' }
+    Wishlist:
+      type: object
+      properties:
+        productIds: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/ObjectId' }, description: Ids of PUBLISHED products, newest first }
+        items: { type: array, items: { $ref: '#/components/schemas/Product' } }
+        total: { type: integer, description: Number of PUBLISHED favourites (= items.length) }
     Cart:
       type: object
       properties:

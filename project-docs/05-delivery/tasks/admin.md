@@ -71,3 +71,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 - B-030: uploader reads natural width/height and sends them.
 - B-032: create and delete home sections (delete needs a confirm dialog).
 - B-033/B-034: editable contact phone (Saudi mobile/landline/9200/800 to E.164) and social links (https, host allowlist, 200 chars); remove the read-only state.
+
+### T-077 Admin palette, dark values, AA gate (CR-007) · todo
+- Req: UI-01, UI-02 · Depends: web T-046 · Docs: `design-system.md` §1, `adr/ADR-014`
+- Done: `index.css` light and dark token values and new tokens; status badge classes use `warning-foreground` / `success-foreground`; no `accent` usage; test `UI-02 · AA contrast` parsing the real CSS for light and dark.

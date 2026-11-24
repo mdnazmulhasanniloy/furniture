@@ -109,3 +109,31 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 - Footer page links and sitemap from `GET /cms/pages` (B-029).
 - Cart: remove UNAVAILABLE lines by `productId` (B-035).
 - T-042: add `@axe-core/playwright` as a devDependency (owner approved) and run the axe and Lighthouse checks.
+
+## CR-007 UI redesign (owner 2026-11-24, ADR-014)
+
+Order: T-046 first, then T-047, T-049 (and backend T-031, admin T-077), then T-048, T-050, T-051. Each task: plan, tests in en and ar, typecheck/lint/i18n/build/e2e, `/review-task`, one commit.
+
+### T-046 Redesign foundation: tokens, AA gate, motion hook, placeholder · todo
+- Req: UI-01, UI-02 · Depends: — · Docs: `design-system.md` §1, §5, `adr/ADR-014`
+- Done: `globals.css` token values and new tokens (`--gold-foreground`, `--gold-strong`, `--price`, `--input`, `--warning-foreground`, `--success-foreground`), `--accent` removed and its call sites remapped; `Price`, Button and badge variants on tokens; shared reduced-motion + RTL motion hook; wordmark and image placeholder component (emerald pattern + wordmark); test `UI-02 · AA contrast` parsing the real CSS (body, muted, price, every button and badge text ≥ 4.5:1; ring, `--input`, `--gold-strong` ≥ 3:1); existing no-raw-colour test stays green.
+
+### T-047 Product card redesign · todo
+- Req: PROD-01 · Depends: T-046 · Docs: `design-system.md` §4
+- Done: 4:5 image, second-image crossfade on hover (Framer Motion), type/condition badge, heart toggle UI, 2-line title, price colour, quick add / disabled "Sold out" at stock 0; tests en + ar.
+
+### T-048 Favourites (guest store, merge, page, header count) · todo
+- Req: FAV-01 · Depends: T-047, backend T-031 · Docs: `screen-specs.md#W-08`
+- Done: guest favourites in localStorage (max 100), customer favourites via `/me/wishlist` (per-item), merge after login with the local list cleared only after success and retry on failure, `/favourites` page, header heart count; tests en + ar.
+
+### T-049 Login / register split layout + animated OTP · todo
+- Req: AUTH-01..04 · Depends: T-046 · Docs: `screen-specs.md#W-06`
+- Done: split layout with image placeholder panel and emerald panel with gold accent line, inline validation, 6 animated OTP boxes with paste and resend countdown; behaviour unchanged; RTL mirrored; tests en + ar.
+
+### T-050 Home redesign + AOS content pages + page enter transition · todo
+- Req: CAT-01, ADM-06, ADM-07, UI-01 · Depends: T-046, T-047 · Docs: `screen-specs.md#W-01`
+- Done: GSAP hero (stagger, slow zoom after load, first slide priority image) and section reveals, bento category grid, featured/new/Pre-owned picks rows, "How resale works", testimonials marquee, contact strip (no newsletter), placeholders (B-022); AOS on content pages; Framer enter-only page transition; reduced motion + RTL; tests en + ar.
+
+### T-051 Cart drawer + page redesign, add-to-cart feedback · todo
+- Req: CART-01 · Depends: T-046, T-047 · Docs: `screen-specs.md#W-04`
+- Done: thumbnails, stepper, remove with undo toast (sonner added), gold free-delivery bar (`--gold-strong`), totals with VAT only when > 0, sticky mobile checkout, Framer drawer, fly-to-cart + toast; tests en + ar.

@@ -141,13 +141,22 @@ describe.each(["en", "ar"] as const)("CART-01 · redesigned cart (%s)", (locale)
     expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-3xl");
   });
 
-  it(`UI-01 · the unit price is shown only when the quantity is above one, so a line never prints its price twice (${locale})`, () => {
+  it(`QA-10 · every line shows its unit price, whatever the quantity, so a pre-owned line is not the odd one out (${locale})`, () => {
+    // QA 2026-11-24 item 10: the unit price used to appear only above quantity 1, and a pre-owned item is
+    // always a single piece, so those lines showed no price under the name at all.
     login();
     useCartStore.setState({ cart: cartOf({ items: [{ product: sofa, qty: 1, lineTotal: 129950, issue: null }], subtotal: 129950, total: 129950 }) });
     const { unmount } = wrap(locale, <CartContents variant="page" />);
-    expect(screen.queryByTestId("line-unit-price")).toBeNull();
+    expect(screen.getByTestId("line-unit-price").textContent).toContain("1,299.50");
     expect(screen.getByTestId("line-total")).toBeTruthy();
     unmount();
+    // a pre-owned line (stock 1, quantity 1) shows it too
+    const resale = { ...sofa, type: "RESALE", condition: "GOOD", stock: 1 } as HomeProduct;
+    useCartStore.setState({ cart: cartOf({ items: [{ product: resale, qty: 1, lineTotal: 129950, issue: null }], subtotal: 129950, total: 129950 }) });
+    const second = wrap(locale, <CartContents variant="page" />);
+    expect(screen.getByTestId("line-unit-price").textContent).toContain("1,299.50");
+    second.unmount();
+    // and so does a line with more than one
     useCartStore.setState({ cart: cartOf() });
     wrap(locale, <CartContents variant="page" />);
     expect(screen.getByTestId("line-unit-price")).toBeTruthy();

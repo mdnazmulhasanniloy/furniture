@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const image = product.images?.[0]?.url;
   const title = pick(product.title, locale);
   return {
-    title: `${title} | Furnixa`,
+    title,
     description: description || undefined,
     alternates: alternatesFor(locale, `/shop/${slug}`),
     openGraph: { title, description: description || undefined, images: image ? [image] : undefined },

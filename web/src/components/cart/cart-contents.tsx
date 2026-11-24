@@ -306,7 +306,9 @@ function LineRow({ line, locale }: { line: Line; locale: Locale }) {
         ) : (
           <p className="text-sm font-medium">{t("cart.issue.UNAVAILABLE")}</p>
         )}
-        {p && line.qty > 1 ? (
+        {/* The unit price shows on every line, not only when the quantity is above 1: a pre-owned line is
+            always a single item and used to show no price at all (QA 2026-11-24 item 10). */}
+        {p ? (
           <p className="text-sm" data-testid="line-unit-price">
             <Price halalas={p.price} locale={locale} />
           </p>

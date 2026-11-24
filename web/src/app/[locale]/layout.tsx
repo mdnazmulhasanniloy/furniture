@@ -21,11 +21,14 @@ export async function generateMetadata({
 }: Readonly<{ params: Promise<{ locale: string }> }>): Promise<Metadata> {
   const { locale } = await params;
   const settings = await getSettings();
-  const title = pick(settings?.seo?.title, locale) || "Furnixa";
+  // The Arabic home title must be Arabic too: the SEO title, else the store name, else the latin brand.
+  const brand = pick(settings?.storeName, locale) || "Furnixa";
+  const title = pick(settings?.seo?.title, locale) || brand;
   const description = pick(settings?.seo?.description, locale);
   return {
     metadataBase: new URL(siteUrl()),
-    title,
+    // "<page> | <brand>" everywhere, "<brand>" on the home page (QA 2026-11-24 item 10)
+    title: { default: title, template: `%s | ${brand}` },
     description: description || undefined,
     openGraph: { siteName: "Furnixa", locale },
   };

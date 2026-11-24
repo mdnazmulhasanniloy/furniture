@@ -18,6 +18,8 @@ export type Category = {
 };
 
 export type SiteSettings = {
+  /** Bilingual store name (api-spec SiteSetting): the Arabic title suffix comes from it (QA 2026-11-24 item 10). */
+  storeName?: LocalizedText | null;
   logo?: { url?: string } | null;
   contactEmail?: string | null;
   contactPhone?: string | null;

@@ -14,7 +14,7 @@ export async function generateMetadata({
 }: Readonly<{ params: Promise<{ locale: string }> }>): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "shop" });
-  return { title: `${t("title")} | Furnixa`, alternates: alternatesFor(locale, "/shop") };
+  return { title: t("title"), alternates: alternatesFor(locale, "/shop") };
 }
 
 export default async function ShopPage({

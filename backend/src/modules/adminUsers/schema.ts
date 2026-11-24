@@ -25,7 +25,11 @@ export const blockCustomerBody = z
   .strict()
   .superRefine((v, ctx) => {
     if (v.isBlocked && v.reason === undefined) {
-      ctx.addIssue({ code: 'custom', path: ['reason'], message: 'A reason of 3 to 300 characters is required to block a customer' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['reason'],
+        message: 'A reason of 3 to 300 characters is required to block a customer',
+      });
     }
   });
 
@@ -46,7 +50,9 @@ export const updateCustomerBody = z
   });
 
 /** CR-011 (ADM-17): the admin types the customer's email; the server compares it again (not only the UI). */
-export const deleteCustomerBody = z.object({ confirmEmail: z.string().trim().min(1).max(254) }).strict();
+export const deleteCustomerBody = z
+  .object({ confirmEmail: z.string().trim().min(1).max(254) })
+  .strict();
 
 /**
  * ADM-11 (owner 2026-11-22): no password — the invitee sets their own via POST /auth/accept-invite.

@@ -35,7 +35,12 @@ const safeHref = z
 const percent = z.number().min(0).max(100);
 /** CR-011: optional focal point, both coordinates or neither. */
 const bannerImage = z
-  .object({ key: z.string().min(1).max(300), alt: localizedRequired(200), focalX: percent.optional(), focalY: percent.optional() })
+  .object({
+    key: z.string().min(1).max(300),
+    alt: localizedRequired(200),
+    focalX: percent.optional(),
+    focalY: percent.optional(),
+  })
   .strict()
   .refine((v) => (v.focalX === undefined) === (v.focalY === undefined), {
     message: 'focalX and focalY must be sent together',

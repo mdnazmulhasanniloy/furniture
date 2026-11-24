@@ -17,10 +17,22 @@ export const adminCustomersRouter = Router();
 adminCustomersRouter.use(requireAuth, requireRole('ADMIN'));
 adminCustomersRouter.get('/', validate({ query: listCustomersQuery }), controller.listCustomers);
 adminCustomersRouter.get('/:id', validate({ query: customerOrdersQuery }), controller.getCustomer);
-adminCustomersRouter.patch('/:id/block', validate({ body: blockCustomerBody }), controller.blockCustomer);
+adminCustomersRouter.patch(
+  '/:id/block',
+  validate({ body: blockCustomerBody }),
+  controller.blockCustomer,
+);
 // CR-011 (ADM-17): name and phone only, and soft delete with anonymisation.
-adminCustomersRouter.patch('/:id', validate({ body: updateCustomerBody }), controller.updateCustomer);
-adminCustomersRouter.delete('/:id', validate({ body: deleteCustomerBody }), controller.deleteCustomer);
+adminCustomersRouter.patch(
+  '/:id',
+  validate({ body: updateCustomerBody }),
+  controller.updateCustomer,
+);
+adminCustomersRouter.delete(
+  '/:id',
+  validate({ body: deleteCustomerBody }),
+  controller.deleteCustomer,
+);
 
 // ADM-11 (T-017): list/invite/resend-invite/block admins, admins only.
 export const adminAdminsRouter = Router();

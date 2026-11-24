@@ -7,7 +7,10 @@ import type { CreateBannerBody, UpdateBannerBody } from './schema.js';
 type BannerImageBody = NonNullable<CreateBannerBody['imageMobile']>;
 /** Alt text and the optional focal point travel with the key (CR-011). */
 const assetOf = (img: BannerImageBody) =>
-  buildImageAsset(img.key, { alt: img.alt, ...(img.focalX !== undefined ? { focalX: img.focalX, focalY: img.focalY } : {}) });
+  buildImageAsset(img.key, {
+    alt: img.alt,
+    ...(img.focalX !== undefined ? { focalX: img.focalX, focalY: img.focalY } : {}),
+  });
 
 const OBJECT_ID = /^[a-f0-9]{24}$/;
 const notFound = () => new AppError(404, 'NOT_FOUND', 'Banner not found');
@@ -100,9 +103,7 @@ export async function update(
         'endsAt' in body ? (body.endsAt ?? null) : (current.endsAt ?? null),
       );
 
-      const nextDesktop = body.imageDesktop
-        ? assetOf(body.imageDesktop)
-        : current.imageDesktop;
+      const nextDesktop = body.imageDesktop ? assetOf(body.imageDesktop) : current.imageDesktop;
       const nextMobile =
         'imageMobile' in body
           ? body.imageMobile

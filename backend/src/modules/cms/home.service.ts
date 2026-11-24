@@ -75,9 +75,17 @@ async function withProductCounts(
   picked: Category[],
   all: Category[],
 ): Promise<(ReturnType<typeof toCategory> & { productCount: number })[]> {
-  const ids = [...new Set(picked.flatMap((c) => [c.id, ...all.filter((x) => x.parentId === c.id).map((x) => x.id)]))];
+  const ids = [
+    ...new Set(
+      picked.flatMap((c) => [c.id, ...all.filter((x) => x.parentId === c.id).map((x) => x.id)]),
+    ),
+  ];
   const rows = ids.length
-    ? await prisma.product.groupBy({ by: ['categoryId'], where: { status: 'PUBLISHED', categoryId: { in: ids } }, _count: { _all: true } })
+    ? await prisma.product.groupBy({
+        by: ['categoryId'],
+        where: { status: 'PUBLISHED', categoryId: { in: ids } },
+        _count: { _all: true },
+      })
     : [];
   const countBy = new Map(rows.map((r) => [r.categoryId, r._count._all]));
   return picked.map((c) => {
@@ -149,15 +157,19 @@ async function resolveSection(
       const ids = idList(cfg.categoryIds);
       if (ids.length) {
         const byId = new Map(active.map((c) => [c.id, c]));
-        const picked = ids
-          .map((id) => byId.get(id))
-          .filter((c) => c !== undefined);
+        const picked = ids.map((id) => byId.get(id)).filter((c) => c !== undefined);
         return { ...section, categories: await withProductCounts(picked, active) };
       }
       // Roots are found in memory: a `{ parentId: null }` where-filter would miss documents created
       // without the field (null-vs-missing, CLAUDE.md rule 8; seeded categories carry explicit null,
       // but older imports may not).
-      return { ...section, categories: await withProductCounts(active.filter((c) => !c.parentId), active) };
+      return {
+        ...section,
+        categories: await withProductCounts(
+          active.filter((c) => !c.parentId),
+          active,
+        ),
+      };
     }
     case 'PROMO_BANNER': {
       const banner = activeBanners.find((b) => b.id === cfg.bannerId);

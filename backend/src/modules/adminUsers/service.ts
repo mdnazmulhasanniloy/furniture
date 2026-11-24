@@ -53,7 +53,8 @@ export const testHooks = createTestHooks<{
 
 // ---------------------------------------------------------------- ADM-05 / ADM-17 customers
 
-const forbiddenTarget = () => new AppError(403, 'FORBIDDEN_TARGET', 'This account cannot be changed here');
+const forbiddenTarget = () =>
+  new AppError(403, 'FORBIDDEN_TARGET', 'This account cannot be changed here');
 const customerDeleted = () => new AppError(409, 'CUSTOMER_DELETED', 'This customer was deleted');
 
 /** The context a customer action needs for its single audit log line (CR-011). */
@@ -89,7 +90,17 @@ function audit(
   fields: string[],
 ) {
   const log = ctx.log ?? (auditFallback ??= createLogger(getEnv()));
-  log.info({ event: action, actorId, targetId, fields, at: new Date().toISOString(), requestId: ctx.requestId }, action);
+  log.info(
+    {
+      event: action,
+      actorId,
+      targetId,
+      fields,
+      at: new Date().toISOString(),
+      requestId: ctx.requestId,
+    },
+    action,
+  );
 }
 let auditFallback: Logger | undefined;
 
@@ -98,7 +109,11 @@ let auditFallback: Logger | undefined;
  * non-customer, or an unknown id) -> 404, as before; so an admin can never block, edit or delete an admin or themselves
  * through these routes.
  */
-async function loadCustomerTarget(db: Prisma.TransactionClient | typeof prisma, actorId: string, id: string) {
+async function loadCustomerTarget(
+  db: Prisma.TransactionClient | typeof prisma,
+  actorId: string,
+  id: string,
+) {
   if (!OBJECT_ID.test(id)) throw notFound();
   if (id === actorId) throw forbiddenTarget();
   const user = await db.user.findUnique({ where: { id } });
@@ -194,14 +209,24 @@ export async function blockCustomer(
     const user = await loadCustomerTarget(tx, actor.id, id);
     if (user.deletedAt) throw customerDeleted();
     const data: Prisma.UserUpdateInput = isBlocked
-      ? { isBlocked: true, blockedReason: reason ?? null, blockedAt: new Date(), blockedById: actor.id }
+      ? {
+          isBlocked: true,
+          blockedReason: reason ?? null,
+          blockedAt: new Date(),
+          blockedById: actor.id,
+        }
       : { isBlocked: false, blockedReason: null, blockedAt: null, blockedById: null };
     const u = await tx.user.update({ where: { id }, data });
     if (isBlocked) await revokeAllForUser(id, tx);
     return u;
   });
   if (isBlocked) socketEmitter.disconnectUser(id);
-  audit(ctx, isBlocked ? 'customer.block' : 'customer.unblock', actor.id, id, ['isBlocked', 'blockedReason', 'blockedAt', 'blockedById']);
+  audit(ctx, isBlocked ? 'customer.block' : 'customer.unblock', actor.id, id, [
+    'isBlocked',
+    'blockedReason',
+    'blockedAt',
+    'blockedById',
+  ]);
   return toAdminCustomer(updated);
 }
 
@@ -232,11 +257,19 @@ export async function updateCustomer(
   const updated = await prisma.$transaction(async (tx) => {
     const user = await loadCustomerTarget(tx, actor.id, id);
     if (user.deletedAt) throw customerDeleted();
-    const res = await tx.user.updateMany({ where: { id, updatedAt: body.expectedUpdatedAt }, data });
+    const res = await tx.user.updateMany({
+      where: { id, updatedAt: body.expectedUpdatedAt },
+      data,
+    });
     if (res.count === 0) {
-      throw new AppError(409, 'STALE_UPDATE', 'The customer was changed by someone else; reload and retry', {
-        current: toAdminCustomer(user),
-      });
+      throw new AppError(
+        409,
+        'STALE_UPDATE',
+        'The customer was changed by someone else; reload and retry',
+        {
+          current: toAdminCustomer(user),
+        },
+      );
     }
     return tx.user.findUniqueOrThrow({ where: { id } });
   });
@@ -262,13 +295,24 @@ export async function deleteCustomer(
     const user = await loadCustomerTarget(tx, actor.id, id);
     if (user.deletedAt) throw customerDeleted();
     if (body.confirmEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
-      throw new AppError(422, 'CONFIRM_EMAIL_MISMATCH', 'The typed email does not match this customer');
+      throw new AppError(
+        422,
+        'CONFIRM_EMAIL_MISMATCH',
+        'The typed email does not match this customer',
+      );
     }
-    const open = await tx.order.count({ where: { userId: id, status: { in: ['PENDING', 'CONFIRMED'] } } });
+    const open = await tx.order.count({
+      where: { userId: id, status: { in: ['PENDING', 'CONFIRMED'] } },
+    });
     if (open > 0) {
-      throw new AppError(409, 'CUSTOMER_HAS_OPEN_ORDERS', 'This customer has pending or confirmed orders', {
-        openOrders: open,
-      });
+      throw new AppError(
+        409,
+        'CUSTOMER_HAS_OPEN_ORDERS',
+        'This customer has pending or confirmed orders',
+        {
+          openOrders: open,
+        },
+      );
     }
     avatarKey = user.avatar;
     const originalEmail = user.email;
@@ -303,7 +347,16 @@ export async function deleteCustomer(
   });
   socketEmitter.disconnectUser(id);
   if (avatarKey) await releaseUploads([avatarKey], { requestId: ctx.requestId });
-  audit(ctx, 'customer.delete', actor.id, id, ['firstName', 'lastName', 'email', 'phone', 'avatar', 'passwordHash', 'isBlocked', 'deletedAt']);
+  audit(ctx, 'customer.delete', actor.id, id, [
+    'firstName',
+    'lastName',
+    'email',
+    'phone',
+    'avatar',
+    'passwordHash',
+    'isBlocked',
+    'deletedAt',
+  ]);
   return toAdminCustomer(updated);
 }
 

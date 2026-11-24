@@ -542,7 +542,7 @@ paths:
         newest-first (all with `config.limit`, default 8, max 24); CATEGORY_GRID = `config.categoryIds` (active
         only, given order) when set, else all active root categories; PROMO_BANNER = `config.bannerId` resolved
         into `banner` when that banner is active and inside its schedule, otherwise the property is omitted
-        (storefront skips the section); TESTIMONIALS = `config.testimonials` passed through.
+        (storefront skips the section); TESTIMONIALS = `config.testimonials` passed through; SHOP_THE_LOOK (ADM-15) = `config.look` resolved into `look`: each hotspot gets its PUBLISHED product (a hotspot whose product is unpublished or deleted is dropped), and the property is omitted when the photo is missing or no hotspot is left (storefront skips the section).
       responses:
         '200':
           description: OK
@@ -562,6 +562,7 @@ paths:
                             products: { type: array, items: { $ref: '#/components/schemas/Product' } }
                             categories: { type: array, items: { $ref: '#/components/schemas/Category' } }
                             banner: { $ref: '#/components/schemas/Banner' }
+                            look: { $ref: '#/components/schemas/ResolvedLook' }
   /cms/settings:
     get:
       tags: [CMS]
@@ -1722,7 +1723,7 @@ components:
     Condition: { type: string, enum: [NEW, LIKE_NEW, GOOD, FAIR] }
     ProductStatus: { type: string, enum: [DRAFT, PUBLISHED, ARCHIVED] }
     OrderStatus: { type: string, enum: [PENDING, CONFIRMED, PROCESSING, OUT_FOR_DELIVERY, DELIVERED, CANCELLED] }
-    SectionType: { type: string, enum: [FEATURED_PRODUCTS, NEW_ARRIVALS, RESALE_PICKS, CATEGORY_GRID, PROMO_BANNER, TESTIMONIALS] }
+    SectionType: { type: string, enum: [FEATURED_PRODUCTS, NEW_ARRIVALS, RESALE_PICKS, CATEGORY_GRID, PROMO_BANNER, TESTIMONIALS, SHOP_THE_LOOK] }
     Error:
       type: object
       required: [code, message]
@@ -2205,6 +2206,46 @@ components:
             properties:
               name: { type: string, minLength: 1, maxLength: 80 }
               quote: { $ref: '#/components/schemas/LocalizedText', description: '<= 500 chars per locale' }
+        look:
+          type: object
+          additionalProperties: false
+          required: [image, hotspots]
+          description: >-
+            SHOP_THE_LOOK only (ADM-15): required for that type, rejected (422) for every other type. In a
+            request `image` is an `ImageAssetInput` (R2 key from the upload flow plus alt text in both locales,
+            UI-02); in a response it is the stored `ImageAsset`. The photo is attached to the section like a banner
+            image and released when the section is deleted or the photo replaced.
+          properties:
+            image: { oneOf: [{ $ref: '#/components/schemas/ImageAssetInput' }, { $ref: '#/components/schemas/ImageAsset' }] }
+            hotspots:
+              type: array
+              minItems: 1
+              maxItems: 4
+              items:
+                type: object
+                additionalProperties: false
+                required: [x, y, productId]
+                properties:
+                  x: { type: number, minimum: 0, maximum: 100, description: Percent from the inline start of the photo }
+                  y: { type: number, minimum: 0, maximum: 100, description: Percent from the top of the photo }
+                  productId: { $ref: '#/components/schemas/ObjectId' }
+    ResolvedLook:
+      type: object
+      required: [image, hotspots]
+      description: Resolved SHOP_THE_LOOK payload on `GET /cms/home` (ADM-15). Hotspots keep the admin's order.
+      properties:
+        image: { $ref: '#/components/schemas/ImageAsset' }
+        hotspots:
+          type: array
+          minItems: 1
+          maxItems: 4
+          items:
+            type: object
+            required: [x, y, product]
+            properties:
+              x: { type: number, minimum: 0, maximum: 100 }
+              y: { type: number, minimum: 0, maximum: 100 }
+              product: { $ref: '#/components/schemas/Product' }
     HomeSectionInput:
       type: object
       required: [type, title]

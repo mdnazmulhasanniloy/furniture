@@ -16,6 +16,7 @@ interface SectionConfig {
   limit?: unknown;
   bannerId?: unknown;
   testimonials?: unknown;
+  look?: unknown;
 }
 
 const idList = (v: unknown): string[] =>
@@ -73,7 +74,38 @@ type ResolvedSection = SectionResponse & {
   products?: ReturnType<typeof toProduct>[];
   categories?: ReturnType<typeof toCategory>[];
   banner?: BannerResponse;
+  look?: {
+    image: unknown;
+    hotspots: { x: number; y: number; product: ReturnType<typeof toProduct> }[];
+  };
 };
+
+/**
+ * SHOP_THE_LOOK (ADM-15): each hotspot gets its PUBLISHED product; a hotspot whose product is unpublished
+ * or deleted is dropped; with no photo or no hotspot left the property is omitted and the storefront skips
+ * the section. Tolerates any stored shape (the home page must never 500).
+ */
+async function resolveLook(config: SectionConfig): Promise<ResolvedSection['look'] | undefined> {
+  const look = config.look as { image?: unknown; hotspots?: unknown } | undefined;
+  const raw = Array.isArray(look?.hotspots) ? (look.hotspots as unknown[]) : [];
+  const spots = raw
+    .map((h) => h as { x?: unknown; y?: unknown; productId?: unknown })
+    .filter(
+      (h): h is { x: number; y: number; productId: string } =>
+        typeof h.x === 'number' && typeof h.y === 'number' && typeof h.productId === 'string',
+    );
+  if (!look?.image || spots.length === 0) return undefined;
+  const products = await resolveProductsByIds(
+    [...new Set(spots.map((h) => h.productId))],
+    spots.length,
+  );
+  const byId = new Map(products.map((p) => [p.id, p]));
+  const hotspots = spots.flatMap((h) => {
+    const product = byId.get(h.productId);
+    return product ? [{ x: h.x, y: h.y, product }] : [];
+  });
+  return hotspots.length > 0 ? { image: look.image, hotspots } : undefined;
+}
 
 async function resolveSection(
   section: SectionResponse,
@@ -119,6 +151,10 @@ async function resolveSection(
     }
     case 'TESTIMONIALS':
       return { ...section }; // config.testimonials is the payload, already on the section
+    case 'SHOP_THE_LOOK': {
+      const look = await resolveLook(cfg);
+      return look ? { ...section, look } : { ...section };
+    }
     default:
       return { ...section };
   }

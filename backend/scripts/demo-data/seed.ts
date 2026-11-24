@@ -240,6 +240,27 @@ export async function seedDemoData(prisma: PrismaClient, ctx: SeedContext): Prom
   }
   ctx.log(`banners: ${bannerIds.length}`);
 
+  // ---- shop the look (CR-009, ADM-15): one room photo, three hotspots on seeded products
+  const lookSource = ctx.manifest.find((m) => m.id === 'sofas-5');
+  if (!lookSource) throw new Error('images.json has no "sofas-5" image for the look');
+  const lookImage = await up.put(lookSource);
+  const lookProduct = (slug: string): string => {
+    const p = products.find((x) => x.slug === slug);
+    if (!p) throw new Error(`Seeded product "${slug}" not found for the look`);
+    return p.id;
+  };
+  const lookConfig = {
+    look: {
+      image: lookImage,
+      // positions measured on the photo: the armchair (left), the floor lamp (centre), the sofa (right)
+      hotspots: [
+        { x: 18, y: 70, productId: lookProduct('leather-club-armchair-pre-owned') },
+        { x: 59, y: 50, productId: lookProduct('aurora-floor-lamp') },
+        { x: 80, y: 72, productId: lookProduct('riviera-three-seater-sofa') },
+      ],
+    },
+  };
+
   // ---- home sections
   const sections: Prisma.HomeSectionCreateInput[] = [
     {
@@ -261,6 +282,15 @@ export async function seedDemoData(prisma: PrismaClient, ctx: SeedContext): Prom
       config: { categoryIds: topIds },
     },
     {
+      type: 'SHOP_THE_LOOK',
+      title: { en: 'Shop the look', ar: 'تسوّق هذا التنسيق' },
+      subtitle: {
+        en: 'Tap the dots to see what is in the room.',
+        ar: 'اضغط على النقاط لترى ما في الغرفة.',
+      },
+      config: lookConfig,
+    },
+    {
       type: 'RESALE_PICKS',
       title: { en: 'Pre-owned picks', ar: 'مختارات مستعملة' },
       subtitle: {
@@ -271,7 +301,7 @@ export async function seedDemoData(prisma: PrismaClient, ctx: SeedContext): Prom
     },
     {
       type: 'PROMO_BANNER',
-      title: { en: 'Pre-owned, half the price', ar: 'مستعمل بنصف السعر' },
+      title: { en: 'Pre-owned, for less', ar: 'مستعمل بسعر أقل' },
       subtitle: null,
       config: { bannerId: bannerIds[1]! },
     },
@@ -283,6 +313,7 @@ export async function seedDemoData(prisma: PrismaClient, ctx: SeedContext): Prom
     },
   ].map((s, i) => ({ ...s, sortOrder: i + 1, isVisible: true })) as Prisma.HomeSectionCreateInput[];
   for (const s of sections) await prisma.homeSection.create({ data: s });
+  await up.attach([lookImage]); // the look photo is attached to its section like a banner image
   ctx.log(`home sections: ${sections.length}`);
 
   // ---- customers (12, verified, one default address each in an active seeded city)

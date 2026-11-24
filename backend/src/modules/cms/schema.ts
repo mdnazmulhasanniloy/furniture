@@ -79,6 +79,25 @@ const testimonial = z
   .object({ name: z.string().trim().min(1).max(80), quote: localizedRequired(500) })
   .strict();
 
+/** SHOP_THE_LOOK (ADM-15): the photo needs localized alt text (UI-02); 1 to 4 hotspots, x and y in percent. */
+const look = z
+  .object({
+    image: bannerImage,
+    hotspots: z
+      .array(
+        z
+          .object({
+            x: z.number().min(0).max(100),
+            y: z.number().min(0).max(100),
+            productId: objectId,
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(4),
+  })
+  .strict();
+
 const sectionConfig = z
   .object({
     productIds: z.array(objectId).max(24).optional(),
@@ -86,6 +105,7 @@ const sectionConfig = z
     limit: z.number().int().min(1).max(24).optional(),
     bannerId: objectId.optional(),
     testimonials: z.array(testimonial).max(12).optional(),
+    look: look.optional(),
   })
   .strict();
 
@@ -97,6 +117,7 @@ const sectionFields = {
     'CATEGORY_GRID',
     'PROMO_BANNER',
     'TESTIMONIALS',
+    'SHOP_THE_LOOK',
   ]),
   title: localizedRequired(120),
   subtitle: localizedRequired(200).nullable(),

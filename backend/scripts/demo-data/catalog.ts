@@ -601,7 +601,7 @@ export const BANNERS: DemoBanner[] = [
     startsInDays: null,
   },
   {
-    title: { en: 'Pre-owned, half the price', ar: 'مستعمل بنصف السعر' },
+    title: { en: 'Pre-owned, for less', ar: 'مستعمل بسعر أقل' },
     subtitle: {
       en: 'One-of-a-kind pieces with the condition described in photos and notes',
       ar: 'قطع فريدة مع وصف الحالة بالصور والملاحظات',

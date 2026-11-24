@@ -79,6 +79,7 @@ enum SectionType {
   CATEGORY_GRID
   PROMO_BANNER
   TESTIMONIALS
+  SHOP_THE_LOOK // CR-009 / ADM-15: a room photo with 1 to 4 product hotspots (config.look)
 }
 
 // ---------- Composite types ----------

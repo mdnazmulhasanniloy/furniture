@@ -260,7 +260,7 @@ describe('T-078 · demo catalogue counts and invariants', () => {
     expect(banners.filter((b) => b.startsAt && b.startsAt > now)).toHaveLength(1);
   });
 
-  it('T-078 · the six home sections exist, their config passes the CMS schema and testimonials are marked demo', async () => {
+  it('T-078 · the seven home sections exist, their config passes the CMS schema and testimonials are marked demo', async () => {
     const sections = await prisma.homeSection.findMany({ orderBy: { sortOrder: 'asc' } });
     expect(sections.map((s) => s.type).sort()).toEqual(
       [
@@ -269,6 +269,7 @@ describe('T-078 · demo catalogue counts and invariants', () => {
         'NEW_ARRIVALS',
         'PROMO_BANNER',
         'RESALE_PICKS',
+        'SHOP_THE_LOOK',
         'TESTIMONIALS',
       ].sort(),
     );
@@ -277,7 +278,19 @@ describe('T-078 · demo catalogue counts and invariants', () => {
         type: s.type,
         title: s.title,
         subtitle: s.subtitle,
-        config: s.config,
+        // the stored look photo is a full ImageAsset; the request shape is {key, alt}
+        config:
+          s.type === 'SHOP_THE_LOOK'
+            ? {
+                look: {
+                  ...(s.config as { look: { image: { key: string; alt: unknown } } }).look,
+                  image: {
+                    key: (s.config as { look: { image: { key: string } } }).look.image.key,
+                    alt: (s.config as { look: { image: { alt: unknown } } }).look.image.alt,
+                  },
+                },
+              }
+            : s.config,
         sortOrder: s.sortOrder,
         isVisible: s.isVisible,
       });
@@ -296,7 +309,26 @@ describe('T-078 · demo catalogue counts and invariants', () => {
     }
     const featured = sections.find((s) => s.type === 'FEATURED_PRODUCTS')!;
     expect((featured.config as { productIds: string[] }).productIds).toHaveLength(8);
+    const lookSection = sections.find((s) => s.type === 'SHOP_THE_LOOK')!;
+    const look = (
+      lookSection.config as {
+        look: {
+          image: { key: string; alt: { en: string; ar: string } };
+          hotspots: { x: number; y: number; productId: string }[];
+        };
+      }
+    ).look;
+    expect(look.hotspots).toHaveLength(3);
+    expect(look.image.alt.en && look.image.alt.ar).toBeTruthy();
+    const lookProducts = await prisma.product.findMany({
+      where: { id: { in: look.hotspots.map((h) => h.productId) } },
+    });
+    expect(lookProducts).toHaveLength(3);
+    expect(lookProducts.every((p) => p.status === 'PUBLISHED')).toBe(true);
+    const lookUpload = await prisma.upload.findFirst({ where: { key: look.image.key } });
+    expect(lookUpload?.attachedAt).not.toBeNull(); // the photo is attached to its section, so the cleanup job keeps it
     const promo = sections.find((s) => s.type === 'PROMO_BANNER')!;
+    expect((promo.title as { en: string }).en).toBe('Pre-owned, for less');
     expect(seeded.bannerIds).toContain((promo.config as { bannerId: string }).bannerId);
   });
 

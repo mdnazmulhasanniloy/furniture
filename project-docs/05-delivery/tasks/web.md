@@ -105,7 +105,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 ### T-045 Web follow-ups from owner answers (2026-11-24) · todo
 - Req: ADM-08, SEO, A11Y · Depends: T-041, T-042, backend T-030
-- `/api/revalidate` per B-028 (POST only; `timingSafeEqual` over SHA-256 digests; 401/400; tag allow-list; secret never logged).
+- `/api/revalidate` per B-028 (POST only; `timingSafeEqual` over SHA-256 digests; 401/400; tag allow-list; secret never logged). **CR-010 owner decision (2026-11-24): build this first (before backend T-086); also rate-limited; tests for a wrong secret, a missing secret, an unknown tag, a wrong method and the rate limit.**
 - Footer page links and sitemap from `GET /cms/pages` (B-029).
 - Cart: remove UNAVAILABLE lines by `productId` (B-035).
 - T-042: add `@axe-core/playwright` as a devDependency (owner approved) and run the axe and Lighthouse checks.
@@ -195,3 +195,27 @@ Order: T-052, T-053, then T-054 to T-058. Each task: plan, screenshots at 390 an
 - **Not captured: the verify (OTP) and reset-password screens.** They only render with a pending sign-up or a reset link; opening them directly redirects, and creating a real account on the shared `furniture_dev` database just for a screenshot is not something I did. The boxes are covered by tests.
 - Critique: the login reads as a doorway: the arch on sand opposite a plain form. The shell used to repeat the wordmark right under the header's own wordmark (accessory removed), the caption is plain ink on sand instead of an emerald slab with a gold rule. The arch holds the flat placeholder until real photos exist (B-022); once there is a photo the panel needs no change. Weak: the placeholder arch is white with the wordmark and is the emptiest shape on the site until a photo arrives.
 - Screenshots skipped by owner decision (2026-11-24 review): checkout, order success, OTP and reset-password pages were not captured; the owner checks them manually. They are covered by tests and e2e only.
+
+## CR-009 home v4 (owner 2026-11-24, ADR-016; branch `redesign/home-v4`)
+
+Order: backend T-080 first (seed), then the owner runs `demo:reset`, then T-081 to T-084. After T-084 stop and show the home page (screenshots at 390 and 1440, /ar and /en, plus hover and hotspot states, in `03-design/screens-v4/`) with the before/after LCP and CLS tables. Other pages are not touched. Baseline is in `cr-009-plan.md` section 2.
+
+### T-081 Announcement bar, split hero, promo strip, arch off the home page, vitals script · todo
+- Req: CAT-01, ADM-06, UI-01 · Depends: — · Docs: `cr-009-plan.md`, `design-system.md`
+- Done: announcement bar ("Cash on delivery in N Saudi cities", N computed from active delivery cities, hidden when none), split hero with two static photos (priority on the first only) and the single GSAP settle (transform only, nothing at opacity 0), admin banner as a slim promo strip, `Arch` removed from the home page, `web/scripts/vitals.mjs`; AA tests for every new surface.
+
+### T-082 Shop by room, rail with tabs, pre-owned picks rail · todo
+- Req: CAT-01, ADM-07, PROD-01 · Depends: T-081
+- Done: first five admin categories as 12 px radius tiles with snap scroll; rail with tabs "New arrivals / Featured" (no "best seller" anywhere); pre-owned picks rail; the CR-008 tile unchanged.
+
+### T-083 Shop the look (hotspots) · todo
+- Req: ADM-15 · Depends: backend T-080, T-082
+- Done: hotspot buttons over the photo, popover card (image, name, price, add to cart), keyboard and touch, Escape returns focus, hidden when no data.
+
+### T-084 Pre-owned explained band, trust strip, assembly, measurement, screenshots · todo
+- Req: CAT-01, UI-01, UI-02 · Depends: T-081..T-083
+- Done: emerald band with the three steps (step 3 says cash on delivery), trust strip with true facts and the real cities, page assembly, vitals before and after (budget in `cr-009-plan.md` section 2), screenshots in `03-design/screens-v4/`.
+
+### T-087 Theme variables on the storefront (CR-010, UI-03) · todo
+- Req: UI-03 · Depends: backend T-086, T-045
+- Done: `themeStyle()` helper and the `<html>` style in the locale layout, fallback to the CSS defaults, tests (en and ar). Starts after CR-009 is approved.

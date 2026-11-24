@@ -142,6 +142,12 @@ Order status flow (owner 2026-11-22, T-014): `PENDING → CONFIRMED → PROCESSI
 **UI-01 Look & motion** · draft — "Emerald and gold" on white (`03-design/design-system.md`, ADR-014). GSAP + ScrollTrigger for the home hero and section reveals; Framer Motion for product cards, cart drawer, page enter transitions and add-to-cart feedback (fly-to-cart + toast); AOS for content-page reveals. `prefers-reduced-motion` disables non-essential animation and every animation mirrors in RTL. Headings in Fraunces / Noto Kufi Arabic; radius and shadow tokens only; no hex values in components.
 **UI-02 Responsive & accessible** · draft — 360 px to 1920 px; WCAG 2.1 AA colour contrast, enforced by an automated test on the design tokens (body, muted text, price, every button and badge text, light and dark; ≥ 4.5:1, graphics ≥ 3:1); keyboard navigable; images have localized alt text.
 
+**UI-03 Selectable theme (storefront)** · draft (SRC-011, CR-010, ADR-017) — The storefront applies the theme chosen in Settings → Appearance as CSS variables on `<html>`, on the server (no flash of the default theme).
+- Given an admin applied a preset, When a visitor opens any page after the cache window (immediately once the revalidation route exists), Then the page uses that preset's colours.
+- Given no theme is stored or the stored id is unknown, Then the default (Emerald) applies.
+- Given the settings API is unreachable, Then the CSS defaults (Emerald) apply.
+- Every preset passes the AA gate (text 4.5:1; focus ring, field border, free-delivery graphic and footer hairline 3:1). Ink, paper and the status colours never change with the theme.
+
 ### 5.8 Resale (RESALE)
 
 Resale items are created by admins only (ADM-02, type `RESALE`). Customer submissions are **deferred, post-MVP** (SRC-002.1).
@@ -183,6 +189,19 @@ Resale items are created by admins only (ADM-02, type `RESALE`). Customer submis
 - Given `vatRate` is 0, Then no VAT line appears on the cart, checkout, order or invoice.
 - Seed: all values at their defaults (0 / empty); no VAT rate is pre-set.
 - Out of scope: ZATCA e-invoicing (B-013), per-product VAT rates or exemptions.
+
+**ADM-15 Shop the look section** · draft (SRC-010, CR-009, ADR-016) — A home section type `SHOP_THE_LOOK`: one room photo with 1 to 4 hotspots, each pointing at a product. The admin editing screen is a follow-up (T-085); until then the section is created through the API and the demo seed.
+- Given a look section is visible, When the home page loads, Then the room photo shows with one hotspot button per product that is still PUBLISHED.
+- Given a hotspot's product is unpublished or deleted, Then that hotspot is not shown; Given no hotspot is left or the photo is missing, Then the section is not shown.
+- Given I use the keyboard or touch, When I activate a hotspot, Then a small product card opens (image, name, price in SAR, Add to cart); Escape closes it and returns focus.
+- The photo needs localized alt text (en and ar, UI-02); the photo is an R2 upload attached to the section and released when the section is deleted or the photo replaced.
+
+**ADM-16 Appearance (theme preset)** · draft (SRC-011, CR-010, ADR-017) — Settings → Appearance.
+- Given I open Appearance, Then I see five preset cards (Emerald, Walnut, Charcoal, Sand, Burgundy), each with a live preview of a product tile, a button and a price; no free colour picker exists.
+- Given I select a card and press Apply, Then the theme is saved (admin only) and I see that visitors get it within the cache window.
+- Given another admin changed settings meanwhile, When I apply, Then I get a conflict message (409 `STALE_UPDATE`) and can reload.
+- Given an unknown theme id is sent, Then the API rejects it with 422 `VALIDATION_ERROR`.
+- Who and when: the settings document records `themeUpdatedById` and `themeUpdatedAt`; one log line records admin id, old and new theme and request id.
 
 ### 5.10 Favourites (FAV) — SRC-008.8–10 (CR-007)
 

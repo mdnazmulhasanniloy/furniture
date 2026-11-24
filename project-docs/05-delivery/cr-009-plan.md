@@ -1,10 +1,10 @@
 # CR-009 plan: Home page redesign v4
 
-Source: `SRC-010` (owner brief, 2026-11-24; see `01-discovery/client-notes-2026-11-24.md`, addendum 3). Branch: `redesign/home-v4`, created from `autopilot/2026-11-24`. Design record: `ADR-016`. Status: **proposed, waiting for owner approval. No code has been written.** Scope: the home page only. Tokens, fonts, header, footer and every other page stay as CR-008 left them (the arch stays on the auth pages).
+Source: `SRC-010` (owner brief, 2026-11-24; see `01-discovery/client-notes-2026-11-24.md`, addendum 3). Branch: `redesign/home-v4`, created from `autopilot/2026-11-24`. Design record: `ADR-016`. Status: **approved 2026-11-24 (ADR-016 Accepted), with the decisions in section 10. Building on `redesign/home-v4`.** Scope: the home page only. Tokens, fonts, header, footer and every other page stay as CR-008 left them (the arch stays on the auth pages).
 
 ## 1. What changes, in one paragraph
 
-The home page becomes a photo-first page in the style of today's leading furniture sites: a one-line announcement bar, two full-height photo panels side by side ("New furniture" and "Pre-owned, half the price"), room tiles, a product rail with tabs, one "Shop the look" photo with hotspots, an emerald band that explains pre-owned in three steps, a pre-owned rail and a strip of true facts. The arch is removed from the home page. The one idea that is ours is the split hero: Furnixa sells both new and pre-owned furniture, and the first thing a visitor sees is that choice.
+The home page becomes a photo-first page in the style of today's leading furniture sites: a one-line announcement bar, two full-height photo panels side by side ("New furniture" and "Pre-owned, for less"), room tiles, a product rail with tabs, one "Shop the look" photo with hotspots, an emerald band that explains pre-owned in three steps, a pre-owned rail and a strip of true facts. The arch is removed from the home page. The one idea that is ours is the split hero: Furnixa sells both new and pre-owned furniture, and the first thing a visitor sees is that choice.
 
 ## 2. Baseline (measured before any change)
 
@@ -34,7 +34,7 @@ Run-to-run noise on mobile is about ±200 ms. **Budget (after must not be worse 
  |   lifestyle photo: living room      |   lifestyle photo: warm room, armchair    |
  |                                     |                                          |
  |   ~~~~~~~~ soft bottom scrim ~~~~~~ |   ~~~~~~~~~ soft bottom scrim ~~~~~~~~~  |
- |   New furniture                     |   Pre-owned, half the price              |
+ |   New furniture                     |   Pre-owned, for less                    |
  |   Sofas, beds and tables, delivered |   Pieces with a clear condition grade,   |
  |   to your door.                     |   photographed and described.            |
  |   [ Shop new ]                      |   [ Shop pre-owned ]                     |
@@ -111,14 +111,14 @@ Existing approved copy reused unchanged: "Shop new" / تسوّق الجديد, "
 
 | Where | English | Arabic |
 |---|---|---|
-| Announcement bar (owner's English) | Cash on delivery across Saudi Arabia | الدفع عند الاستلام في كل أنحاء المملكة |
+| Announcement bar (owner decision: N is the number of active delivery cities, computed, never hardcoded; hidden when there are none) | Cash on delivery in {count, plural, one {# Saudi city} other {# Saudi cities}} | الدفع عند الاستلام في {count, plural, one {مدينة سعودية واحدة} two {مدينتين سعوديتين} few {# مدن سعودية} many {# مدينة سعودية} other {# مدينة سعودية}} |
 | Hero panel 1 title | New furniture | أثاث جديد |
 | Hero panel 1 line | Sofas, beds and tables, delivered to your door. | كنب وأسرّة وطاولات، تصلك إلى باب بيتك. |
-| Hero panel 2 title (owner's wording) | Pre-owned, half the price | مستعمل بنصف السعر |
+| Hero panel 2 title (owner decision) | Pre-owned, for less | مستعمل بسعر أقل |
 | Hero panel 2 line | Pieces with a clear condition grade, photographed and described. | قطع بدرجة حالة واضحة، مع صور ووصف لكل قطعة. |
 | Hero photo alt (decorative, short) | A bright living room with a sofa / A warm room with an armchair | غرفة معيشة مضيئة وفيها كنبة / غرفة دافئة وفيها كرسي بذراعين |
 | Rooms section title | Shop by room | تسوّق حسب الغرفة |
-| Rail tabs | New arrivals / Featured | وصل حديثاً / مختارات |
+| Rail tabs (no "best seller" anywhere) | New arrivals / Featured | وصل حديثاً / مختارات |
 | Rail "see all" | See all new / See all featured | عرض كل الجديد / عرض كل المختارات |
 | Look title | Shop the look | تسوّق هذا التنسيق |
 | Look hint | Tap the dots to see what is in the room. | اضغط على النقاط لترى ما في الغرفة. |
@@ -169,10 +169,23 @@ Each task: plan, tests in en and ar, typecheck, lint, i18n, build, e2e, AA gate,
 
 | # | Question | Proposed answer |
 |---|---|---|
-| Q-1 | "Pre-owned, half the price" is a pricing claim. Is it true for the catalogue, or should it say "lower prices" or "up to half the price"? | Keep your words if you stand behind them; otherwise "Pre-owned, lower prices" / "مستعمل بأسعار أقل" |
+| Q-1 | "Pre-owned, for less" is a pricing claim. Is it true for the catalogue, or should it say "lower prices" or "up to half the price"? | Keep your words if you stand behind them; otherwise "Pre-owned, lower prices" / "مستعمل بأسعار أقل" |
 | Q-2 | Tabs "Best sellers / New arrivals": the API has no sales ranking. | Use "New arrivals / Featured" (admin-chosen). If you want true best sellers, a later task counts delivered order lines per product and adds a `BEST_SELLERS` source |
 | Q-3 | Rooms: the brief lists Living room, Bedroom, Dining, Office, Outdoor; the catalogue has product-type categories and no Outdoor. | The tiles are the admin's first five categories (names as the admin wrote them). To get exactly your five, the admin creates or renames categories and picks them in the Category grid section |
 | Q-4 | The two hero photos are static files in `web/public/home/` (not admin editable). | Accept for now; admin-editable hero photos become a follow-up in Site Settings |
 | Q-5 | "Cash on delivery across Saudi Arabia": the active cities today are Riyadh, Jeddah, Mecca, Medina, Dammam and Khobar. | Keep your line in the bar, but the trust strip lists the actual cities. If you prefer a strictly true bar: "Cash on delivery in 6 Saudi cities" (the number comes from settings) |
 | Q-6 | How to get the look into the dev database for screenshots. | You run `demo:reset` after the seed commit, or you approve one additive `POST /admin/home-sections` |
 | Q-7 | The look is built backend-first (a new section type). Is a follow-up admin editor acceptable? | Yes, as T-085 |
+
+## 10. Owner decisions (2026-11-24)
+
+1. Panel 2 reads "Pre-owned, for less" (ar «مستعمل بسعر أقل»). "Half the price" is not used; the stronger claim is recorded as owner question **B-037** (open).
+2. Rail tabs: "New arrivals / Featured"; no "best seller" label anywhere.
+3. Room tiles are the admin's first five categories by sort order.
+4. Static hero photos are accepted; follow-up **T-089** makes them admin-editable (Site Settings fields, admin upload).
+5. Announcement bar: "Cash on delivery in N Saudi cities" with N computed from the active delivery cities (6 today), never hardcoded; the bar is hidden if no city is active. The trust strip lists the real cities.
+6. No admin write endpoint is called. **The `SHOP_THE_LOOK` seed change (T-080) is committed first, then I stop and tell the owner; the owner runs `demo:reset`; then the web tasks and screenshots continue.**
+7. Follow-up **T-085** (admin editor for the look) is agreed.
+8. Step 3 copy fix and the GSAP approach are approved as planned.
+
+Task order now: T-080 (backend, seed) → STOP → owner runs `demo:reset` → T-081, T-082, T-083, T-084 → stop after the home page with screenshots and the before/after LCP and CLS tables. Follow-ups, not built here: T-085 (look editor), T-089 (hero photos in Site Settings).

@@ -1,6 +1,6 @@
 # ADR-017: Admin-selectable theme presets
 
-Status: **Proposed** (CR-010, SRC-011; waiting for owner approval) · Source: UI-01, UI-02, new ADM-16 and UI-03 · Builds on ADR-014 (token contract, AA gate) and ADR-015 (the Emerald values are the default). Implementation starts after CR-009 is approved.
+Status: **Accepted 2026-11-24** (CR-010, SRC-011; owner approved the plan and answered Q-1 to Q-5) · Source: UI-01, UI-02, new ADM-16 and UI-03 · Builds on ADR-014 (token contract, AA gate) and ADR-015 (the Emerald values are the default). Implementation starts after CR-009 is approved.
 
 ## Context
 
@@ -8,7 +8,7 @@ The owner wants the admin to change the storefront's colours without a developer
 
 ## Decision (proposed)
 
-1. **Presets, not free colours.** Five presets (Emerald default, Walnut, Charcoal, Sand, Indigo). A preset changes 12 CSS variables (primary and its foreground, ring, gold and gold-strong, muted and secondary, muted-foreground and stone, border and input, price). Paper, ink, `--gold-foreground` and all status colours are fixed in every theme.
+1. **Presets, not free colours.** Five presets (Emerald default, Walnut, Charcoal, Sand, Burgundy). A preset changes 12 CSS variables (primary and its foreground, ring, gold and gold-strong, muted and secondary, muted-foreground and stone, border and input, price). Paper, ink, `--gold-foreground` and all status colours are fixed in every theme.
 2. **The backend owns the registry.** `src/lib/themes.ts` holds ids, localized names and token values; the zod enum is built from the same tuple. The public settings response carries the active preset's tokens, and the admin Appearance endpoint carries all presets for previews. The web and admin hold no copy of the values, so nothing can drift; the Emerald preset is checked against `globals.css` by a test.
 3. **Storage.** `SiteSetting.themeId` is optional (existing documents lack it; null or missing means `emerald`), plus `themeUpdatedById` and `themeUpdatedAt` as the audit trail the repo's level of precedent allows.
 4. **Endpoint.** `PATCH /admin/settings/appearance { themeId, expectedUpdatedAt }`, bearer plus ADMIN role, 409 `STALE_UPDATE` on a stale write, 422 on an unknown id or field; it changes only the theme and revalidates the `settings` tag after commit. The existing `PUT /admin/settings` is untouched.
@@ -32,3 +32,12 @@ The owner wants the admin to change the storefront's colours without a developer
 - Copying the presets into web and admin: rejected, three copies to keep in sync with no shared package (B-018 is open).
 - A client-side theme script (cookie or localStorage): rejected, it flashes the default theme and gives each visitor a different result.
 - Adding `themeId` to the full-replace `PUT`: rejected, it breaks existing clients and forces the whole settings form to resend.
+
+## Owner decisions (2026-11-24)
+
+- Burgundy (a deep majlis red) replaces Indigo as the fifth preset; it passes the same AA gate (table in `cr-010-plan.md`).
+- Ink, paper and the status colours are fixed in every theme.
+- "Who and when" on the settings document plus one log line is the audit level for now.
+- Build T-045 (the web `/api/revalidate` route) first. Requirements: secret from the environment, compared with `timingSafeEqual` over SHA-256 digests, POST only, rate-limited, rejects unknown tags, never logs the secret, tests for a wrong and a missing secret.
+- One theme for the whole storefront.
+- **CSRF, confirmed in writing (2026-11-24, from the code):** the admin app keeps its access token in memory and sends it only in the `Authorization: Bearer` header (`admin/src/lib/api/client.ts`). The backend authenticates every non-auth route only from that header (`authenticateBearer` in `src/middleware/auth.ts`); `req.cookies` is read only by the refresh and logout handlers (`session.service.ts`). The only cookie is the refresh token `fx_rt`, httpOnly, with `Path=/api/v1/auth`, so the browser does not attach it to `/api/v1/admin/...`, and the admin app does not store the access token in a cookie or in storage. A cross-site request therefore cannot carry credentials to `PATCH /admin/settings/appearance`, and no CSRF token is needed for it. (`credentials: "include"` is set on every admin request, but the path scope of the cookie keeps it off this route.)

@@ -233,3 +233,15 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 - Tests `T-078 · ...` in `backend/tests/scripts/demo-data/` (guards, image allowlist and magic bytes, counts and invariants, reset, end to end; S3 and fetch mocked; `tests/helpers/s3Mock.ts` gained Put/List).
 - Decision (owner 2026-11-24): the R2 prefix is `furnixa/development/demo/`, not `furnixa/dev/demo/` (`isValidKey` only accepts `furnixa/{NODE_ENV}/`).
 - TODO before launch: the home TESTIMONIALS section holds three clearly marked demo entries ("Demo customer / عميل تجريبي"); replace them with real customer reviews or hide the section.
+
+### T-080 Shop the look home section (CR-009, ADM-15) · todo
+- Req: ADM-15, ADM-07 · Depends: — · Docs: `api-spec.yaml`, `data-model.md`, `adr/ADR-016` · Spec first.
+- Done: `SectionType` gains `SHOP_THE_LOOK` (Prisma enum value, zod enum); `config.look = { image: {key, alt{en,ar}}, hotspots[1..4] {x, y in 0..100, productId} }` required for that type and rejected for others; the photo is an R2 upload attached on create, synced on update and released on delete (same lifecycle as banners); `GET /cms/home` resolves each hotspot to its PUBLISHED product, drops dead hotspots and omits a look with none left; demo seed creates one look (photo `sofas-5`, hotspots on the leather club armchair, the Aurora floor lamp and the Riviera sofa). Tests `ADM-15 · ...`. **No data command is run; the owner runs `demo:reset`.**
+
+### T-086 Theme presets, appearance endpoints (CR-010, ADM-16, UI-03) · todo
+- Req: ADM-16, UI-03 · Depends: CR-009 approved · Docs: `adr/ADR-017`, `cr-010-plan.md`
+- Done: see `cr-010-plan.md` section 3 (registry with five presets incl. Burgundy, `themeId`, `themeUpdatedById`, `themeUpdatedAt`, public `theme`, admin `GET`/`PATCH /admin/settings/appearance`, AA gate over every preset, tests).
+
+### T-089 Admin-editable home hero photos (follow-up, CR-009 Q-4) · todo
+- Req: ADM-09, CAT-01 · Depends: web T-081 · Not built in CR-009.
+- Done: Site Settings fields for the two split-hero photos (new, pre-owned) with localized alt, admin upload in Settings, public settings exposes them, the web uses them instead of the static files. Spans backend, admin and web.

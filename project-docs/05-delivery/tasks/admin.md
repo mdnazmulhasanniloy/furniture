@@ -86,3 +86,11 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 - Gate findings fixed: the AA gate (unchanged rules) failed on the sand tokens in two places, the order CANCELLED chip and the admin blocked chips (`destructive/15` on sand = 4.28:1, now `destructive/10` = 4.64:1) and form-field borders on sand (`--input` 2.97:1, now `#78857F` = 3.18:1 on sand, 3.85:1 on paper). The web token `#7D8A85` stays (the web gate asserts fields sit on paper only); the deviation is recorded in `design-system.md`. The test that pinned the old brief values was updated to the v2 values (it described removed values, not weakened).
 - Screenshots (`03-design/screens-v2/t079-admin-*.png`: login, banners list and banner editor with the crop preview; /ar and /en, light and dark, 1440 px). The API was stubbed in the browser with placeholder images, so nothing was read from or written to the database. Not done: 390 px admin screenshots (the admin is a desktop tool; the existing layout was not changed).
 - Critique: the admin now reads as the same house as the shop, quietly: sand table heads and panels, Readex headings, no arch except inside the one place it explains a crop. Dark mode keeps its ADR-014 teal, which is warmer-neutral than the light sand; acceptable, flagged only. Weak: the editor dialog is long, so the crop preview is below the fold; it stays visible next to the Save button, and moving it beside the uploader would need a layout change that was not asked for.
+
+### T-085 Look editor (follow-up, CR-009 Q-7, ADM-15) · todo
+- Req: ADM-15 · Depends: backend T-080 · Not built in CR-009.
+- Done: Home sections editor for `SHOP_THE_LOOK`: photo upload with alt text, click-to-place hotspots, product picker (1 to 4).
+
+### T-088 Appearance tab (CR-010, ADM-16) · todo
+- Req: ADM-16 · Depends: backend T-086
+- Done: preset cards with scoped live preview (product tile, button, price), Apply with 409 handling, tests (en and ar). Starts after CR-009 is approved.

@@ -1,6 +1,6 @@
 # CR-010 plan: Admin-selectable colour theme
 
-Source: `SRC-011` (owner brief, 2026-11-24; see `01-discovery/client-notes-2026-11-24.md`, addendum 4). Design record: `ADR-017`. Status: **proposed, waiting for approval. Plan only: nothing is built, and implementation starts only after CR-009 (home v4) is approved.** Branch for the build: created from the CR-009 branch once it is approved.
+Source: `SRC-011` (owner brief, 2026-11-24; see `01-discovery/client-notes-2026-11-24.md`, addendum 4). Design record: `ADR-017`. Status: **approved 2026-11-24 (ADR-017 Accepted), with the decisions in section 9. Plan only for now: implementation starts after CR-009 (home v4) is approved, with T-045 first.** Branch for the build: created from the CR-009 branch once it is approved.
 
 ## 1. What the owner gets
 
@@ -8,7 +8,7 @@ Admin > Settings > Appearance: five preset themes as cards, each with a live pre
 
 ## 2. The presets (all computed against the existing AA gate)
 
-Five presets, one default: **Emerald** (the current look, default), **Walnut** (warm brown, copper accent), **Charcoal** (near-black, brass accent), **Sand** (olive-bronze, the warmest and quietest), and a fifth I propose, **Indigo** (deep blue, a colour not otherwise in the set and common in Saudi branding). Names in Arabic: الزمرد، الجوز، الفحم، الرمل، النيلي.
+Five presets, one default: **Emerald** (the current look, default), **Walnut** (warm brown, copper accent), **Charcoal** (near-black, brass accent), **Sand** (olive-bronze, the warmest and quietest), and **Burgundy** (a deep majlis red, the owner's choice for the fifth). Names in Arabic: الزمرد، الجوز، الفحم، الرمل، العنابي.
 
 **What a theme changes (12 CSS variables, the brief's list mapped onto the real tokens):**
 
@@ -26,44 +26,44 @@ Five presets, one default: **Emerald** (the current look, default), **Walnut** (
 
 Token values:
 
-| Token | emerald | walnut | charcoal | sand | indigo |
+| Token | emerald | walnut | charcoal | sand | burgundy |
 |---|---|---|---|---|---|
-| primary | `#0F4C45` | `#6B3F2A` | `#2B3236` | `#4D4430` | `#1F3A5F` |
+| primary | `#0F4C45` | `#6B3F2A` | `#2B3236` | `#4D4430` | `#6E1F2E` |
 | onPrimary | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` |
-| ring | `#0F4C45` | `#6B3F2A` | `#2B3236` | `#4D4430` | `#1F3A5F` |
-| muted | `#EFE9DD` | `#F0E7DC` | `#ECEDEE` | `#E9E0CF` | `#E8ECF1` |
-| mutedFg | `#5C6360` | `#5E5249` | `#54595C` | `#5A5446` | `#4F5B6A` |
-| stone | `#6B726F` | `#756A60` | `#6F7479` | `#6E6858` | `#6A7585` |
-| border | `#E4E0D6` | `#E6DCD0` | `#DFE1E2` | `#DDD3BF` | `#DCE1E8` |
-| input | `#7D8A85` | `#85786C` | `#7C8286` | `#80765F` | `#76849A` |
-| gold | `#B8913A` | `#C58E4E` | `#A8905A` | `#BCA264` | `#A8864A` |
-| goldStrong | `#9C7A2E` | `#8F5F2A` | `#857037` | `#85702F` | `#85692F` |
-| price | `#7A5E22` | `#77491B` | `#5F5226` | `#6E5A22` | `#6C5421` |
+| ring | `#0F4C45` | `#6B3F2A` | `#2B3236` | `#4D4430` | `#6E1F2E` |
+| muted | `#EFE9DD` | `#F0E7DC` | `#ECEDEE` | `#E9E0CF` | `#F1E7E2` |
+| mutedFg | `#5C6360` | `#5E5249` | `#54595C` | `#5A5446` | `#5C4D4C` |
+| stone | `#6B726F` | `#756A60` | `#6F7479` | `#6E6858` | `#776A68` |
+| border | `#E4E0D6` | `#E6DCD0` | `#DFE1E2` | `#DDD3BF` | `#E6DAD4` |
+| input | `#7D8A85` | `#85786C` | `#7C8286` | `#80765F` | `#85726F` |
+| gold | `#B8913A` | `#C58E4E` | `#A8905A` | `#BCA264` | `#C09A5B` |
+| goldStrong | `#9C7A2E` | `#8F5F2A` | `#857037` | `#85702F` | `#8C6A2C` |
+| price | `#7A5E22` | `#77491B` | `#5F5226` | `#6E5A22` | `#76471C` |
 
 Contrast, computed with the same relative-luminance formula as the web and admin tests (every cell must reach the number in brackets; every cell does):
 
-| Check (minimum) | emerald | walnut | charcoal | sand | indigo |
+| Check (minimum) | emerald | walnut | charcoal | sand | burgundy |
 |---|---|---|---|---|---|
 | ink on paper (4.5) | 16.75 | 16.75 | 16.75 | 16.75 | 16.75 |
-| ink on surface (4.5) | 13.85 | 13.69 | 14.29 | 12.78 | 14.11 |
-| muted text on paper (4.5) | 6.16 | 7.56 | 7.09 | 7.52 | 6.91 |
-| muted text on surface (4.5) | 5.10 | 6.18 | 6.05 | 5.74 | 5.83 |
-| price on paper (4.5) | 6.08 | 7.63 | 7.72 | 6.67 | 7.17 |
-| price on surface (4.5) | 5.03 | 6.24 | 6.58 | 5.09 | 6.05 |
-| on-primary on primary (4.5) | 9.81 | 8.86 | 13.03 | 9.61 | 11.48 |
-| primary text on paper (4.5) | 9.81 | 8.86 | 13.03 | 9.61 | 11.48 |
-| primary text on surface (4.5) | 8.12 | 7.25 | 11.11 | 7.34 | 9.68 |
-| ring on paper (3) | 9.81 | 8.86 | 13.03 | 9.61 | 11.48 |
-| ring on surface (3) | 8.12 | 7.25 | 11.11 | 7.34 | 9.68 |
-| input border on paper (3) | 3.59 | 4.29 | 3.89 | 4.49 | 3.79 |
-| gold-strong on paper (3) | 4.01 | 5.47 | 4.81 | 4.82 | 5.17 |
-| gold-strong on surface (3) | 3.32 | 4.47 | 4.10 | 3.68 | 4.36 |
-| stone icon on paper (3) | 4.93 | 5.27 | 4.72 | 5.55 | 4.67 |
-| gold line on primary (footer) (3) | 3.34 | 3.10 | 4.22 | 3.89 | 3.38 |
-| surface text on primary (footer) (4.5) | 8.12 | 7.25 | 11.11 | 7.34 | 9.68 |
-| ink on gold (decorative CTA) (4.5) | 5.70 | 5.86 | 5.42 | 6.77 | 4.92 |
+| ink on surface (4.5) | 13.85 | 13.69 | 14.29 | 12.78 | 13.77 |
+| muted text on paper (4.5) | 6.16 | 7.56 | 7.09 | 7.52 | 8.01 |
+| muted text on surface (4.5) | 5.10 | 6.18 | 6.05 | 5.74 | 6.59 |
+| price on paper (4.5) | 6.08 | 7.63 | 7.72 | 6.67 | 7.81 |
+| price on surface (4.5) | 5.03 | 6.24 | 6.58 | 5.09 | 6.42 |
+| on-primary on primary (4.5) | 9.81 | 8.86 | 13.03 | 9.61 | 11.06 |
+| primary text on paper (4.5) | 9.81 | 8.86 | 13.03 | 9.61 | 11.06 |
+| primary text on surface (4.5) | 8.12 | 7.25 | 11.11 | 7.34 | 9.10 |
+| ring on paper (3) | 9.81 | 8.86 | 13.03 | 9.61 | 11.06 |
+| ring on surface (3) | 8.12 | 7.25 | 11.11 | 7.34 | 9.10 |
+| input border on paper (3) | 3.59 | 4.29 | 3.89 | 4.49 | 4.53 |
+| gold-strong on paper (3) | 4.01 | 5.47 | 4.81 | 4.82 | 4.98 |
+| gold-strong on surface (3) | 3.32 | 4.47 | 4.10 | 3.68 | 4.10 |
+| stone icon on paper (3) | 4.93 | 5.27 | 4.72 | 5.55 | 5.19 |
+| gold line on primary (footer) (3) | 3.34 | 3.10 | 4.22 | 3.89 | 4.22 |
+| surface text on primary (footer) (4.5) | 8.12 | 7.25 | 11.11 | 7.34 | 9.10 |
+| ink on gold (decorative CTA) (4.5) | 5.70 | 5.86 | 5.42 | 6.77 | 6.39 |
 
-The decorative gold hairline on the footer is checked at 3:1 so it stays visible; gold is never text. Walnut and Sand needed their accent lightened once to clear that check, the values above are the adjusted ones.
+The decorative gold hairline on the footer is checked at 3:1 so it stays visible; gold is never text. Walnut and Sand needed their accent lightened once to clear that check, and Burgundy was tuned until every cell passed; the values above are the final ones.
 
 ## 3. Backend (spec first, then code and tests)
 
@@ -116,8 +116,19 @@ Each task: spec first, plan, tests in en and ar, typecheck, lint, i18n, build, e
 
 | # | Question | Proposed answer |
 |---|---|---|
-| Q-1 | Is Indigo the right fifth preset, or do you prefer another (for example a deep olive or a burgundy)? | Indigo |
+| Q-1 | Fifth preset | Burgundy (decided) |
 | Q-2 | Is it acceptable that status colours, ink and paper never change with the theme? | Yes: order states must read the same everywhere |
 | Q-3 | CSRF and audit: the project has no CSRF on bearer-authenticated admin writes and no audit log. Is "who and when on the settings document plus a log line" enough, or do you want a real audit-log collection (a separate change)? | Who and when on the document plus a log line |
 | Q-4 | Refresh: build the `/api/revalidate` route (T-045) first so a theme change is visible at once, or accept the 60 s window for now? | Build T-045 first; it is small and already approved by your B-028 answer |
 | Q-5 | Should Apply also be available per language or per page area? | No: one theme for the whole storefront |
+
+## 9. Owner decisions (2026-11-24)
+
+1. Burgundy replaces Indigo; it passes every check in the table above (lowest margins: field border on paper 4.53 against 3, muted text on surface 6.59 against 4.5).
+2. Ink, paper and the status colours are fixed in every theme.
+3. Audit: "who and when" on the settings document plus one log line is enough for now.
+4. **T-045 first.** The web `/api/revalidate` route: secret from the environment, compared with `timingSafeEqual` over SHA-256 digests (so lengths never leak), POST only, rate-limited, rejects unknown tags, never logs the secret; tests for a wrong secret, a missing secret, an unknown tag, a wrong method and the rate limit.
+5. One theme for the whole storefront.
+6. **CSRF: confirmed in writing, no CSRF is needed for the PATCH.** The admin app keeps its access token in memory and sends it only in the `Authorization: Bearer` header; the backend authenticates every non-auth route only from that header and reads `req.cookies` only in the refresh and logout handlers; the only cookie, `fx_rt`, is httpOnly with `Path=/api/v1/auth`, so the browser never attaches it to `/api/v1/admin/...`. Details and file references are in ADR-017.
+
+Task order: T-045 → backend T-086 → web T-087 → admin T-088, after CR-009 is approved.

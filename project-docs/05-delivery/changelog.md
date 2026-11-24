@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (CR-009 home v4 and CR-010 themes, approved plans)
+- **CR-009 (SRC-010) and CR-010 (SRC-011) approved by the owner.** ADR-016 (home v4: split New / Pre-owned photo hero, arch off the home page, `SHOP_THE_LOOK` section) and ADR-017 (five theme presets: Emerald default, Walnut, Charcoal, Sand, Burgundy; backend-owned registry, `PATCH /admin/settings/appearance`, theme variables on `<html>`) Accepted. PRD: ADM-15, ADM-16, UI-03. Tasks: backend T-080, T-086, T-089 (follow-up); web T-081..T-084, T-087; admin T-085 (follow-up), T-088; T-045 (web revalidate route) first for CR-010. Decisions: panel 2 "Pre-owned, for less" (B-037 open for the stronger claim), "New arrivals / Featured", announcement bar count computed from active cities, no admin write endpoint for demo data, CSRF not needed for the admin PATCH (bearer header only, refresh cookie path-scoped). Branch `redesign/home-v4`.
+
 ## 2026-11-24 (admin T-079 redesign v2 done; CR-008 complete)
 - **admin T-079 (UI-01, UI-02, ADM-06): admin follows v2.** Tokens, Readex Pro + IBM Plex (the admin had never loaded a font; Fontsource packages added, owner to confirm), AA gate green in light and dark (two sand-surface contrast fixes), banner editor crop preview and hint (en, ar). With this, CR-008 is implemented: web T-052 to T-058 and admin T-079, one commit each on `autopilot/2026-11-24`, nothing pushed. Open for the owner: Q-2 wording (grade texts, byline, the demo notes that say "Inspected by our team."), the COD sentence, the hero copy without "inspected", the new font dependencies, checkout/OTP screenshots after a login.
 ## 2026-11-24 (web T-058 auth pages done; web redesign v2 complete)

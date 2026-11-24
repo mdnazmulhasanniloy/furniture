@@ -69,20 +69,20 @@ test.describe("UI-01 — tokens, fonts and locale-scoped preloads", () => {
     });
   }
 
-  test("UI-01: /en headings use Readex Pro, body uses IBM Plex Sans", async ({ page }) => {
+  test("UI-01: /en headings use Bodoni Moda, body uses IBM Plex Sans", async ({ page }) => {
     await page.goto("/en");
     const h1Font = await page.locator("h1").first().evaluate((el) => getComputedStyle(el).fontFamily);
     const bodyFont = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
-    expect(h1Font).toMatch(/Readex/i);
+    expect(h1Font).toMatch(/Bodoni/i);
     expect(bodyFont).toMatch(/IBM[_ ]?Plex[_ ]?Sans/i);
     expect(bodyFont).not.toMatch(/Arabic/i);
   });
 
-  test("UI-01: /ar headings use Readex Pro, body uses IBM Plex Sans Arabic", async ({ page }) => {
+  test("UI-01: /ar headings use El Messiri, body uses IBM Plex Sans Arabic", async ({ page }) => {
     await page.goto("/ar");
     const h1Font = await page.locator("h1").first().evaluate((el) => getComputedStyle(el).fontFamily);
     const bodyFont = await page.evaluate(() => getComputedStyle(document.body).fontFamily);
-    expect(h1Font).toMatch(/Readex/i);
+    expect(h1Font).toMatch(/El[_ ]?Messiri/i);
     expect(bodyFont).toMatch(/Plex[_ ]?Sans[_ ]?Arabic/i);
   });
 
@@ -90,7 +90,7 @@ test.describe("UI-01 — tokens, fonts and locale-scoped preloads", () => {
     const audit = await fontNetworkAudit(page, "/en");
     expect(audit.downloadedFamilies.length).toBeGreaterThan(0);
     for (const family of audit.downloadedFamilies) {
-      expect(family).toMatch(/Readex|IBM[_ ]Plex[_ ]Sans/i);
+      expect(family).toMatch(/Bodoni|IBM[_ ]Plex[_ ]Sans/i);
       expect(family).not.toMatch(/Arabic/i);
     }
     for (const family of audit.preloadedFamilies) expect(family).not.toMatch(/Arabic/i);
@@ -100,7 +100,7 @@ test.describe("UI-01 — tokens, fonts and locale-scoped preloads", () => {
     const audit = await fontNetworkAudit(page, "/ar");
     expect(audit.downloadedFamilies.length).toBeGreaterThan(0);
     for (const family of audit.downloadedFamilies) {
-      expect(family).toMatch(/Readex|Plex[_ ]Sans[_ ]Arabic/i);
+      expect(family).toMatch(/El[_ ]Messiri|Plex[_ ]Sans[_ ]Arabic/i);
       expect(family).not.toMatch(/IBM[_ ]Plex[_ ]Sans(?![_ ]Arabic)/i);
     }
     for (const family of audit.preloadedFamilies) expect(family).not.toMatch(/IBM[_ ]Plex[_ ]Sans(?![_ ]Arabic)/i);

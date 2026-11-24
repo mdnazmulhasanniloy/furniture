@@ -1,4 +1,4 @@
-/* Design tokens — source: project-docs/03-design/design-system.md ("Najdi arch", ADR-015; contrast rules of ADR-014).
+/* Design tokens — source: project-docs/03-design/design-system.md v3 ("Soft luxury", ADR-018; contrast rules of ADR-014).
    Light values shared with admin/src/index.css. Checked by src/test/ui-02-aa-contrast.test.ts and ui-02-aa-call-sites.test.ts. */
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -27,6 +27,11 @@
   --gold-foreground: #14201d;
   /* gold-strong: meaningful gold graphics (free-delivery bar), >= 3:1 on paper and sand. */
   --gold-strong: #9c7a2e;
+  /* blush (ADR-018): soft "sweet" band surface; ink and primary text pass AA on it. */
+  --blush: #f7eeea;
+  --blush-foreground: #14201d;
+  /* champagne (ADR-018): decorative lines and ornaments only. Never text (2.2:1 on paper). */
+  --champagne: #c8a96a;
   --price: #7a5e22;
   --border: #e4e0d6;
   /* input: form-field borders (>= 3:1 on paper). Fields sit on paper only. */
@@ -38,7 +43,7 @@
   /* warning: icons and badge backgrounds only; text uses warning-foreground. */
   --warning: #b7791f;
   --warning-foreground: #7a4b05;
-  --radius: 10px;
+  --radius: 8px;
   /* one soft shadow, only for floating layers (drawer, toast, menu). Content has none. */
   --shadow-soft: 0 10px 30px -12px rgb(20 32 29 / 0.22);
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -58,6 +63,9 @@
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-stone: var(--stone);
+  --color-blush: var(--blush);
+  --color-blush-foreground: var(--blush-foreground);
+  --color-champagne: var(--champagne);
   --color-gold: var(--gold);
   --color-gold-foreground: var(--gold-foreground);
   --color-gold-strong: var(--gold-strong);
@@ -70,10 +78,11 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
-  --radius-sm: 6px;
+  --radius-sm: 4px;
   --radius-md: var(--radius);
-  --radius-lg: 10px;
-  --radius-xl: 10px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+  --radius-tile: 8px;
   --shadow-float: var(--shadow-soft);
   /* --font-heading / --font-body are set per locale by next/font on <html>
      (src/fonts/latin.ts for en, src/fonts/arabic.ts for ar). */
@@ -88,21 +97,22 @@
 }
 
 html {
-  line-height: 1.6;
+  line-height: 1.65;
+  font-size: 106.25%; /* body 17 px; rem-based sizes scale with it */
 }
 html[lang="ar"] {
   line-height: 1.85;
 }
 
-/* Type (design-system section 2): Readex Pro headings, tight in Latin, never tracked in Arabic. */
+/* Type (design-system v3 section 2): Bodoni Moda / El Messiri headings, weight 600 to 700 only, never tracked in Arabic. */
 @layer base {
   h1,
   h2,
   h3,
   h4 {
     font-family: var(--font-display);
-    font-weight: 600;
-    line-height: 1.2;
+    font-weight: 700;
+    line-height: 1.15;
   }
   html[lang="en"] :is(h1, h2, h3, h4) {
     letter-spacing: -0.02em;
@@ -116,13 +126,12 @@ html[lang="ar"] {
     accent-color: var(--primary);
   }
 }
-/* Hero headline: light and wide, one weight, the only 72 px text on the site. */
+/* Hero headline: confident serif, 36 px on mobile up to 72 px on wide screens. */
 .type-hero {
   font-family: var(--font-display);
-  font-weight: 300;
-  font-variation-settings: "HEXP" 30;
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
-  line-height: 1.05;
+  font-weight: 700;
+  font-size: clamp(2.25rem, 1.2rem + 4.2vw, 4.5rem);
+  line-height: 1.08;
 }
 html[lang="ar"] .type-hero {
   line-height: 1.35;
@@ -146,7 +155,59 @@ body {
   }
 }
 
-/* Arch (ADR-015): the Najdi arch mask. The path lives in components/arch.tsx (clipPath, objectBoundingBox). */
+/* Arch (ADR-015): the Najdi arch mask. The path lives in components/arch.tsx (clipPath, objectBoundingBox).
+   Removed from the storefront by ADR-018; this rule and the component are deleted in T-094. */
 .arch {
   clip-path: url(#fx-arch);
+}
+
+/* ADR-018 layout: one container, one vertical rhythm. */
+.container-wide {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+@media (min-width: 640px) {
+  .container-wide {
+    padding-inline: 32px;
+  }
+}
+@media (min-width: 1024px) {
+  .container-wide {
+    padding-inline: 48px;
+  }
+}
+.band {
+  padding-block: 48px;
+}
+@media (min-width: 1024px) {
+  .band {
+    padding-block: 72px;
+  }
+}
+/* Rails: no native scrollbar (arrow buttons and keyboard stay), snap kept. */
+.rail-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  scroll-snap-type: x mandatory;
+  overflow-x: auto;
+}
+.rail-scroll::-webkit-scrollbar {
+  display: none;
+}
+.rail-scroll > * {
+  scroll-snap-align: start;
+}
+/* Hover/focus zoom for photo tiles; off under reduced motion. */
+.zoom-on-hover img {
+  transition: transform 400ms var(--ease-out-soft);
+}
+.zoom-on-hover:is(:hover, :focus-visible) img {
+  transform: scale(1.04);
+}
+@media (prefers-reduced-motion: reduce) {
+  .zoom-on-hover:is(:hover, :focus-visible) img {
+    transform: none;
+  }
 }

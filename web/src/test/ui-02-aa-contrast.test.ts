@@ -34,7 +34,7 @@ const tok = (name: string): RGB => {
   return rgb(hex);
 };
 
-const SURFACES = ["background", "card", "muted"] as const;
+const SURFACES = ["background", "card", "muted", "blush"] as const;
 
 /** The fill and text token a class string names (explicit `bg-x` / `text-x`, optional `/alpha`). */
 function pairOf(classes: string) {
@@ -99,6 +99,13 @@ describe("UI-02 · AA contrast on the design tokens (ADR-014)", () => {
         expect(r, `${name} on ${s} = ${fmt(r)}`).toBeGreaterThanOrEqual(AA);
       }
     }
+  });
+
+  it("UI-02 · blush (ADR-018): ink, stone ink, primary and price are at least 4.5:1 on it; champagne is decorative only", () => {
+    for (const n of ["foreground", "blush-foreground", "muted-foreground", "primary", "price", "destructive"]) {
+      expect(ratio(tok(n), tok("blush")), n + " on blush").toBeGreaterThanOrEqual(AA);
+    }
+    expect(ratio(tok("champagne"), tok("background"))).toBeLessThan(AA); // so it can never be text
   });
 
   it("UI-02 · raw warning and raw gold are NOT usable as text (documented failures)", () => {

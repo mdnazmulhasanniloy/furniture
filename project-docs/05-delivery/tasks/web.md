@@ -222,7 +222,7 @@ Order: backend T-080 first (seed), then the owner runs `demo:reset`, then T-081 
 
 ## CR-011 (soft luxury, approved 2026-11-24; see `05-delivery/cr-011-plan.md`)
 
-### T-090 Soft luxury foundation (fonts, tokens, container, rails, design-system v3) · todo
+### T-090 Soft luxury foundation (fonts, tokens, container, rails, design-system v3) · done
 - Req: UI-04, UI-01, UI-02 · Depends: approval of CR-011 · Docs: ADR-018
 ### T-091 Hero carousel · todo
 - Req: CAT-01, ADM-06, UI-04 · Depends: T-090

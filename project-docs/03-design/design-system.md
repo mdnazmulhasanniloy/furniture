@@ -1,8 +1,20 @@
-# Design System — "Najdi arch" (v2, proposed — CR-008, ADR-015)
+# Design System — "Najdi arch" v2, overridden by "Soft luxury" v3 (ADR-018)
 
 > **Status: accepted 2026-11-24 (ADR-015).** Supersedes the visual parts of ADR-014; its contrast rules stay in force. Build progress is tracked in `05-delivery/cr-008-plan.md`.
 
 Mood: a bright, quiet showroom with one bold gesture, the arch. White page, deep emerald for action, sand behind the furniture, date gold only as a fine line. Works equally in LTR and RTL; Arabic is designed first.
+
+
+## v3 override: Soft luxury (ADR-018, CR-011, accepted 2026-11-24)
+
+Where this section and the sections below disagree, **this section wins** on the storefront. Sections 1 to 3 remain the base for tokens not named here; section 4 (the arch) is **withdrawn** for the storefront and the component is deleted in T-094.
+
+- **Type:** headings Bodoni Moda (en) and El Messiri (ar), weights 600 and 700 only, via next/font/google, per-locale scoping kept (each locale downloads only its own fonts). Body IBM Plex Sans / IBM Plex Sans Arabic at 17 px (root 106.25 %), line-height 1.65 (ar 1.85). Hero 36 px (mobile) to 72 px (clamp). Bodoni Moda is used from 28 px up (Q-10). Readex Pro is retired.
+- **New tokens:** `--blush` #F7EEEA with `--blush-foreground` (soft band surface; ink 15:1, primary and price pass 4.5:1 on it, enforced by the AA gate on the new surface) and `--champagne` #C8A96A (decorative lines and ornaments only; 2.2:1 on paper, the gate rejects any `text-champagne`). `--gold` and `--gold-strong` stay for the free-delivery bar until T-086 folds them into the presets. Presets (CR-010) each carry their own blush and champagne.
+- **Layout:** `.container-wide` max 1440 px, gutters 20 / 32 / 48 px; `.band` vertical rhythm 48 px mobile, 72 px desktop; photos may be full-bleed.
+- **Shape:** radius sm 4 px, md and lg 8 px, tiles 8 px. No arch.
+- **Rails:** `.rail-scroll` hides the native scrollbar and keeps snap; every rail has arrow buttons and keyboard support.
+- **Motion:** hero crossfade 700 ms, slow 6 s zoom, tile hover/focus zoom (`.zoom-on-hover`, scale 1.04, 400 ms). Nothing on scroll; GSAP leaves the home page. Reduced motion: no autoplay, no zoom.
 
 ## 1. Colour
 

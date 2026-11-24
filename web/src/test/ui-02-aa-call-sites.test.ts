@@ -18,7 +18,7 @@ const lum = (c: RGB) => {
 };
 const ratio = (a: RGB, b: RGB) => { const [x, y] = [lum(a), lum(b)]; return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 const blend = (f: RGB, b: RGB, al: number): RGB => f.map((v, i) => Math.round(v * al + b[i]! * (1 - al))) as RGB;
-const SURFACES = ["background", "card", "muted"];
+const SURFACES = ["background", "card", "muted", "blush"];
 const tok = (n: string) => rgb(T[n]!);
 
 function ratiosOf(classes: string) {
@@ -54,7 +54,7 @@ for (const f of files(SRC)) {
   for (const m of readFileSync(f, "utf8").matchAll(/["'`]([^"'`\n]*\b(?:bg|text)-[a-z][^"'`\n]*)["'`]/g)) {
 
 
-    if (/\b(?:bg|text)-(?:background|foreground|card|muted|primary|secondary|gold|price|destructive|success|warning)/.test(m[1]!)) {
+    if (/\b(?:bg|text)-(?:background|foreground|card|muted|primary|secondary|gold|champagne|blush|price|destructive|success|warning)/.test(m[1]!)) {
       LITERALS.push({ file: path.relative(SRC, f), text: m[1]! });
     }
   }
@@ -77,7 +77,7 @@ describe("UI-02 · AA contrast over every colour call site in src/ (storefront, 
 
   it("UI-02 · no text-white, raw warning or gold text, or accent classes in src/", () => {
     const bad = LITERALS.filter(({ text }) =>
-      text.split(/\s+/).some((c) => /^(?:text-white|text-warning|text-gold|text-accent|bg-accent)$/.test(c)),
+      text.split(/\s+/).some((c) => /^(?:text-white|text-warning|text-gold|text-champagne|text-accent|bg-accent)$/.test(c)),
     );
     expect(bad.map((b) => b.file + ": " + b.text)).toEqual([]);
   });

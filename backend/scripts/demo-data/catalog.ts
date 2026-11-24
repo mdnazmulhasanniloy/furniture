@@ -436,8 +436,8 @@ export const PRODUCTS: DemoProduct[] = [
     draft: true,
     title: { en: 'Vintage Oak Armoire (Pre-owned)', ar: 'خزانة بلوط عتيقة (مستعملة)' },
     description: {
-      en: 'An antique-style oak armoire with carved details. Awaiting photos and a final inspection.',
-      ar: 'خزانة بلوط بطراز عتيق وتفاصيل منحوتة. بانتظار الصور والفحص النهائي.',
+      en: 'An antique-style oak armoire with carved details. Photos and condition notes to follow.',
+      ar: 'خزانة بلوط بطراز عتيق وتفاصيل منحوتة. الصور وملاحظات الحالة قريباً.',
     },
     sku: 'FX-WRD-004',
     priceSar: 1350,
@@ -563,16 +563,16 @@ export const PRODUCTS: DemoProduct[] = [
 
 export const CONDITION_NOTES: Record<'LIKE_NEW' | 'GOOD' | 'FAIR', L> = {
   LIKE_NEW: {
-    en: 'Barely used; no visible marks. Inspected by our team.',
-    ar: 'استُخدمت بالكاد ولا توجد علامات ظاهرة. تم فحصها من فريقنا.',
+    en: 'Barely used; no visible marks.',
+    ar: 'استُخدمت بالكاد ولا توجد علامات ظاهرة.',
   },
   GOOD: {
-    en: 'Light signs of use that do not affect function. Inspected by our team.',
-    ar: 'آثار استخدام خفيفة لا تؤثر على الوظيفة. تم فحصها من فريقنا.',
+    en: 'Light signs of use that do not affect function.',
+    ar: 'آثار استخدام خفيفة لا تؤثر على الوظيفة.',
   },
   FAIR: {
-    en: 'Visible wear such as scuffs or marks; fully functional. Inspected by our team.',
-    ar: 'آثار استخدام ظاهرة مثل الخدوش أو العلامات، وهي سليمة وظيفياً. تم فحصها من فريقنا.',
+    en: 'Visible wear such as scuffs or marks; fully functional.',
+    ar: 'آثار استخدام ظاهرة مثل الخدوش أو العلامات، وهي سليمة وظيفياً.',
   },
 };
 
@@ -601,10 +601,10 @@ export const BANNERS: DemoBanner[] = [
     startsInDays: null,
   },
   {
-    title: { en: 'Pre-owned, inspected, half the price', ar: 'مستعمل ومفحوص بنصف السعر' },
+    title: { en: 'Pre-owned, half the price', ar: 'مستعمل بنصف السعر' },
     subtitle: {
-      en: 'One-of-a-kind pieces with a condition grade you can trust',
-      ar: 'قطع فريدة بتقييم حالة موثوق',
+      en: 'One-of-a-kind pieces with the condition described in photos and notes',
+      ar: 'قطع فريدة مع وصف الحالة بالصور والملاحظات',
     },
     ctaLabel: { en: 'Browse pre-owned', ar: 'تصفح المستعمل' },
     ctaHref: '/shop?type=resale',

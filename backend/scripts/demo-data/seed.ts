@@ -263,12 +263,15 @@ export async function seedDemoData(prisma: PrismaClient, ctx: SeedContext): Prom
     {
       type: 'RESALE_PICKS',
       title: { en: 'Pre-owned picks', ar: 'مختارات مستعملة' },
-      subtitle: { en: 'Inspected and graded', ar: 'مفحوصة ومصنّفة' },
+      subtitle: {
+        en: 'Graded, with photos and condition notes',
+        ar: 'مصنّفة مع صور وملاحظات الحالة',
+      },
       config: { limit: 8 },
     },
     {
       type: 'PROMO_BANNER',
-      title: { en: 'Pre-owned, inspected, half the price', ar: 'مستعمل ومفحوص بنصف السعر' },
+      title: { en: 'Pre-owned, half the price', ar: 'مستعمل بنصف السعر' },
       subtitle: null,
       config: { bannerId: bannerIds[1]! },
     },

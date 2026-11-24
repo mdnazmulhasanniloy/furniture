@@ -85,7 +85,7 @@ Detail that carries the identity: behind the hero arch sits a second arch outlin
 - **Chips:** `New` emerald/white; `Pre-owned, like new` sand/ink; `Sold out` ink outline. Chips sit **under** the image next to the price, never on top of a photo.
 - **Product tile (no border, no shadow):** sand backdrop at 4:5 with the photo multiplied onto it (`mix-blend-mode: multiply`, so white studio shots melt into the sand); heart in the top-end corner (paper circle, 36 px); title (2 lines max, Readex 500); price; condition chip. Quick add: a full-width text button below on mobile, revealed on hover/focus on desktop. Second image crossfades on hover (desktop only).
 - **Segmented switch** (shelf): two options, ink-outlined, the active one filled ink with paper text; keyboard arrows move between them.
-- **Condition report** (pre-owned product page): see the product wireframe. Real data only: grade (existing field), the seller-written notes (existing `conditionNotes`), the extra photos, and the byline "Photos and condition notes by Furnixa". The app never claims inspection (owner answer to Q-2; one string to change per language if every item is inspected).
+- **Condition report** (pre-owned product page): see the product wireframe. Real data only: grade (existing field), the seller-written notes (existing `conditionNotes`), the extra photos, and the byline "Photos and condition notes by Furnixa". The app never claims inspection until the owner confirms it in writing (B-036, Q-2); then one string per language changes.
 - **Footer:** one emerald block: contact, cities served (from settings), COD in one plain sentence, language switch. Sand text on emerald; links underline on hover.
 - **Toast:** sonner, paper surface, one soft shadow.
 
@@ -103,7 +103,7 @@ HOME 1440
 |  for your home                        /  (gold arch  \   <- banner image inside |
 |  (Readex 300, 72px, 2 lines)         |   outline)     |     the arch, rotates   |
 |                                      |   [ image ]    |                        |
-|  New pieces and inspected pre-owned  |                |                        |
+|  New pieces and pre-owned furniture |                |                        |
 |  furniture. Delivered to Riyadh,     |                |                        |
 |  Jeddah and Dammam. Pay on delivery. |                |                        |
 |                                      |                |                        |
@@ -188,8 +188,8 @@ Sentence case, plain words, real furniture vocabulary (sofa, wardrobe, dining ta
 | | en | ar |
 |---|---|---|
 | Hero headline | Sofas, beds and dining tables for your home | كنب وغرف نوم وطاولات سفرة لبيتك |
-| Hero sentence | New pieces and inspected pre-owned furniture, delivered to Riyadh, Jeddah and Dammam. You pay when it arrives. | قطع جديدة وأخرى مستعملة بعد فحصها، توصلك إلى الرياض وجدة والدمام، وتدفع عند الاستلام. |
-| Actions | Shop new / Shop pre-owned | تسوّق الجديد / تسوّق المستعمل المفحوص |
+| Hero sentence | New pieces and pre-owned furniture with a clear condition grade, delivered to your door. You pay when it arrives. | قطع جديدة وأخرى مستعملة بدرجة حالة واضحة، تصلك إلى باب بيتك، وتدفع عند الاستلام. |
+| Actions | Shop new / Shop pre-owned | تسوّق الجديد / تسوّق المستعمل |
 | Condition report title | Condition report | تقرير الحالة |
 | Grade, draft (needs owner approval) | Like new: used a few times, no marks we could find. | بحالة الجديد: استُخدمت مرات قليلة ولا نجد فيها أي علامات. |
 

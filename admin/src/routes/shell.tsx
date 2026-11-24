@@ -160,7 +160,17 @@ export function Shell() {
         )}
       >
         <div className="flex h-14 items-center justify-between gap-2 border-b border-border px-3">
-          {!collapsed && <span className="font-display text-lg font-semibold">{t("app.title")}</span>}
+          {/* QA C3: one line. The Arabic name is long enough to wrap in the 240px sidebar at text-lg,
+              so it sits at text-base, may not wrap, and keeps the full name as a tooltip. */}
+          {!collapsed && (
+            <span
+              data-testid="sidebar-title"
+              title={t("app.title")}
+              className="min-w-0 truncate whitespace-nowrap font-display text-base font-semibold"
+            >
+              {t("app.title")}
+            </span>
+          )}
           <Button
             variant="ghost"
             size="icon"

@@ -189,7 +189,7 @@
     "inviteHint": "Ask the administrator who invited you to send a new invitation.",
     "rules": {
       "title": "Your password needs",
-      "length": "At least {{n}} characters",
+      "length": "At least {n} characters",
       "upper": "One uppercase letter",
       "lower": "One lowercase letter",
       "digit": "One number",
@@ -391,7 +391,8 @@
       "RESALE_PICKS": "Resale picks",
       "CATEGORY_GRID": "Category grid",
       "PROMO_BANNER": "Promo banner",
-      "TESTIMONIALS": "Testimonials"
+      "TESTIMONIALS": "Testimonials",
+      "SHOP_THE_LOOK": "Shop the look"
     },
     "form": {
       "languages": "Languages",

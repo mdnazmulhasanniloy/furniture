@@ -94,3 +94,10 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 ### T-088 Appearance tab (CR-010, ADM-16) · todo
 - Req: ADM-16 · Depends: backend T-086
 - Done: preset cards with scoped live preview (product tile, button, price), Apply with 409 handling, tests (en and ar). Starts after CR-009 is approved.
+
+## CR-011 (proposed, waiting for approval)
+
+### T-106 Banners list and editor with live preview · todo (checkpoint 3)
+- Req: ADM-06 · Depends: T-105
+### T-107 Customers list filters, detail actions and dialogs · todo (checkpoint 3)
+- Req: ADM-05, ADM-17 · Depends: T-104

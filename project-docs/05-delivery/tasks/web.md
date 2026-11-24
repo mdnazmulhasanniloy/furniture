@@ -200,22 +200,36 @@ Order: T-052, T-053, then T-054 to T-058. Each task: plan, screenshots at 390 an
 
 Order: backend T-080 first (seed), then the owner runs `demo:reset`, then T-081 to T-084. After T-084 stop and show the home page (screenshots at 390 and 1440, /ar and /en, plus hover and hotspot states, in `03-design/screens-v4/`) with the before/after LCP and CLS tables. Other pages are not touched. Baseline is in `cr-009-plan.md` section 2.
 
-### T-081 Announcement bar, split hero, promo strip, arch off the home page, vitals script · todo
+### T-081 Announcement bar, split hero, promo strip, arch off the home page, vitals script · cancelled (CR-011)
 - Req: CAT-01, ADM-06, UI-01 · Depends: — · Docs: `cr-009-plan.md`, `design-system.md`
 - Done: announcement bar ("Cash on delivery in N Saudi cities", N computed from active delivery cities, hidden when none), split hero with two static photos (priority on the first only) and the single GSAP settle (transform only, nothing at opacity 0), admin banner as a slim promo strip, `Arch` removed from the home page, `web/scripts/vitals.mjs`; AA tests for every new surface.
 
-### T-082 Shop by room, rail with tabs, pre-owned picks rail · todo
+### T-082 Shop by room, rail with tabs, pre-owned picks rail · cancelled (CR-011)
 - Req: CAT-01, ADM-07, PROD-01 · Depends: T-081
 - Done: first five admin categories as 12 px radius tiles with snap scroll; rail with tabs "New arrivals / Featured" (no "best seller" anywhere); pre-owned picks rail; the CR-008 tile unchanged.
 
-### T-083 Shop the look (hotspots) · todo
+### T-083 Shop the look (hotspots) · cancelled (CR-011)
 - Req: ADM-15 · Depends: backend T-080, T-082
 - Done: hotspot buttons over the photo, popover card (image, name, price, add to cart), keyboard and touch, Escape returns focus, hidden when no data.
 
-### T-084 Pre-owned explained band, trust strip, assembly, measurement, screenshots · todo
+### T-084 Pre-owned explained band, trust strip, assembly, measurement, screenshots · cancelled (CR-011)
 - Req: CAT-01, UI-01, UI-02 · Depends: T-081..T-083
 - Done: emerald band with the three steps (step 3 says cash on delivery), trust strip with true facts and the real cities, page assembly, vitals before and after (budget in `cr-009-plan.md` section 2), screenshots in `03-design/screens-v4/`.
 
 ### T-087 Theme variables on the storefront (CR-010, UI-03) · todo
 - Req: UI-03 · Depends: backend T-086, T-045
 - Done: `themeStyle()` helper and the `<html>` style in the locale layout, fallback to the CSS defaults, tests (en and ar). Starts after CR-009 is approved.
+
+## CR-011 (soft luxury, proposed, waiting for approval; see `05-delivery/cr-011-plan.md`)
+
+### T-090 Soft luxury foundation (fonts, tokens, container, rails, design-system v3) · todo (blocked on approval)
+- Req: UI-04, UI-01, UI-02 · Depends: approval of CR-011 · Docs: ADR-018
+### T-091 Hero carousel · todo (blocked on approval)
+- Req: CAT-01, ADM-06, UI-04 · Depends: T-090
+### T-092 Category bento · todo (blocked on approval)
+- Req: CAT-01, UI-04 · Depends: T-090
+### T-093 Auth split screen, floating labels, live rules, six-box OTP · todo (blocked on approval)
+- Req: AUTH-01..AUTH-04, UI-04 · Depends: T-090
+### T-094 Remove the Arch component; checkpoint 1 screenshots (screens-v5) · todo (blocked on approval)
+- Req: UI-04 · Depends: T-091..T-093
+### T-095 to T-103 Checkpoint 2, one task per page group · todo (written after checkpoint 1 approval)

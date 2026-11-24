@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-24 (CR-011 soft luxury storefront, banners and customers: plan only)
+- **CR-011 (SRC-012) recorded, plan written, waiting for owner approval. No code.** Work stopped at a clean point: `redesign/home-v4` at `9f0f879`, nothing uncommitted or stashed. The CR-009 split hero is cancelled (web T-081 to T-084 marked cancelled before any code); backend T-080 stays. CR-010 stays approved.
+- New: `05-delivery/cr-011-plan.md` (design deltas, three checkpoints, every new en/ar string, backend and spec changes, tasks T-090 to T-107, questions Q-1 to Q-10), ADR-018 (Proposed), notes on ADR-015 and ADR-016, client-notes addendum 5, task entries. PRD, api-spec and data-model edits are listed in the plan and applied with the tasks, spec first.
+- Found in code: customer block already revokes refresh tokens, disconnects sockets and blocks login, refresh, OTP/reset and every authenticated call; reason, update, soft delete, status filter and audit lines do not exist yet.
+
 ## 2026-11-24 (CR-009 home v4 and CR-010 themes, approved plans)
 - **CR-009 (SRC-010) and CR-010 (SRC-011) approved by the owner.** ADR-016 (home v4: split New / Pre-owned photo hero, arch off the home page, `SHOP_THE_LOOK` section) and ADR-017 (five theme presets: Emerald default, Walnut, Charcoal, Sand, Burgundy; backend-owned registry, `PATCH /admin/settings/appearance`, theme variables on `<html>`) Accepted. PRD: ADM-15, ADM-16, UI-03. Tasks: backend T-080, T-086, T-089 (follow-up); web T-081..T-084, T-087; admin T-085 (follow-up), T-088; T-045 (web revalidate route) first for CR-010. Decisions: panel 2 "Pre-owned, for less" (B-037 open for the stronger claim), "New arrivals / Featured", announcement bar count computed from active cities, no admin write endpoint for demo data, CSRF not needed for the admin PATCH (bearer header only, refresh cookie path-scoped). Branch `redesign/home-v4`.
 

@@ -246,3 +246,10 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 ### T-089 Admin-editable home hero photos (follow-up, CR-009 Q-4) · todo
 - Req: ADM-09, CAT-01 · Depends: web T-081 · Not built in CR-009.
 - Done: Site Settings fields for the two split-hero photos (new, pre-owned) with localized alt, admin upload in Settings, public settings exposes them, the web uses them instead of the static files. Spans backend, admin and web.
+
+## CR-011 (proposed, waiting for approval)
+
+### T-104 Customer management (block with reason, update, soft delete and anonymise, status filter, audit log lines) · todo (checkpoint 3)
+- Req: ADM-05, ADM-17 · Depends: approval · Docs: cr-011-plan.md section 4 and 6
+### T-105 Banner reorder endpoint `PUT /admin/banners/order` · todo (checkpoint 3)
+- Req: ADM-06

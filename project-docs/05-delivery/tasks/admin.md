@@ -99,5 +99,5 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 ### T-106 Banners list and editor with live preview · done (CR-011 checkpoint 3A)
 - Req: ADM-06 · Depends: T-105
-### T-107 Customers list filters, detail actions and dialogs · todo (checkpoint 3)
+### T-107 Customers list filters, detail actions and dialogs · done (CR-011 checkpoint 3B)
 - Req: ADM-05, ADM-17 · Depends: T-104

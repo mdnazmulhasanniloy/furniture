@@ -4,21 +4,21 @@ import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/api/messages";
-import { useCustomers } from "@/lib/customers";
+import { customerState, useCustomers, type CustomerStatus } from "@/lib/customers";
 import { formatDateTime, formatNumber, toLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export function StateBadge({ blocked }: { blocked: boolean }) {
+const STATE_CLASS: Record<CustomerStatus, string> = {
+  active: "bg-success/15 text-success-foreground",
+  blocked: "bg-destructive/10 text-destructive", // the existing "blocked" chip (reused, CR-011)
+  deleted: "bg-muted text-muted-foreground",
+};
+
+export function StateBadge({ state }: { state: CustomerStatus }) {
   const { t } = useTranslation();
   return (
-    <span
-      data-testid="customer-state"
-      className={cn(
-        "inline-block rounded-full px-2 py-0.5 text-xs font-medium",
-        blocked ? "bg-destructive/10 text-destructive" : "bg-success/15 text-success-foreground",
-      )}
-    >
-      {blocked ? t("customers.blocked") : t("customers.active")}
+    <span data-testid="customer-state" data-state={state} className={cn("inline-block rounded-full px-2 py-0.5 text-xs font-medium", STATE_CLASS[state])}>
+      {t(`customers.status.${state}`)}
     </span>
   );
 }
@@ -29,7 +29,9 @@ export function CustomersPage() {
   const [draft, setDraft] = useState("");
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
-  const list = useCustomers(q, page);
+  // No filter = active and blocked customers (deleted ones are only listed when asked for).
+  const [status, setStatus] = useState<CustomerStatus | undefined>(undefined);
+  const list = useCustomers(q, page, status);
   const items = list.data?.items ?? [];
   const meta = list.data?.meta;
 
@@ -63,6 +65,25 @@ export function CustomersPage() {
         <Button type="submit" variant="outline">
           {t("customers.searchButton")}
         </Button>
+        <div role="group" aria-label={t("customers.filter.status")} className="flex items-center gap-1" data-testid="customers-status-filter">
+          <span className="me-1 text-sm font-medium">{t("customers.filter.status")}</span>
+          {(["active", "blocked", "deleted"] as const).map((st) => (
+            <Button
+              key={st}
+              type="button"
+              size="sm"
+              variant={status === st ? "default" : "outline"}
+              aria-pressed={status === st}
+              data-testid={`customers-filter-${st}`}
+              onClick={() => {
+                setStatus(status === st ? undefined : st);
+                setPage(1);
+              }}
+            >
+              {t(`customers.status.${st}`)}
+            </Button>
+          ))}
+        </div>
       </form>
       {list.isPending && (
         <p role="status" className="mt-4 text-muted-foreground">
@@ -111,7 +132,7 @@ export function CustomersPage() {
                     {formatNumber(c.orderCount ?? 0, locale)}
                   </td>
                   <td className="px-3 py-2 text-start">
-                    <StateBadge blocked={c.isBlocked} />
+                    <StateBadge state={customerState(c)} />
                   </td>
                   <td className="px-3 py-2 text-start text-muted-foreground">
                     {c.createdAt ? formatDateTime(c.createdAt, locale) : "—"}

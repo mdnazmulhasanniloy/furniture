@@ -67,7 +67,11 @@
     "EMAIL_IN_USE": "An account with this email already exists.",
     "SELF_BLOCK": "You cannot block yourself.",
     "LAST_ADMIN": "The last active admin cannot be blocked.",
-    "ALREADY_VERIFIED": "This invite was already accepted. The list was refreshed."
+    "ALREADY_VERIFIED": "This invite was already accepted. The list was refreshed.",
+    "CUSTOMER_HAS_OPEN_ORDERS": "This customer has pending or confirmed orders. Finish or cancel them first.",
+    "FORBIDDEN_TARGET": "Admins cannot be changed here.",
+    "CUSTOMER_DELETED": "This customer was deleted.",
+    "CONFIRM_EMAIL_MISMATCH": "The email you typed does not match."
   },
   "orders": {
     "newOrderToast": "New order {orderNo} · {count} items",
@@ -543,8 +547,6 @@
     "locale": "Preferred language",
     "ordersTitle": "Orders",
     "noOrders": "This customer has no orders yet.",
-    "block": "Block customer",
-    "unblock": "Unblock customer",
     "col": {
       "name": "Name",
       "email": "Email",
@@ -553,11 +555,39 @@
       "joined": "Joined"
     },
     "blockDialog": {
-      "title": "Block this customer?",
       "body": "They will be signed out immediately and cannot sign in until unblocked. Their orders are not changed.",
-      "cancel": "Keep active",
-      "confirm": "Block"
-    }
+      "cancel": "Keep active"
+    },
+    "filter": {
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "blocked": "Blocked",
+      "deleted": "Deleted"
+    },
+    "block": {
+      "title": "Block this customer",
+      "reason": "Reason (required, only admins see it)",
+      "confirm": "Block customer"
+    },
+    "unblock": {
+      "confirm": "Unblock customer"
+    },
+    "edit": {
+      "title": "Edit customer",
+      "note": "You can change the name and phone only."
+    },
+    "delete": {
+      "title": "Delete this customer",
+      "body": "Personal data is removed. Orders are kept for records. This cannot be undone.",
+      "typeEmail": "Type {email} to confirm",
+      "confirm": "Delete customer"
+    },
+    "deletedName": "Deleted customer",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "blockedReasonLabel": "Block reason"
   },
   "pages": {
     "title": "Pages",

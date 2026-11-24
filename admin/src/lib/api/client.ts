@@ -199,4 +199,7 @@ export const api = {
     apiRequest<T>(p, { ...o, method: "PATCH", body }),
   delete: <T>(p: string, o?: Omit<RequestOptions, "method" | "body">) =>
     apiRequest<T>(p, { ...o, method: "DELETE" }),
+  /** DELETE with a JSON body (the customer delete carries { confirmEmail }). */
+  deleteBody: <T>(p: string, body: unknown, o?: Omit<RequestOptions, "method" | "body">) =>
+    apiRequest<T>(p, { ...o, method: "DELETE", body }),
 };

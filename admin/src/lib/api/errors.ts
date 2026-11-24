@@ -51,6 +51,10 @@ export const KNOWN_ERROR_CODES = [
   "SELF_BLOCK",
   "LAST_ADMIN",
   "ALREADY_VERIFIED",
+  "CUSTOMER_HAS_OPEN_ORDERS",
+  "FORBIDDEN_TARGET",
+  "CUSTOMER_DELETED",
+  "CONFIRM_EMAIL_MISMATCH",
 ] as const;
 
 /** Locale key for an error code, with a generic fallback. */

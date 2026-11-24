@@ -124,6 +124,47 @@ describe("A6 · ZATCA Phase 1 TLV payload", () => {
     expect(phase1QrPayload(example)).toBe(EXAMPLE_B64);
   });
 
+  /** Walks the payload back: tag, one length byte, that many UTF-8 bytes. */
+  const decodeTlv = (bytes: Uint8Array): Record<number, string> => {
+    const out: Record<number, string> = {};
+    const text = new TextDecoder();
+    for (let at = 0; at < bytes.length; ) {
+      const tag = bytes[at]!;
+      const len = bytes[at + 1]!;
+      out[tag] = text.decode(bytes.subarray(at + 2, at + 2 + len));
+      at += 2 + len;
+    }
+    return out;
+  };
+
+  it("A6 · the five fields decode back to exactly what went in", () => {
+    expect(decodeTlv(phase1Tlv(example))).toEqual({
+      1: "Bobs Records",
+      2: "310122393500003",
+      3: "2022-04-25T15:30:00Z",
+      4: "1000.00",
+      5: "150.00",
+    });
+  });
+
+  // Owner 2026-11-24: confirm tags 4 and 5 are SAR strings with two decimals, like the worked example.
+  it("A6 · tags 4 and 5 are SAR strings with two decimals, derived from integer halalas", () => {
+    const fields = decodeTlv(phase1Tlv({ ...example, totalWithVat: 115_000, vatTotal: 15_000 }));
+    expect(fields[4]).toBe("1150.00");
+    expect(fields[5]).toBe("150.00");
+    for (const [halalas, text] of [
+      [0, "0.00"],
+      [1, "0.01"],
+      [70, "0.70"],
+      [999, "9.99"],
+      [100_000, "1000.00"],
+      [24_940_000, "249400.00"],
+    ] as const) {
+      expect(decodeTlv(phase1Tlv({ ...example, totalWithVat: halalas }))[4], String(halalas)).toBe(text);
+      expect(Number(text) * 100).toBe(halalas); // and the string really is that many halalas
+    }
+  });
+
   it("A6 · amounts and timestamps are exact (no float cents, second precision, UTC)", () => {
     expect(zatcaAmount(100000)).toBe("1000.00");
     expect(zatcaAmount(1)).toBe("0.01");

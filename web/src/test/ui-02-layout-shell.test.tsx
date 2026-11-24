@@ -95,6 +95,17 @@ describe.each(["en", "ar"] as const)("UI-02 · header (%s)", (locale) => {
     expect(push).toHaveBeenCalledWith("/shop?q=sofa");
   });
 
+  it(`UI-02 · a search of more than 6 words submits the first 6, with no message (${locale})`, () => {
+    // The API refuses more than 6 words (422); the customer just gets the shorter search (owner 2026-11-24).
+    renderHeader(locale);
+    const input = screen.getAllByRole("searchbox")[0];
+    expect((input as HTMLInputElement).maxLength).toBe(100);
+    fireEvent.change(input, { target: { value: "oak dining table for six people with chairs" } });
+    fireEvent.submit(input.closest("form")!);
+    expect(push).toHaveBeenCalledWith("/shop?q=oak%20dining%20table%20for%20six%20people");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   it(`UI-02 · empty categories hide the mega-menu (${locale})`, () => {
     renderHeader(locale, []);
     expect(screen.queryByTestId("mega-trigger")).toBeNull();

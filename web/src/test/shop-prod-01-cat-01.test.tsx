@@ -22,7 +22,7 @@ vi.mock("next/image", () => ({
 import { ShopFrame } from "@/components/shop/shop-controls";
 import { ActiveChips, Pagination, ProductGrid } from "@/components/shop/shop-results";
 import type { Category, HomeProduct } from "@/lib/api/public";
-import { pageWindow, parseFilters, shopHref, toApiQuery } from "@/lib/shop";
+import { pageWindow, parseFilters, shopHref, toApiQuery, trimQuery } from "@/lib/shop";
 
 const messages = { en, ar } as const;
 type L = "en" | "ar";
@@ -53,6 +53,24 @@ describe("PROD-01 · filters <-> URL <-> API query", () => {
     expect(parseFilters({ type: "resale" }).type).toBe("RESALE");
     expect(parseFilters({ type: "new" }).type).toBe("NEW");
     expect(parseFilters({ category: "sofas", q: " oak " })).toMatchObject({ category: "sofas", q: "oak" });
+  });
+  it("QA-3 · a search over 6 words or 100 characters is silently cut to what the API accepts (owner 2026-11-24)", () => {
+    // The API answers 422 beyond 100 characters or 6 words; the storefront never shows that error.
+    expect(trimQuery("one two three four five six seven eight")).toBe("one two three four five six");
+    expect(parseFilters({ q: "  one   two three four five six seven  " }).q).toBe("one two three four five six");
+    // six words and 100 characters are left alone
+    expect(trimQuery("one two three four five six")).toBe("one two three four five six");
+    expect(trimQuery("a".repeat(100))).toBe("a".repeat(100));
+    expect(trimQuery("a".repeat(130)).length).toBe(100);
+    // Arabic counts words the same way
+    expect(trimQuery("كرسي طاولة سرير خزانة مرآة أريكة مكتب")).toBe("كرسي طاولة سرير خزانة مرآة أريكة");
+    // nothing typed is still no query
+    expect(trimQuery("   ")).toBe("");
+    expect(parseFilters({ q: "   " }).q).toBeUndefined();
+    // the URL and the API query carry the cut value, so neither can 422
+    const f = parseFilters({ q: "one two three four five six seven" });
+    expect(new URLSearchParams(toApiQuery(f)).get("q")).toBe("one two three four five six");
+    expect(shopHref(f)).toBe("/shop?q=one+two+three+four+five+six");
   });
   it("PROD-01 · drops invalid values and defaults to newest, page 1", () => {
     const f = parseFilters({ type: "x", sort: "bogus", page: "-2", minPrice: "abc", condition: "good,zzz,good" });

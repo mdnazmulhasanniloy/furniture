@@ -17,6 +17,7 @@ import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import type { Category } from "@/lib/api/public";
 import type { CartConfig } from "@/lib/cart/types";
 import { pick } from "@/lib/pick";
+import { MAX_QUERY_LENGTH, trimQuery } from "@/lib/shop";
 import { useDialogA11y } from "@/lib/use-dialog-a11y";
 import { cn } from "@/lib/utils";
 
@@ -43,7 +44,9 @@ function SearchForm({ onDone, className, autoFocus }: { onDone?: () => void; cla
       className={className}
       onSubmit={(e) => {
         e.preventDefault();
-        const term = q.trim();
+        // The API takes at most 6 words; a longer phrase searches with the first 6, with no message
+        // (owner 2026-11-24), so the URL never carries a query the API would refuse.
+        const term = trimQuery(q);
         router.push(term ? `/shop?q=${encodeURIComponent(term)}` : "/shop");
         onDone?.();
       }}
@@ -62,7 +65,7 @@ function SearchForm({ onDone, className, autoFocus }: { onDone?: () => void; cla
           autoFocus={autoFocus}
           value={q}
           // The API caps `q` at 100 characters (owner 2026-11-24), so the box cannot submit a longer one.
-          maxLength={100}
+          maxLength={MAX_QUERY_LENGTH}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("search")}
           className="h-10 w-full rounded-md border border-input bg-card ps-9 pe-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

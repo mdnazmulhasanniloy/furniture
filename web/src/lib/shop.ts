@@ -24,13 +24,31 @@ export type RawParams = Record<string, string | string[] | undefined>;
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
+/**
+ * The API caps `q` at 100 characters and 6 words and answers 422 beyond that (owner 2026-11-24). The
+ * storefront never shows that error: it searches with the first 6 words instead, silently. Every `q` goes
+ * through `parseFilters`, so a typed search, a shared URL and the filter chip all use the same trimmed value.
+ */
+export const MAX_QUERY_LENGTH = 100;
+export const MAX_QUERY_WORDS = 6;
+
+export function trimQuery(raw: string): string {
+  return raw
+    .trim()
+    .slice(0, MAX_QUERY_LENGTH)
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, MAX_QUERY_WORDS)
+    .join(" ");
+}
+
 function intParam(v: string | undefined): number | undefined {
   if (v === undefined || !/^\d{1,9}$/.test(v)) return undefined;
   return Number(v);
 }
 
 export function parseFilters(params: RawParams): ShopFilters {
-  const q = first(params.q)?.trim().slice(0, 100);
+  const q = trimQuery(first(params.q) ?? "");
   const category = first(params.category)?.trim();
   const type = first(params.type)?.toUpperCase();
   const condition = (first(params.condition) ?? "")

@@ -1,8 +1,10 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { useRef } from "react";
 
 import { digitsOnly } from "@/lib/auth/validation";
+import { useMotionPrefs } from "@/lib/use-motion-prefs";
 import { cn } from "@/lib/utils";
 
 export const OTP_LENGTH = 6;
@@ -22,16 +24,30 @@ type Props = {
  * also in RTL (a code is a number, not prose), hence dir="ltr" on the group.
  */
 export function OtpInput({ value, onChange, disabled, invalid, label, groupLabel }: Props) {
+  const { reduced } = useMotionPrefs();
   const refs = useRef<(HTMLInputElement | null)[]>([]);
   const digits = Array.from({ length: OTP_LENGTH }, (_, i) => value[i] ?? "");
 
   const focus = (i: number) => refs.current[Math.min(Math.max(i, 0), OTP_LENGTH - 1)]?.focus();
 
   return (
-    <div role="group" aria-label={groupLabel} dir="ltr" className="flex justify-center gap-2">
+    <motion.div
+      role="group"
+      aria-label={groupLabel}
+      dir="ltr"
+      className="flex justify-center gap-2"
+      data-testid="otp-group"
+      // A wrong code shakes the group once (decorative; skipped under reduced motion).
+      animate={invalid && !reduced ? { x: [0, -8, 8, -5, 5, 0] } : { x: 0 }}
+      transition={{ duration: 0.4 }}
+    >
       {digits.map((d, i) => (
-        <input
+        <motion.input
           key={i}
+          data-filled={d ? "true" : "false"}
+          // A digit pops in when typed (decorative; skipped under reduced motion).
+          animate={d && !reduced ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+          transition={{ duration: 0.2 }}
           ref={(el) => {
             refs.current[i] = el;
           }}
@@ -43,7 +59,7 @@ export function OtpInput({ value, onChange, disabled, invalid, label, groupLabel
           disabled={disabled}
           data-testid={`otp-${i}`}
           className={cn(
-            "h-12 w-10 rounded-md border border-input bg-card text-center text-lg font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 sm:w-12",
+            "h-12 w-10 rounded-md border border-input bg-card transition-colors data-[filled=true]:border-primary text-center text-lg font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 sm:w-12",
             invalid && "border-destructive",
           )}
           onChange={(e) => {
@@ -81,6 +97,6 @@ export function OtpInput({ value, onChange, disabled, invalid, label, groupLabel
           onFocus={(e) => e.currentTarget.select()}
         />
       ))}
-    </div>
+    </motion.div>
   );
 }

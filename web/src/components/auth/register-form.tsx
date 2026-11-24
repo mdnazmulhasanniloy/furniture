@@ -26,8 +26,21 @@ export function RegisterForm() {
   const [errors, setErrors] = useState<Partial<Record<keyof typeof v, FieldError | null>>>({});
   const [apiError, setApiError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
-  const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setV((s) => ({ ...s, [k]: e.target.value }));
+  const rules: Record<keyof typeof v, (x: string) => FieldError | null> = {
+    firstName: validateRequired,
+    lastName: validateRequired,
+    email: validateEmail,
+    password: validateNewPassword,
+  };
+  // Inline validation (W-06): on blur, then live while an error is shown.
+  const check = (k: keyof typeof v, value: string) =>
+    setErrors((e) => ({ ...e, [k]: rules[k](value) }));
+  const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setV((s) => ({ ...s, [k]: value }));
+    if (errors[k]) check(k, value);
+  };
+  const blur = (k: keyof typeof v) => (e: React.FocusEvent<HTMLInputElement>) => check(k, e.target.value);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,14 +79,14 @@ export function RegisterForm() {
         <FormAlert error={apiError} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label={t("firstName")} autoComplete="given-name" maxLength={40} value={v.firstName}
-            onChange={set("firstName")} error={errors.firstName} />
+            onChange={set("firstName")} onBlur={blur("firstName")} error={errors.firstName} />
           <Field label={t("lastName")} autoComplete="family-name" maxLength={40} value={v.lastName}
-            onChange={set("lastName")} error={errors.lastName} />
+            onChange={set("lastName")} onBlur={blur("lastName")} error={errors.lastName} />
         </div>
         <Field label={t("email")} type="email" autoComplete="email" dir="ltr" value={v.email}
-          onChange={set("email")} error={errors.email} />
+          onChange={set("email")} onBlur={blur("email")} error={errors.email} />
         <Field label={t("password")} type="password" autoComplete="new-password" dir="ltr" maxLength={128}
-          value={v.password} onChange={set("password")} error={errors.password} hint={t("passwordHint")} />
+          value={v.password} onChange={set("password")} onBlur={blur("password")} error={errors.password} hint={t("passwordHint")} />
         <Button type="submit" className="w-full" disabled={busy}>
           {busy ? t("submitting") : t("register")}
         </Button>

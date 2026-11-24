@@ -25,6 +25,10 @@ export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
   const [apiError, setApiError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
 
+  // Inline validation (W-06): on blur, then live while an error is shown.
+  const checkEmail = (v: string) => setErrors((e) => ({ ...e, email: validateEmail(v) }));
+  const checkPassword = (v: string) => setErrors((e) => ({ ...e, password: v ? null : ("required" as const) }));
+
   useEffect(() => {
     if (status === "authenticated") router.replace("/");
   }, [status, router]);
@@ -60,9 +64,17 @@ export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
         {resetDone ? <FormNotice>{t("resetDone")}</FormNotice> : null}
         <FormAlert error={apiError} />
         <Field label={t("email")} type="email" autoComplete="email" dir="ltr" value={email}
-          onChange={(e) => setEmail(e.target.value)} error={errors.email} />
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (errors.email) checkEmail(e.target.value);
+          }}
+          onBlur={(e) => checkEmail(e.target.value)} error={errors.email} />
         <Field label={t("password")} type="password" autoComplete="current-password" dir="ltr" value={password}
-          onChange={(e) => setPassword(e.target.value)} error={errors.password} />
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (errors.password) checkPassword(e.target.value);
+          }}
+          onBlur={(e) => checkPassword(e.target.value)} error={errors.password} />
         <div className="text-end">
           <Link href="/forgot-password" className="text-sm text-primary underline-offset-4 hover:underline">
             {t("forgot")}

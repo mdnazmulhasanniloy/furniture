@@ -129,9 +129,10 @@ Order: T-046 first, then T-047, T-049 (and backend T-031, admin T-077), then T-0
 - Req: FAV-01 · Depends: T-047, backend T-031 · Docs: `screen-specs.md#W-08`
 - Done: guest favourites in localStorage (max 100), customer favourites via `/me/wishlist` (per-item), merge after login with the local list cleared only after success and retry on failure, `/favourites` page, header heart count; tests en + ar.
 
-### T-049 Login / register split layout + animated OTP · todo
+### T-049 Login / register split layout + animated OTP · done
 - Req: AUTH-01..04 · Depends: T-046 · Docs: `screen-specs.md#W-06`
 - Done: split layout with image placeholder panel and emerald panel with gold accent line, inline validation, 6 animated OTP boxes with paste and resend countdown; behaviour unchanged; RTL mirrored; tests en + ar.
+- Closed 2026-11-24: `/review-task T-049` PASS. Tests `AUTH-01 · redesigned auth screens` and `AUTH-01 · animated OTP boxes` (en + ar, 14) in `web/src/test/auth-01-04-redesign.test.tsx`: split layout with wordmark, image-placeholder panel, gold accent line; inline validation on blur (then live while an error shows) on login and register; OTP boxes marked when filled, left-to-right group, paste and Arabic-Indic digits, invalid state, reduced motion. Existing resend countdown (60 s) tests unchanged and green. Web 368 tests, typecheck, lint, i18n, build, e2e 62/62. Note: `ORD-01 · VAT label ...` failed once in one full run and passed in the next three runs (timing under load, not touched by this task); watch for flakiness. The lifestyle photo is a placeholder (emerald pattern + wordmark) until real photos exist.
 
 ### T-050 Home redesign + AOS content pages + page enter transition · todo
 - Req: CAT-01, ADM-06, ADM-07, UI-01 · Depends: T-046, T-047 · Docs: `screen-specs.md#W-01`

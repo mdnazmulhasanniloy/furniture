@@ -3,24 +3,38 @@
 import { useTranslations } from "next-intl";
 import { useId } from "react";
 
+import { ImagePlaceholder, Wordmark } from "@/components/brand";
 import { Input } from "@/components/ui/input";
 import { apiErrorMessage } from "@/lib/api/errors";
 import type { FieldError } from "@/lib/auth/validation";
 
-/** Split layout (W-06): form on the start side, decorative panel on the end side (>= lg). */
+/**
+ * Split layout (W-06, CR-007): form on the start side; from lg a large lifestyle image panel on the end
+ * side (emerald placeholder until real photos exist, B-022) with an emerald caption panel that carries a
+ * gold accent line. The panel is decorative (aria-hidden). Mirrors in RTL through grid order.
+ */
 export function AuthShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const t = useTranslations("auth");
+  const tHome = useTranslations("home");
   return (
-    <main className="mx-auto grid min-h-[70vh] w-full max-w-6xl lg:grid-cols-2">
+    <main className="mx-auto grid min-h-[70vh] w-full max-w-6xl lg:grid-cols-2" data-testid="auth-shell">
       <div className="flex items-center justify-center px-4 py-10 sm:px-8">
-        <div className="w-full max-w-md">{children}</div>
+        <div className="w-full max-w-md">
+          <Wordmark name={tHome("brand")} className="mb-8 text-2xl text-primary" />
+          {children}
+        </div>
       </div>
       <aside
         aria-hidden
-        className="hidden flex-col justify-end gap-2 rounded-xl bg-primary p-10 text-primary-foreground lg:m-6 lg:flex"
+        data-testid="auth-panel"
+        className="relative hidden overflow-hidden rounded-xl lg:m-6 lg:block"
       >
-        <p className="font-display text-3xl">{t("panelTitle")}</p>
-        <p className="text-sm opacity-90">{t("panelText")}</p>
+        <ImagePlaceholder name={tHome("brand")} className="absolute inset-0" />
+        <div className="absolute inset-x-0 bottom-0 bg-primary p-8 text-primary-foreground">
+          <span data-testid="auth-accent" className="mb-4 block h-0.5 w-14 bg-gold" />
+          <p className="font-display text-3xl">{t("panelTitle")}</p>
+          <p className="mt-2 text-sm">{t("panelText")}</p>
+        </div>
       </aside>
     </main>
   );

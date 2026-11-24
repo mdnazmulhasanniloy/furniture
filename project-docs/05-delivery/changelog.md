@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (CR-011 checkpoint 2 review fixes)
+- Header solid by IntersectionObserver; one add-to-cart rule on cards; one badge per card, no New or Featured; Sort by on one line and a thin sidebar scrollbar; image qualities 60 and 70 (transfer back under the line); rail arrows say Previous / Next; seed product names without "(Pre-owned)". Screenshots retaken in `screens-v6`. Plan section 14.
+
 ## 2026-11-24 (CR-011 Checkpoint 2 built: STOP for review)
 - Web T-095 to T-103: header over the hero, footer, cards and rails, listing, product page, cart, checkout and success, account and wishlist, 404 and static pages, shop the look, trust strip, corrected pre-owned steps. Screenshots in `03-design/screens-v6`. New copy `pages.notFound.*` pending approval. Vitals table and open decisions in `cr-011-plan.md` section 13. Nothing pushed; no data command run.
 

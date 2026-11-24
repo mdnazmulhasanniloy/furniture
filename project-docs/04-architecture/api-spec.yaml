@@ -1299,7 +1299,8 @@ paths:
         Users with role CUSTOMER only (verified and unverified), newest first. `q` (trimmed, <= 100 chars)
         matches the email, first name or last name case-insensitively (escaped literal, rule 9), or — when it
         normalises to a Saudi mobile number (NFR-06, incl. Arabic-Indic digits) — the exact stored phone.
-      parameters: [{ name: q, in: query, schema: { type: string, maxLength: 100 } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
+        CR-011 (ADM-17): `status` filters by state: `active` (not blocked, not deleted), `blocked` (blocked, not deleted) or `deleted` (soft-deleted, anonymised); without it the list shows active and blocked customers and never deleted ones.
+      parameters: [{ name: q, in: query, schema: { type: string, maxLength: 100 } }, { name: status, in: query, schema: { type: string, enum: [active, blocked, deleted] } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Limit' }]
       responses:
         '200':
           description: OK
@@ -1312,7 +1313,7 @@ paths:
                   meta: { $ref: '#/components/schemas/PageMeta' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — `q` over 100 chars, bad page/limit" }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — `q` over 100 chars, bad page/limit, unknown `status`" }
   /admin/customers/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     get:
@@ -1327,7 +1328,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  user: { $ref: '#/components/schemas/User' }
+                  user: { $ref: '#/components/schemas/AdminCustomer' }
                   orders: { type: array, items: { $ref: '#/components/schemas/Order' } }
                   meta: { $ref: '#/components/schemas/PageMeta' }
         '401': { $ref: '#/components/responses/Error' }
@@ -1335,13 +1336,62 @@ paths:
         '404':
           description: NOT_FOUND — unknown or malformed id, or the user is not a CUSTOMER (admins are served by /admin/admins)
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    patch:
+      tags: [Admin]
+      summary: Edit a customer's name and phone (ADM-17)
+      description: >-
+        CR-011. Admin only; customers only. The body accepts `firstName`, `lastName` and `phone` (a Saudi mobile,
+        stored as +9665XXXXXXXX; `null` clears it) and nothing else: any other field (email, password, role, ...) is
+        422. At least one of the three is required. `expectedUpdatedAt` is required; a mismatch -> 409
+        `STALE_UPDATE`. No response contains a password hash and the admin can never set or read one. Targeting
+        oneself -> 403 `FORBIDDEN_TARGET`; another admin -> 404; a soft-deleted customer -> 409 `CUSTOMER_DELETED`.
+        Email change is out of scope. One log line per call (`customer.update`: actor id, target id, changed field
+        names; no personal data).
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CustomerPatch' } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminCustomer' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: "FORBIDDEN (not an admin) or `FORBIDDEN_TARGET` (the target is the caller)" }
+        '404': { $ref: '#/components/responses/Error', description: NOT_FOUND — unknown or malformed id, or the user is not a CUSTOMER }
+        '409': { $ref: '#/components/responses/Error', description: "`STALE_UPDATE` or `CUSTOMER_DELETED`" }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — unknown field, empty body, bad name, or a phone that is not a Saudi mobile" }
+    delete:
+      tags: [Admin]
+      summary: Delete a customer (soft delete with anonymisation, ADM-17)
+      description: >-
+        CR-011. Admin only; customers only. Body `{ confirmEmail }` must equal the stored email (case-insensitive),
+        else 422 `CONFIRM_EMAIL_MISMATCH`. Refused with 409 `CUSTOMER_HAS_OPEN_ORDERS` while the customer has a
+        PENDING or CONFIRMED order. In one transaction: name becomes "Deleted customer", email becomes a unique
+        non-deliverable placeholder (the real address is free to register again), phone and avatar are cleared,
+        the password becomes an unusable hash, `isBlocked` is true, `deletedAt`/`deletedById` are set, all
+        refresh tokens are revoked, and addresses, cart, wishlist, notifications and pending OTPs are removed.
+        **Orders are kept** with their address snapshot (the sales and VAT record). Live sockets are disconnected
+        and the avatar object is released after commit. Targeting oneself -> 403 `FORBIDDEN_TARGET`; another admin
+        -> 404; already deleted -> 409 `CUSTOMER_DELETED`. One log line (`customer.delete`, no personal data).
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CustomerDeleteInput' } } }
+      responses:
+        '200':
+          description: OK (the anonymised customer)
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminCustomer' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: "FORBIDDEN or `FORBIDDEN_TARGET`" }
+        '404': { $ref: '#/components/responses/Error', description: NOT_FOUND }
+        '409': { $ref: '#/components/responses/Error', description: "`CUSTOMER_HAS_OPEN_ORDERS` or `CUSTOMER_DELETED`" }
+        '422': { $ref: '#/components/responses/Error', description: "`CONFIRM_EMAIL_MISMATCH` or `VALIDATION_ERROR`" }
   /admin/customers/{id}/block:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     patch:
       tags: [Admin]
       summary: Block / unblock a customer
       description: >-
-        Customers only — an ADMIN id -> 404 (admins are blocked via /admin/admins/{id}/block). Idempotent.
+        Customers only — an ADMIN id -> 404 (admins are blocked via /admin/admins/{id}/block); the caller's own id -> 403 `FORBIDDEN_TARGET`; a soft-deleted customer -> 409 `CUSTOMER_DELETED`. Idempotent.
+        CR-011 (ADM-17): blocking requires a `reason` (3 to 300 characters, admin-only: it is stored with `blockedAt` and `blockedById`, shown only in the admin API and never to the customer). Unblocking may send a `reason`, which is not stored; it clears the three blocked fields to explicit null. The customer sees only the generic `ACCOUNT_BLOCKED` response on login, refresh and any authenticated call, and cannot request a password reset code or place an order. One log line per call (`customer.block` / `customer.unblock`: actor id, target id, field names; no personal data, no reason text).
         Blocking revokes every refresh token in the same transaction and then disconnects the user's live
         sockets (`socketEmitter.disconnectUser`, T-023); the still-valid access token is rejected by
         `requireAuth` (T-005). Unblocking only clears the flag (the login lockout counter is untouched).
@@ -1349,17 +1399,18 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: false, required: [isBlocked], properties: { isBlocked: { type: boolean } } }
+            schema: { $ref: '#/components/schemas/CustomerBlockInput' }
       responses:
         '200':
           description: OK
-          content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminCustomer' } } }
         '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error', description: "FORBIDDEN or `FORBIDDEN_TARGET`" }
         '404':
           description: NOT_FOUND — unknown or malformed id, or the user is not a CUSTOMER
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — isBlocked missing or not boolean" }
+        '409': { $ref: '#/components/responses/Error', description: "`CUSTOMER_DELETED`" }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR` — isBlocked missing or not boolean, or blocking without a reason of 3 to 300 characters" }
   /admin/banners:
     get:
       tags: [Admin]
@@ -1737,7 +1788,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, WISHLIST_LIMIT_REACHED, WISHLIST_CONFLICT, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, ALREADY_VERIFIED] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, WISHLIST_LIMIT_REACHED, WISHLIST_CONFLICT, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, ALREADY_VERIFIED, CUSTOMER_HAS_OPEN_ORDERS, FORBIDDEN_TARGET, CUSTOMER_DELETED, CONFIRM_EMAIL_MISMATCH] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }
@@ -1800,9 +1851,44 @@ components:
         isBlocked: { type: boolean }
         preferredLocale: { $ref: '#/components/schemas/Locale' }
         createdAt: { type: string, format: date-time }
-    CustomerListItem:
+    AdminCustomer:
+      description: A customer as the admin sees it (CR-011, ADM-17). The blocked reason is admin-only and never part of the public User. No password hash, ever.
       allOf:
         - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            updatedAt: { type: string, format: date-time, description: Send back as `expectedUpdatedAt` when editing }
+            blockedReason: { type: [string, 'null'], description: Why the customer was blocked (3 to 300 chars); null when not blocked }
+            blockedAt: { type: [string, 'null'], format: date-time }
+            blockedById: { type: [string, 'null'], description: Id of the admin who blocked the customer }
+            deletedAt: { type: [string, 'null'], format: date-time, description: Set when the customer was soft-deleted and anonymised }
+            deletedById: { type: [string, 'null'] }
+    CustomerBlockInput:
+      type: object
+      additionalProperties: false
+      required: [isBlocked]
+      properties:
+        isBlocked: { type: boolean }
+        reason: { type: string, minLength: 3, maxLength: 300, description: Required when `isBlocked` is true (admin-only, never shown to the customer). Optional and not stored when unblocking }
+    CustomerPatch:
+      type: object
+      additionalProperties: false
+      required: [expectedUpdatedAt]
+      minProperties: 2
+      properties:
+        expectedUpdatedAt: { type: string, format: date-time }
+        firstName: { type: string, minLength: 1, maxLength: 40 }
+        lastName: { type: string, minLength: 1, maxLength: 40 }
+        phone: { description: A Saudi mobile (SaudiPhoneInput), stored as +9665XXXXXXXX; null clears it, oneOf: [{ type: string }, { type: 'null' }] }
+    CustomerDeleteInput:
+      type: object
+      additionalProperties: false
+      required: [confirmEmail]
+      properties:
+        confirmEmail: { type: string, description: The customer's exact email, typed by the admin }
+    CustomerListItem:
+      allOf:
+        - $ref: '#/components/schemas/AdminCustomer'
         - type: object
           properties:
             orderCount: { type: integer, description: Total orders of this customer (any status), derived (ADM-05) }

@@ -286,3 +286,13 @@ Built (web T-095 to T-103): header (transparent over the hero, solid after scrol
 - Screenshots of the logged-in pages (account, orders, order detail, notifications, checkout, order success) are NOT taken: they need a customer login and I have no test credentials (the demo password lives in the backend env, which I did not read or use). Their layout changes are covered by unit tests; send a test login or run them yourself.
 - The dev database has no look section until you reseed; the "shop the look" screenshots came from a read-only proxy that adds one look section on top of the real API (nothing was written). The hero banner subtitle in the database still says "across Saudi Arabia" until you edit it in Admin.
 - Old tests that asserted the cancelled square corners, the sand checkout summary and the gold hairline now assert the new rules (8 px corners, blush summary, champagne hairline); none was deleted or loosened otherwise.
+
+## 14. Checkpoint 2 review fixes (2026-11-24)
+
+Owner approved: transparent header, auth pages (B-039 closed), shop the look, listing layout, 404 copy; rail arrows are "Previous" / "Next"; pre-owned picks stays as the shelf tab; the owner checks the logged-in pages.
+
+1. **Header solid state:** an IntersectionObserver on the hero (`data-hero`) whose top edge is moved down by the header's own height; solid when the hero is out from under it, solid when no hero is found, solid on every other page. It worked in my Chrome with the old scroll code, so the exact failure you saw is not reproduced; the observer replaces the scroll-pixel check. e2e scrolls with the mouse wheel at 390 and 1440 in en and ar and asserts an opaque white header, a hairline, and the logo on top.
+2. **Card add to cart:** one rule for every card. Hover-capable screens: a full-width bar on the photo's bottom edge that fades in on hover or focus (no layout shift). Touch: a round bag button, always visible.
+3. **Card clean-up:** at most one badge (sold out, then the pre-owned grade, then the percentage off, a bare number so no new copy); no "New", no "Featured"; tighter name-to-price gap; the seed no longer adds "(Pre-owned)" to names (the running database keeps its names until reseeded or edited).
+4. **Listing:** "Sort by" cannot wrap; the sticky filter sidebar has a thin quiet scrollbar and tighter spacing.
+5. **Transfer:** image qualities 60 (cards, tiles, look photo) and 70 (hero) are now allowed and used. /en 1440 is 846 KB (line 913), /ar 1440 975 KB (1082), /en 390 629 KB, /ar 390 806 KB; LCP 960 and 936 ms mobile, 128 and 120 ms desktop; CLS 0.0305 and 0.0122 mobile.

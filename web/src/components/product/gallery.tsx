@@ -134,7 +134,7 @@ export function Gallery({
       {total > 1 ? (
         <ul
           aria-label={t("thumbs")}
-          className="flex gap-2 overflow-x-auto pb-1"
+          className="rail-scroll flex gap-2 pb-1"
         >
           {images.map((img, i) => (
             <li key={`${img.url}-${i}`} className="shrink-0">

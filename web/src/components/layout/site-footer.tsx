@@ -44,7 +44,7 @@ export async function SiteFooter({ settings }: { settings: SiteSettings | null }
           </p>
         </div>
         <div>
-          <h2 className="font-display text-lg font-bold">{t("footer.contact")}</h2>
+          <h2 className="font-sans text-lg font-semibold">{t("footer.contact")}</h2>
           <ul className="mt-4 space-y-2 text-base">
             {settings?.contactEmail && (
               <li>
@@ -75,7 +75,7 @@ export async function SiteFooter({ settings }: { settings: SiteSettings | null }
           )}
         </div>
         <div>
-          <h2 className="font-display text-lg font-bold">{t("footer.cities")}</h2>
+          <h2 className="font-sans text-lg font-semibold">{t("footer.cities")}</h2>
           <ul data-testid="footer-cities" className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-base">
             {cities.map((c) => (
               <li key={c}>{c}</li>
@@ -83,7 +83,7 @@ export async function SiteFooter({ settings }: { settings: SiteSettings | null }
           </ul>
         </div>
         <div>
-          <h2 className="font-display text-lg font-bold">{t("footer.explore")}</h2>
+          <h2 className="font-sans text-lg font-semibold">{t("footer.explore")}</h2>
           <ul className="mt-4 space-y-2 text-base">
             <li>
               <Link href="/shop" className={linkCls}>{t("nav.shop")}</Link>

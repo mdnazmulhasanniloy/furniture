@@ -124,13 +124,13 @@ describe.each(["en", "ar"] as const)("PROD-01 · product card (%s)", (locale) =>
     expect(toggle).toHaveBeenCalledTimes(1);
   });
 
-  it(`UI-01 · the tile has no border, no shadow, no radius: depth comes from the sand backdrop (${locale})`, () => {
+  it(`UI-01 · the tile has no border and no shadow; only the photo has the 8 px corner (ADR-018, was square) (${locale})`, () => {
     wrap(locale, <ProductCard product={base} locale={locale} favourite={{ active: false, toggle: vi.fn() }} />);
     const tile = screen.getByTestId("product-card");
     expect(tile.className).not.toMatch(/(?:border|shadow|rounded)/);
     const media = screen.getByTestId("card-media");
     expect(media.className).toContain("bg-muted");
-    expect(media.className).not.toMatch(/rounded/); // product images have square corners
+    expect(media.className).toContain("rounded-lg"); // ADR-018: image corners 4 to 8 px (the arch and square corners are gone)
     expect(media.querySelector("img")!.className).toContain("mix-blend-multiply");
   });
 

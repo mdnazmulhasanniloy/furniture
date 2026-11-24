@@ -114,8 +114,18 @@ html[lang="ar"] {
     font-weight: 700;
     line-height: 1.15;
   }
+  /* Bodoni is for display sizes (Q-10): h3 and h4 are card and panel titles, so they use the body face. */
+  h3,
+  h4 {
+    font-family: var(--font-body), system-ui, sans-serif;
+    font-weight: 600;
+    line-height: 1.35;
+  }
   html[lang="en"] :is(h1, h2, h3, h4) {
     letter-spacing: -0.02em;
+  }
+  html[lang="en"] :is(h3, h4) {
+    letter-spacing: 0;
   }
   html[lang="ar"] :is(h1, h2, h3, h4) {
     line-height: 1.5;

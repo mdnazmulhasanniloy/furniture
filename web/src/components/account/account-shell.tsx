@@ -35,7 +35,7 @@ export function AccountShell({
   return (
     <main className="mx-auto max-w-4xl px-4 py-8" data-testid="account-page">
       <h1 className="font-display text-2xl font-semibold">{t("title")}</h1>
-      <nav aria-label={t("title")} className="mt-4 flex gap-1 overflow-x-auto border-b border-border">
+      <nav aria-label={t("title")} className="rail-scroll mt-4 flex gap-1 border-b border-border">
         {TABS.map((x) => (
           <Link
             key={x.key}

@@ -1,3 +1,4 @@
+import { Rail } from "@/components/rail";
 import { getTranslations } from "next-intl/server";
 
 import { Price } from "@/components/format";
@@ -180,18 +181,14 @@ export async function ProductDetailView({
 
       {related.length > 0 ? (
         <section aria-labelledby="rel-h" className="mt-16">
-          <h2 id="rel-h" className="text-2xl font-semibold">
+          <h2 id="rel-h" className="text-3xl">
             {t("product.related")}
           </h2>
-          <ul
-            aria-label={t("product.relatedLabel")}
-            className="mt-6 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [&>li]:w-60 [&>li]:shrink-0 [&>li]:snap-start"
-            data-testid="related"
-          >
+          <Rail label={t("product.relatedLabel")} testId="related" className="mt-6 pb-2 [&>li]:w-60 [&>li]:shrink-0">
             {related.map((p) => (
               <ConnectedProductCard key={p.id} product={p} locale={locale} />
             ))}
-          </ul>
+          </Rail>
         </section>
       ) : null}
 

@@ -54,9 +54,9 @@ export function ProductCard({
           onMouseLeave={() => setHover(false)}
           onFocus={() => setHover(true)}
           onBlur={() => setHover(false)}
-          className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="zoom-on-hover block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
-          <div className="relative aspect-[4/5] overflow-hidden bg-muted" data-testid="card-media">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-muted" data-testid="card-media">
             {first ? (
               <Image
                 src={first.url}
@@ -82,8 +82,8 @@ export function ProductCard({
             ) : null}
           </div>
           <div className="mt-3 space-y-1.5">
-            <h3 className="line-clamp-2 min-h-10 text-sm font-medium leading-5">{title}</h3>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+            <h3 className="line-clamp-2 min-h-12 text-base font-semibold leading-6">{title}</h3>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-base">
               <span className="flex items-baseline gap-2">
                 <span className="font-semibold">
                   <Price halalas={product.price} locale={locale} />

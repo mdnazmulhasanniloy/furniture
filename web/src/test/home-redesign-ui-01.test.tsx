@@ -14,8 +14,10 @@ vi.mock("@/i18n/navigation", () => ({
   usePathname: () => "/",
 }));
 vi.mock("next/image", () => ({
-  // eslint-disable-next-line @next/next/no-img-element
-  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
+  default: ({ src, alt, priority, loading }: { src: string; alt: string; priority?: boolean; loading?: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} data-priority={priority ? "true" : "false"} data-loading={loading} />
+  ),
 }));
 vi.mock("@/lib/cart/store", () => ({ addToCart: vi.fn(async () => true) }));
 
@@ -112,110 +114,162 @@ const section = (id: string, type: HomeSection["type"], extra: Partial<HomeSecti
   ...extra,
 });
 
-describe.each(["en", "ar"] as const)("UI-01 · home v2 hero (%s)", (locale) => {
+describe.each(["en", "ar"] as const)("UI-04 · hero carousel (%s)", (locale) => {
   const m = messages[locale];
+  const h1 = () => screen.getByRole("heading", { level: 1 }).textContent;
+  const t1 = locale === "en" ? "Banner 1" : "لافتة 1";
+  const t2 = locale === "en" ? "Banner 2" : "لافتة 2";
+  const label = (key: string, vars: Record<string, string> = {}) =>
+    Object.entries(vars).reduce((s, [k, v]) => s.replace(`{${k}}`, v), (m.home.carousel as unknown as Record<string, string>)[key]!);
 
-  it(`UI-01 · the hero is a light display headline beside a gold-outlined 4:5 arch (${locale})`, () => {
-    wrap(locale, <Hero banners={[banner("1")]} />);
-    const h1 = screen.getByRole("heading", { level: 1 });
-    expect(h1.className).toContain("type-hero");
+  it(`UI-04 · a full-bleed carousel region, 85vh on desktop and 70vh on mobile, no arch (${locale})`, () => {
+    wrap(locale, <Hero banners={[banner("1"), banner("2")]} />);
+    const hero = screen.getByTestId("home-hero");
+    expect(hero.getAttribute("aria-roledescription")).toBe("carousel");
+    expect(hero.getAttribute("aria-label")).toBe(m.home.carousel.label);
+    expect(hero.className).toContain("h-[70vh]");
+    expect(hero.className).toContain("md:h-[85vh]");
+    expect(hero.className).toContain("min-h-[480px]");
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-    expect(screen.getByTestId("arch").className).toContain("aspect-[4/5]");
-    expect(screen.getByTestId("arch-outline")).toBeTruthy();
+    expect(h1()).toBe(t1);
+    expect(screen.queryByTestId("arch")).toBeNull();
+    expect(hero.className).not.toContain("max-w-"); // full bleed
   });
 
-  it(`UI-01 · two actions: an emerald primary and an outlined Shop pre-owned (${locale})`, () => {
-    wrap(locale, <Hero banners={[banner("1")]} />);
-    const [primary, secondary] = screen.getAllByRole("link");
-    expect(primary.className).toContain("bg-primary");
-    expect(primary.className).not.toContain("shimmer");
-    expect(secondary.className).toContain("border-primary");
-    expect(secondary.getAttribute("href")).toBe("/shop?type=resale");
-    expect(secondary.textContent).toBe(m.home.hero.shopResale);
-  });
-
-  it(`UI-01 · the fallback hero (no banners) keeps the same composition and default copy (${locale})`, () => {
-    wrap(locale, <HeroFallback />);
-    expect(screen.getByTestId("home-fallback-hero")).toBeTruthy();
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(m.home.hero.headline);
-    expect(screen.getByTestId("arch-outline")).toBeTruthy();
-    expect(screen.getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual(["/shop?type=new", "/shop?type=resale"]);
-  });
-
-  it(`UI-01 · the single GSAP moment: arch clip, gold outline draw, headline settles 16 px (${locale})`, async () => {
-    wrap(locale, <Hero banners={[banner("1")]} />);
-    await flush();
-    expect(gsapMock.timelineOptions).toHaveLength(1);
-    const steps = gsapMock.calls.map((c) => [c.method, c.args[0]]);
-    expect(steps).toEqual([
-      ["fromTo", "[data-arch-reveal]"],
-      ["fromTo", "[data-arch-outline]"],
-      ["from", "[data-hero-line]"],
-    ]);
-    const reveal = gsapMock.calls[0].args as [string, { clipPath: string }, { clipPath: string; duration: number }];
-    expect(reveal[1].clipPath).toBe("inset(100% 0% 0% 0%)"); // grows from the base
-    expect(reveal[2].duration).toBe(0.7);
-    const lines = gsapMock.calls[2].args as [string, { y: number; opacity: number }];
-    expect(lines[1]).toMatchObject({ y: 16, opacity: 0 });
-    // Vertical only: nothing is offset horizontally, so RTL needs no mirroring.
-    expect(JSON.stringify(gsapMock.calls)).not.toMatch(/"x"|xPercent/);
-  });
-
-  it(`UI-01 · no GSAP, no animation of any kind under reduced motion (${locale})`, async () => {
-    setReduced(true);
+  it(`UI-04 · every slide is a labelled group; inactive slides are hidden, inert and faded out (${locale})`, () => {
     wrap(locale, <Hero banners={[banner("1"), banner("2")]} />);
-    await flush();
-    expect(gsapMock.timelineOptions).toHaveLength(0);
-    expect(gsapMock.calls).toHaveLength(0);
-  });
-
-  it(`UI-01 · the timeline is reverted on unmount and does not rerun on slide change (${locale})`, async () => {
-    const { unmount } = wrap(locale, <Hero banners={[banner("1"), banner("2")]} />);
-    await flush();
-    fireEvent.click(screen.getByRole("button", { name: m.home.hero.goTo.replace("{n}", "2") }));
-    await flush();
-    expect(gsapMock.timelineOptions).toHaveLength(1);
-    unmount();
-    expect(gsapMock.revert).toHaveBeenCalled();
-  });
-
-  it(`UI-01 · slides crossfade stacked in the arch; inactive slides are hidden from assistive tech (${locale})`, () => {
-    wrap(locale, <Hero banners={[banner("1"), banner("2")]} />);
-    const slides = screen.getByTestId("arch").querySelectorAll("[data-active]");
+    const slides = screen.getByTestId("home-hero").querySelectorAll("[data-active]");
     expect(slides).toHaveLength(2);
+    expect(slides[0].getAttribute("aria-roledescription")).toBe("slide");
+    expect(slides[0].getAttribute("aria-label")).toBe(label("slide", { n: "1", total: "2" }));
+    expect(slides[1].getAttribute("aria-label")).toBe(label("slide", { n: "2", total: "2" }));
     expect(slides[0].getAttribute("aria-hidden")).toBeNull();
     expect(slides[1].getAttribute("aria-hidden")).toBe("true");
+    expect(slides[1].hasAttribute("inert")).toBe(true);
     expect(slides[1].className).toContain("opacity-0");
-    expect(slides[0].className).toContain("transition-opacity");
+    expect(slides[0].className).toContain("duration-700"); // crossfade 700 ms
   });
 
-  it(`UI-01 · rotates every 7 s, pauses on hover and focus (${locale})`, () => {
+  it(`UI-04 · an admin banner has exactly one button (${locale})`, () => {
+    wrap(locale, <Hero banners={[banner("1")]} />);
+    const links = screen.getAllByRole("link");
+    expect(links).toHaveLength(1);
+    expect(links[0].getAttribute("href")).toBe("/shop");
+    expect(links[0].textContent).toBe(locale === "en" ? "Shop" : "تسوق");
+  });
+
+  it(`UI-04 · the fallback has three static slides with their approved copy and two buttons (${locale})`, () => {
+    wrap(locale, <HeroFallback />);
+    expect(screen.getByTestId("home-fallback-hero")).toBeTruthy();
+    expect(h1()).toBe(m.home.carousel.s1.title);
+    const hero = screen.getByTestId("home-fallback-hero");
+    expect(hero.querySelectorAll("[data-active]")).toHaveLength(3);
+    const first = hero.querySelector("[data-active='true']")!;
+    expect(within(first as HTMLElement).getAllByRole("link").map((a) => [a.getAttribute("href"), a.textContent])).toEqual([
+      ["/shop?type=new", m.home.carousel.s1.cta],
+      ["/shop", m.home.carousel.s1.cta2],
+    ]);
+  });
+
+  it(`UI-04 · only slide 1 loads with the page and has priority; the next slide's photo mounts later, lazy (${locale})`, () => {
     vi.useFakeTimers();
+    wrap(locale, <Hero banners={[banner("1"), banner("2"), banner("3")]} />);
+    const imgs = () => [...screen.getByTestId("home-hero").querySelectorAll("img")];
+    expect(imgs().map((i) => i.getAttribute("data-priority"))).toEqual(["true"]);
+    act(() => void vi.advanceTimersByTime(4100));
+    expect(imgs().map((i) => i.getAttribute("data-priority"))).toEqual(["true", "false"]); // slide 2 only
+    expect(imgs()[1].getAttribute("data-loading")).toBe("lazy");
+    fireEvent.click(screen.getByRole("button", { name: m.home.carousel.next }));
+    expect(imgs()).toHaveLength(3); // seen slides stay mounted, slide 3 is now next
+  });
+
+  it(`UI-04 · the progress bar is the timer: it runs 6 s and its end advances the slide, wrapping at the last (${locale})`, () => {
     wrap(locale, <Hero banners={[banner("1"), banner("2")]} />);
-    const h1 = () => screen.getByRole("heading", { level: 1 }).textContent;
-    expect(h1()).toBe(locale === "en" ? "Banner 1" : "لافتة 1");
-    act(() => void vi.advanceTimersByTime(6900));
-    expect(h1()).toBe(locale === "en" ? "Banner 1" : "لافتة 1");
-    act(() => void vi.advanceTimersByTime(200));
-    expect(h1()).toBe(locale === "en" ? "Banner 2" : "لافتة 2");
+    const bar = () => screen.getByTestId("hero-progress");
+    const end = () => {
+      fireEvent.animationEnd(bar());
+      fireEvent(bar(), new Event("webkitAnimationEnd", { bubbles: true }));
+    };
+    expect(bar().className).toContain("hero-bar");
+    expect(h1()).toBe(t1);
+    end();
+    expect(h1()).toBe(t2);
+    end();
+    expect(h1()).toBe(t1);
+  });
+
+  it(`UI-04 · hover and focus pause the animations; a visible pause button pauses and resumes them (${locale})`, () => {
+    wrap(locale, <Hero banners={[banner("1"), banner("2")]} />);
     const hero = screen.getByTestId("home-hero");
+    const state = () => (screen.getByTestId("hero-progress") as HTMLElement).style.animationPlayState;
+    expect(state()).toBe("running");
     fireEvent.mouseEnter(hero);
-    act(() => void vi.advanceTimersByTime(20000));
-    expect(h1()).toBe(locale === "en" ? "Banner 2" : "لافتة 2");
+    expect(state()).toBe("paused");
     fireEvent.mouseLeave(hero);
+    expect(state()).toBe("running");
     fireEvent.focus(hero);
-    act(() => void vi.advanceTimersByTime(20000));
-    expect(h1()).toBe(locale === "en" ? "Banner 2" : "لافتة 2");
+    expect(state()).toBe("paused");
+    fireEvent.blur(hero);
+    expect(state()).toBe("running");
+    const pause = screen.getByRole("button", { name: m.home.carousel.pause });
+    expect(pause.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(pause);
+    fireEvent.mouseLeave(hero);
+    expect(state()).toBe("paused");
+    const play = screen.getByRole("button", { name: m.home.carousel.play });
+    expect(play.getAttribute("aria-pressed")).toBe("true");
+    expect(hero.querySelector("[aria-live]")!.getAttribute("aria-live")).toBe("polite"); // paused: announce changes
+    fireEvent.click(play);
+    expect(state()).toBe("running");
+    expect(hero.querySelector("[aria-live]")!.getAttribute("aria-live")).toBe("off");
   });
 
-  it(`UI-01 · no auto-rotation under reduced motion, manual dots only (${locale})`, () => {
+  it(`UI-04 · reduced motion: no autoplay, no zoom, no pause button, arrows and bars still work (${locale})`, () => {
     setReduced(true);
-    vi.useFakeTimers();
     wrap(locale, <Hero banners={[banner("1"), banner("2")]} />);
-    act(() => void vi.advanceTimersByTime(30000));
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(locale === "en" ? "Banner 1" : "لافتة 1");
-    fireEvent.click(screen.getByRole("button", { name: m.home.hero.goTo.replace("{n}", "2") }));
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(locale === "en" ? "Banner 2" : "لافتة 2");
+    const hero = screen.getByTestId("home-hero");
+    expect(hero.querySelector(".hero-bar")).toBeNull();
+    expect(hero.querySelector(".hero-zoom")).toBeNull();
+    expect(screen.queryByRole("button", { name: m.home.carousel.pause })).toBeNull();
+    expect(h1()).toBe(t1);
+    fireEvent.click(screen.getByRole("button", { name: m.home.carousel.next }));
+    expect(h1()).toBe(t2);
+    fireEvent.click(screen.getByRole("button", { name: label("goTo", { n: "1" }) }));
+    expect(h1()).toBe(t1);
+  });
+
+  it(`UI-04 · slow zoom runs on the active slide only (${locale})`, () => {
+    wrap(locale, <Hero banners={[banner("1"), banner("2")]} />);
+    expect(screen.getByTestId("home-hero").querySelectorAll(".hero-zoom")).toHaveLength(1);
+  });
+
+  it(`UI-04 · arrow buttons and keyboard arrows move between slides, mirrored in RTL (${locale})`, () => {
+    wrap(locale, <Hero banners={[banner("1"), banner("2"), banner("3")]} />);
+    const hero = screen.getByTestId("home-hero");
+    fireEvent.click(screen.getByRole("button", { name: m.home.carousel.next }));
+    expect(h1()).toBe(t2);
+    fireEvent.click(screen.getByRole("button", { name: m.home.carousel.previous }));
+    expect(h1()).toBe(t1);
+    const forward = locale === "ar" ? "ArrowLeft" : "ArrowRight";
+    const back = locale === "ar" ? "ArrowRight" : "ArrowLeft";
+    fireEvent.keyDown(hero, { key: forward });
+    expect(h1()).toBe(t2);
+    fireEvent.keyDown(hero, { key: back });
+    expect(h1()).toBe(t1);
+  });
+
+  it(`UI-04 · swiping changes slide, in the reading direction of the locale (${locale})`, () => {
+    wrap(locale, <Hero banners={[banner("1"), banner("2")]} />);
+    const hero = screen.getByTestId("home-hero");
+    const swipe = (from: number, to: number) => {
+      fireEvent.touchStart(hero, { touches: [{ clientX: from }] });
+      fireEvent.touchEnd(hero, { changedTouches: [{ clientX: to }] });
+    };
+    swipe(200, 195); // too short: ignored
+    expect(h1()).toBe(t1);
+    if (locale === "en") swipe(300, 100);
+    else swipe(100, 300);
+    expect(h1()).toBe(t2);
   });
 });
 

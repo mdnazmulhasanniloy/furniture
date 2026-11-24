@@ -70,7 +70,7 @@ describe.each(["en", "ar"] as const)("ADM-06 · hero banners (%s)", (locale) => 
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
       locale === "en" ? "Winter" : "الشتاء",
     );
-    fireEvent.click(screen.getByRole("button", { name: messages[locale].home.hero.goTo.replace("{n}", "2") }));
+    fireEvent.click(screen.getByRole("button", { name: messages[locale].home.carousel.goTo.replace("{n}", "2") }));
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
       locale === "en" ? "Spring" : "الربيع",
     );
@@ -84,15 +84,14 @@ describe.each(["en", "ar"] as const)("ADM-06 · hero banners (%s)", (locale) => 
   it("ADM-06 · unsafe CTA links are not rendered; the default Shop new action takes their place", () => {
     wrap(locale, <Hero banners={[banner("1", "W", "ش", { ctaHref: "javascript:alert(1)" })]} />);
     const hrefs = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
-    expect(hrefs).toEqual(["/shop?type=new", "/shop?type=resale"]);
+    expect(hrefs).toEqual(["/shop?type=new"]);
   });
 
-  it("ADM-06 · the banner CTA is the primary action, Shop pre-owned stays second", () => {
+  it("ADM-06 · the banner has exactly one button, its own CTA (CR-011 Q-3)", () => {
     wrap(locale, <Hero banners={[banner("1", "W", "ش")]} />);
     const links = screen.getAllByRole("link");
-    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/shop?type=new", "/shop?type=resale"]);
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/shop?type=new"]);
     expect(links[0].textContent).toBe(locale === "en" ? "Browse" : "تصفح");
-    expect(links[1].textContent).toBe(messages[locale].home.hero.shopResale);
   });
 });
 

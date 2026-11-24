@@ -22,20 +22,27 @@ for (const locale of ["en", "ar"] as const) {
     }
   });
 
-  test(`UI-01: the hero is an arch with a gold outline and two actions in /${locale}`, async ({ page }) => {
+  test(`UI-04: the hero is a full-bleed carousel with a pause button and no arch in /${locale}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/${locale}`);
+    const hero = page.getByRole("region").filter({ has: page.locator("h1") }).first();
+    await expect(hero).toHaveAttribute("aria-roledescription", "carousel");
+    const box = (await hero.boundingBox())!;
+    expect(box.width).toBeGreaterThanOrEqual(1425); // full bleed (minus a classic scrollbar)
+    expect(Math.abs(box.height - 900 * 0.85)).toBeLessThan(2);
+    await expect(page.locator("h1.type-hero")).toBeVisible();
+    await expect(page.getByTestId("arch")).toHaveCount(0);
+    await expect(hero.getByRole("button", { name: /Pause slideshow|إيقاف العرض مؤقتًا/ })).toBeVisible();
+    await expect(hero.getByRole("button", { name: /Next slide|الشريحة التالية/ })).toBeVisible();
+  });
+
+  test(`UI-04: reduced motion means no autoplay and no pause button in /${locale}`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(`/${locale}`);
-    const arch = page.getByTestId("arch").first();
-    await expect(arch).toBeVisible();
-    await expect(page.getByTestId("arch-outline").first()).toBeAttached();
-    // 4:5 portrait arch
-    const box = (await arch.boundingBox())!;
-    expect(Math.abs(box.height / box.width - 1.25)).toBeLessThan(0.02);
     await expect(page.locator("h1.type-hero")).toBeVisible();
-    await expect(page.locator('main a[href$="/shop?type=resale"]').first()).toBeVisible();
-    // the clip-path is the arch mask, not a rounded rectangle
-    const clip = await arch.locator(".arch").evaluate((el) => getComputedStyle(el).clipPath);
-    expect(clip).toContain("fx-arch");
+    await expect(page.getByRole("button", { name: /Pause slideshow|إيقاف العرض مؤقتًا/ })).toHaveCount(0);
+    const zoom = await page.evaluate(() => document.getAnimations().length);
+    expect(zoom).toBe(0);
   });
 
   test(`UI-01: the contact strip is gone from home and contact lives in the footer in /${locale}`, async ({ page }) => {

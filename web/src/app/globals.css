@@ -211,3 +211,34 @@ body {
     transform: none;
   }
 }
+
+/* Hero carousel (UI-04): the bar animation is the autoplay timer; the zoom shares its 6 s. Animate the
+   individual "scale" property so it never multiplies with a utility's transform. */
+@keyframes hero-bar {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+@keyframes hero-zoom {
+  from {
+    scale: 1;
+  }
+  to {
+    scale: 1.07;
+  }
+}
+.hero-bar-fill {
+  transform-origin: left center;
+}
+[dir="rtl"] .hero-bar-fill {
+  transform-origin: right center;
+}
+.hero-bar {
+  animation: hero-bar 6s linear forwards;
+}
+.hero-zoom {
+  animation: hero-zoom 6s linear forwards;
+}

@@ -78,13 +78,12 @@ export function Shelf({
                       layoutId={`${uid}-pill`}
                       data-testid="shelf-pill"
                       aria-hidden
-                      className="absolute inset-0 grid place-items-center rounded-[4px] bg-foreground text-background"
+                      className="absolute inset-0 rounded-[4px] bg-foreground"
                       transition={{ duration: reduced ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }}
-                    >
-                      {x.label}
-                    </motion.span>
+                    />
                   ) : null}
-                  <span className={on ? "opacity-0" : undefined}>{x.label}</span>
+                  {/* the label exists once (QA 2026-11-24: it was in the DOM twice and read as "New New") */}
+                  <span className={on ? "relative text-background" : "relative"}>{x.label}</span>
                 </button>
               );
             })}

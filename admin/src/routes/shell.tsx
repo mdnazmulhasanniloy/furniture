@@ -52,10 +52,14 @@ function readCollapsed(): boolean {
  * role on every /admin/* call (403 for CUSTOMER); this never replaces that.
  */
 export function RequireAdmin() {
-  const { status, user } = useAuth();
+  const { status, user, restoring } = useAuth();
   const { t } = useTranslation();
   const location = useLocation();
-  if (status === "unknown") {
+  // QA C1: wait while auth is being resolved. "unknown" covers the first load; `restoring` covers a
+  // restore that is still running although an earlier attempt already left the status "anonymous" -
+  // redirecting on that flashed the sign-in form before the page appeared. A session that is already
+  // known keeps its page: re-checking it (back/forward restore, A5) must not flicker to the loader.
+  if (status === "unknown" || (restoring && status !== "authenticated")) {
     return (
       <PublicFrame>
         <p role="status" className="text-center text-muted-foreground">

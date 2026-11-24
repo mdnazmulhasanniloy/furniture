@@ -26,8 +26,25 @@ type State = {
    * (QA B3).
    */
   epoch: number;
+  /**
+   * A session restore is running right now (QA C1). Route guards wait for it instead of sending the
+   * admin to the sign-in form, which is what flashed before "Page not found": `status` can already be
+   * "anonymous" from an earlier attempt while the current one is still in flight.
+   *
+   * It starts `true`: the app attempts a restore on mount, and that attempt begins in an effect, i.e.
+   * after the first paint. Without this the first paint would already decide, with nothing resolved.
+   */
+  restoring: boolean;
 };
-let state: State = { accessToken: null, csrfToken: null, user: null, status: "unknown", epoch: 0 };
+const initial = (): State => ({
+  accessToken: null,
+  csrfToken: null,
+  user: null,
+  status: "unknown",
+  epoch: 0,
+  restoring: true,
+});
+let state: State = initial();
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
@@ -39,7 +56,26 @@ export const authStore = {
   },
   setSession(s: AuthSession) {
     const epoch = state.user?.id === s.user.id ? state.epoch : state.epoch + 1;
-    state = { ...state, accessToken: s.accessToken, user: s.user, status: "authenticated", epoch };
+    // A known session is a resolved one: nothing is being restored any more (QA C1).
+    state = {
+      ...state,
+      accessToken: s.accessToken,
+      user: s.user,
+      status: "authenticated",
+      epoch,
+      restoring: false,
+    };
+    emit();
+  },
+  /** Test seam: back to the state of a freshly loaded page (a restore about to run). */
+  reset() {
+    state = initial();
+    emit();
+  },
+  /** Marks a session restore as running; guards show the loader while it is (QA C1). */
+  setRestoring(restoring: boolean) {
+    if (state.restoring === restoring) return;
+    state = { ...state, restoring };
     emit();
   },
   setCsrfToken(t: string | null) {
@@ -53,6 +89,8 @@ export const authStore = {
       user: null,
       status: "anonymous",
       epoch: state.epoch + 1,
+      // A restore that is still running keeps the guards waiting (QA C1); its own `finally` ends it.
+      restoring: state.restoring,
     };
     emit();
   },

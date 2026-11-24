@@ -232,6 +232,30 @@ describe('PROD-01 · public product listing', () => {
     expect((await list({ q: 'a'.repeat(101) })).status).toBe(422);
   });
 
+  it('PROD-01 · q matches the plural and the singular of a word (sofas / sofa, benches / bench)', async () => {
+    expect(slugs(await list({ q: 'sofas' }))).toEqual(['velvet-sofa']);
+    expect(slugs(await list({ q: 'SOFA' }))).toEqual(['velvet-sofa']);
+    expect(slugs(await list({ q: 'tables' }))).toEqual(['oak-table']);
+    expect(slugs(await list({ q: 'armchairs' }))).toEqual(['used-armchair']);
+  });
+
+  it('PROD-01 · q also searches the category name, the description and the material, in both languages; every word must match', async () => {
+    const extra = await seedProduct({ slug: 'chesterfield', title: { en: 'Classic Chesterfield Three-Seater', ar: 'تشيسترفيلد' }, categoryId: sofasId, material: 'Leather' });
+    await prisma.product.update({ where: { id: extra.id }, data: { description: { en: 'Deep buttoned seat', ar: 'مقعد مبطن' } } });
+    try {
+      expect(slugs(await list({ q: 'sofa' })).sort()).toEqual(['chesterfield', 'velvet-sofa']); // category name
+      expect(slugs(await list({ q: 'كنب' })).sort()).toEqual(['chesterfield', 'velvet-sofa']); // category name, Arabic
+      expect(slugs(await list({ q: 'buttoned' }))).toEqual(['chesterfield']); // description
+      expect(slugs(await list({ q: 'مبطن' }))).toEqual(['chesterfield']); // description, Arabic
+      expect(slugs(await list({ q: 'leather' }))).toEqual(['chesterfield']); // material
+      expect(slugs(await list({ q: 'sofas leather' }))).toEqual(['chesterfield']); // all words, plural form
+      expect(slugs(await list({ q: 'sofa oak' }))).toEqual([]); // one word missing
+      expect(slugs(await list({ q: '.*' }))).toEqual([]); // regex characters stay literal
+    } finally {
+      await prisma.product.delete({ where: { id: extra.id } });
+    }
+  });
+
   it('PROD-01 · sort orders: newest, price_asc, price_desc, featured', async () => {
     expect(slugs(await list({ sort: 'newest' }))).toEqual([
       'patio-set',

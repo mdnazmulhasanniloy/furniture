@@ -77,7 +77,8 @@ describe("AUTH-03 · password policy, admin", () => {
     it(`AUTH-03 · the invite screen shows the five live rules and ticks each as it is met (${locale})`, async () => {
       const m = messages[locale];
       await mount(locale);
-      const field = screen.getByLabelText(m.auth.newPassword);
+      // The invite page is loaded on demand since QA C4.
+      const field = await screen.findByLabelText(m.auth.newPassword);
       const rules = screen.getByTestId("password-rules");
       const met = () =>
         [...rules.querySelectorAll("li")].map((li) => li.getAttribute("data-met") === "true");
@@ -109,6 +110,7 @@ describe("AUTH-03 · password policy, admin", () => {
     it(`AUTH-03 · a password that breaks the policy is refused locally, with the policy spelled out (${locale})`, async () => {
       const m = messages[locale];
       await mount(locale);
+      await screen.findByLabelText(m.auth.code); // loaded on demand since QA C4
       await act(async () => {
         fireEvent.change(screen.getByLabelText(m.auth.code), { target: { value: "123456" } });
         fireEvent.change(screen.getByLabelText(m.auth.newPassword), {

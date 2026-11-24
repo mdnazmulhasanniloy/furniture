@@ -1,29 +1,35 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Route, Routes } from "react-router";
 import { ApiError } from "@/lib/api/errors";
 import { recheckSession, restoreSession } from "@/lib/auth/flows";
 import { authStore } from "@/lib/auth/store";
-import { AdminsPage } from "@/routes/admins-page";
-import { AcceptInvitePage } from "@/routes/accept-invite-page";
-import { BannerEditorPage } from "@/routes/banner-editor-page";
-import { BannersPage } from "@/routes/banners-page";
-import { PagesPage } from "@/routes/pages-page";
-import { SectionsPage } from "@/routes/sections-page";
-import { CategoriesPage } from "@/routes/categories-page";
-import { InvoicePage } from "@/routes/invoice-page";
 import { LoginPage } from "@/routes/login-page";
-import { NotificationsPage } from "@/routes/notifications-page";
-import { OrderDetailPage } from "@/routes/order-detail-page";
-import { OrdersPage } from "@/routes/orders-page";
-import { OverviewPage } from "@/routes/overview-page";
-import { ProductEditorPage } from "@/routes/product-editor-page";
-import { ProductsPage } from "@/routes/products-page";
-import { CustomerDetailPage } from "@/routes/customer-detail-page";
-import { CustomersPage } from "@/routes/customers-page";
-import { SettingsPage } from "@/routes/settings-page";
-import { PlaceholderPage } from "@/routes/placeholder-page";
 import { RequireAdmin } from "@/routes/shell";
+
+/**
+ * QA C4: every page is its own chunk, loaded when its route is first opened. The sign-in page and the
+ * shell stay in the entry chunk - they are what a cold visit renders - and the Suspense boundary sits
+ * inside the shell, so the sidebar and the top bar never blink while a page arrives.
+ */
+const AdminsPage = lazy(() => import("@/routes/admins-page").then((m) => ({ default: m.AdminsPage })));
+const AcceptInvitePage = lazy(() => import("@/routes/accept-invite-page").then((m) => ({ default: m.AcceptInvitePage })));
+const BannerEditorPage = lazy(() => import("@/routes/banner-editor-page").then((m) => ({ default: m.BannerEditorPage })));
+const BannersPage = lazy(() => import("@/routes/banners-page").then((m) => ({ default: m.BannersPage })));
+const PagesPage = lazy(() => import("@/routes/pages-page").then((m) => ({ default: m.PagesPage })));
+const SectionsPage = lazy(() => import("@/routes/sections-page").then((m) => ({ default: m.SectionsPage })));
+const CategoriesPage = lazy(() => import("@/routes/categories-page").then((m) => ({ default: m.CategoriesPage })));
+const InvoicePage = lazy(() => import("@/routes/invoice-page").then((m) => ({ default: m.InvoicePage })));
+const NotificationsPage = lazy(() => import("@/routes/notifications-page").then((m) => ({ default: m.NotificationsPage })));
+const OrderDetailPage = lazy(() => import("@/routes/order-detail-page").then((m) => ({ default: m.OrderDetailPage })));
+const OrdersPage = lazy(() => import("@/routes/orders-page").then((m) => ({ default: m.OrdersPage })));
+const OverviewPage = lazy(() => import("@/routes/overview-page").then((m) => ({ default: m.OverviewPage })));
+const ProductEditorPage = lazy(() => import("@/routes/product-editor-page").then((m) => ({ default: m.ProductEditorPage })));
+const ProductsPage = lazy(() => import("@/routes/products-page").then((m) => ({ default: m.ProductsPage })));
+const CustomerDetailPage = lazy(() => import("@/routes/customer-detail-page").then((m) => ({ default: m.CustomerDetailPage })));
+const CustomersPage = lazy(() => import("@/routes/customers-page").then((m) => ({ default: m.CustomersPage })));
+const SettingsPage = lazy(() => import("@/routes/settings-page").then((m) => ({ default: m.SettingsPage })));
+const PlaceholderPage = lazy(() => import("@/routes/placeholder-page").then((m) => ({ default: m.PlaceholderPage })));
 
 export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
   const [client] = useState(
@@ -79,7 +85,14 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
     <QueryClientProvider client={client}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/accept-invite" element={<AcceptInvitePage />} />
+        <Route
+          path="/accept-invite"
+          element={
+            <Suspense fallback={null}>
+              <AcceptInvitePage />
+            </Suspense>
+          }
+        />
         <Route element={<RequireAdmin />}>
           <Route index element={<OverviewPage />} />
           <Route path="/products" element={<ProductsPage />} />

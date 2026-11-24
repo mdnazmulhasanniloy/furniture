@@ -144,13 +144,16 @@ const sections = ALL_SECTION_TYPES.map((type, i) => ({
   updatedAt: "2026-11-20T10:00:00.000Z",
 }));
 
+/** The invite screen is for someone who is not signed in yet (it redirects when they are). */
+let signedIn = true;
 function stubApi() {
   configureApiClient({
     getLocale: () => document.documentElement.lang,
     fetch: (async (url: string) => {
       const p = url.replace(/^.*\/api\/v1/, "");
       if (p === "/auth/csrf") return json({ csrfToken: "csrf-1" });
-      if (p === "/auth/refresh") return json({ accessToken: "at-1", user: adminUser });
+      if (p === "/auth/refresh")
+        return signedIn ? json({ accessToken: "at-1", user: adminUser }) : json({ code: "UNAUTHORIZED" }, 401);
       if (p === "/admin/home-sections") return json(sections);
       if (p === "/admin/banners") return json([]);
       if (p === "/admin/categories") return json([]);
@@ -188,6 +191,7 @@ beforeEach(() => {
   authStore.clear();
   window.localStorage.clear();
   document.documentElement.classList.remove("dark");
+  signedIn = true;
   stubApi();
 });
 afterEach(() => configureApiClient(null));
@@ -210,6 +214,7 @@ describe.each(["en", "ar"] as const)("I18N-01 · rendered admin pages show no ra
   });
 
   it("I18N-01 · the invite screen's password rules are interpolated", async () => {
+    signedIn = false; // the page sends a signed-in visitor to the dashboard
     mount("/accept-invite?email=new%40furnixa.test");
     const rules = await screen.findByTestId("password-rules");
     expect(rules.textContent).toContain(locales[locale].auth.rules.length.replace("{n}", "8"));

@@ -13,7 +13,7 @@ import {
   UserCog,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import { BellActions, NotificationToaster, NotificationsSync } from "@/components/notifications/live";
@@ -219,7 +219,11 @@ export function Shell() {
           </div>
         </header>
         <main className="p-4">
-          <Outlet />
+          {/* QA C4: the pages are loaded on demand. The boundary sits here, inside the shell, so the
+              sidebar and the top bar stay put while a page's chunk arrives. */}
+          <Suspense fallback={null}>
+            <Outlet />
+          </Suspense>
         </main>
         <NotificationToaster />
       </div>

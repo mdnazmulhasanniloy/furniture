@@ -1,8 +1,10 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { ShoppingBag, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { CartContents } from "@/components/cart/cart-contents";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,7 @@ import { useAuthStore } from "@/lib/auth/store";
 import { cartCount, closeDrawer, openDrawer, setCartConfig, useCartStore } from "@/lib/cart/store";
 import type { CartConfig } from "@/lib/cart/types";
 import { useDialogA11y } from "@/lib/use-dialog-a11y";
+import { useMotionPrefs } from "@/lib/use-motion-prefs";
 
 /** Header cart link (still a real link to /cart) with a count badge; click opens the drawer. */
 export function CartButton({ config }: { config?: CartConfig }) {
@@ -27,6 +30,15 @@ export function CartButton({ config }: { config?: CartConfig }) {
   useEffect(() => {
     if (config) setCartConfig(config);
   }, [config]);
+
+  // Add-to-cart feedback (CR-007): a toast with a "View cart" action next to the fly-to-cart animation.
+  useEffect(() => {
+    if (addedTick === initialTick) return;
+    toast.success(t("cart.added"), {
+      id: "cart-added",
+      action: { label: t("cart.viewCart"), onClick: () => openDrawer() },
+    });
+  }, [addedTick, initialTick, t]);
 
   return (
     <>
@@ -57,20 +69,24 @@ export function CartButton({ config }: { config?: CartConfig }) {
       <span role="status" aria-live="polite" className="sr-only">
         {addedTick !== initialTick ? t("cart.added") : ""}
       </span>
-      {open ? (
-        <Drawer
-          onClose={() => {
-            closeDrawer();
-            trigger.current?.focus();
-          }}
-        />
-      ) : null}
+      <AnimatePresence>
+        {open ? (
+          <Drawer
+            key="cart-drawer"
+            onClose={() => {
+              closeDrawer();
+              trigger.current?.focus();
+            }}
+          />
+        ) : null}
+      </AnimatePresence>
     </>
   );
 }
 
 function Drawer({ onClose }: { onClose: () => void }) {
   const t = useTranslations("cart");
+  const { reduced, rtl } = useMotionPrefs();
   const closeRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   useDialogA11y(true, panelRef);
@@ -85,7 +101,14 @@ function Drawer({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
   return (
-    <div className="fixed inset-0 z-50" data-testid="cart-drawer">
+    <motion.div
+      className="fixed inset-0 z-50"
+      data-testid="cart-drawer"
+      initial={reduced ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={reduced ? { opacity: 0, transition: { duration: 0 } } : { opacity: 0 }}
+      transition={{ duration: 0.2 }}
+    >
       <button
         type="button"
         aria-label={t("close")}
@@ -93,12 +116,17 @@ function Drawer({ onClose }: { onClose: () => void }) {
         className="absolute inset-0 bg-foreground/40"
         onClick={onClose}
       />
-      <div
+      <motion.div
         ref={panelRef}
+        // The panel slides in from the end side: right in LTR, left in RTL.
+        initial={reduced ? false : { x: rtl ? "-100%" : "100%" }}
+        animate={{ x: 0 }}
+        exit={reduced ? { x: 0 } : { x: rtl ? "-100%" : "100%" }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cart-drawer-title"
-        className="absolute inset-y-0 end-0 flex w-96 max-w-[90vw] flex-col gap-3 bg-background p-4 shadow-[var(--shadow-soft)]"
+        className="absolute inset-y-0 end-0 flex w-96 max-w-[90vw] flex-col gap-3 bg-background p-4 shadow-card"
       >
         <div className="flex justify-end">
           <Button ref={closeRef} variant="ghost" size="icon" aria-label={t("close")} onClick={onClose}>
@@ -106,7 +134,7 @@ function Drawer({ onClose }: { onClose: () => void }) {
           </Button>
         </div>
         <CartContents variant="drawer" onNavigate={onClose} />
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

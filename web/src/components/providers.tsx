@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
+import { AppToaster } from "@/components/app-toaster";
 import { CartSync } from "@/components/cart/cart-sync";
 import { FavouritesSync } from "@/components/favourites/favourites-sync";
 import { NotificationsSync } from "@/components/notifications/sync";
@@ -25,5 +26,6 @@ export function Providers({ children }: Readonly<{ children: React.ReactNode }>)
       <NotificationsSync />
       {children}
       <NotificationToaster />
+      <AppToaster />
     </QueryClientProvider>;
 }

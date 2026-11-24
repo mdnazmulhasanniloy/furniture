@@ -106,7 +106,9 @@
       "OUT_OF_STOCK": "نفد من المخزون",
       "QTY_REDUCED": "تم تقليل الكمية إلى المخزون المتاح",
       "PRICE_CHANGED": "تغيّر السعر من {oldPrice} إلى {newPrice}"
-    }
+    },
+    "removed": "تمت إزالة {title}",
+    "undo": "تراجع"
   },
   "checkout": {
     "title": "إتمام الشراء",

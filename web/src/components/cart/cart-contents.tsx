@@ -4,7 +4,9 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
+import { ImagePlaceholder } from "@/components/brand";
 import { Price } from "@/components/format";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
@@ -144,7 +146,11 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
       )}
 
       {lines.length > 0 ? (
-        <div className="space-y-2 border-t border-border pt-3 text-sm" data-testid="cart-summary">
+        <>
+        <div
+          className={`space-y-2 text-sm ${variant === "page" ? "rounded-lg border border-border bg-card p-4 shadow-card" : "border-t border-border pt-3"}`}
+          data-testid="cart-summary"
+        >
           {threshold ? (
             <FreeDeliveryProgress subtotal={subtotal} threshold={threshold} locale={locale} />
           ) : null}
@@ -176,7 +182,11 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
               {t("notDeliverable")}
             </p>
           ) : null}
-          <div className="flex flex-col gap-2 pt-1">
+        </div>
+        <div
+          data-testid="cart-checkout-bar"
+          className={`flex flex-col gap-2 ${variant === "page" ? "max-md:sticky max-md:bottom-0 max-md:z-10 max-md:-mx-4 max-md:border-t max-md:border-border max-md:bg-background max-md:p-4" : ""}`}
+        >
             {canCheckout ? (
               <Link
                 href={server ? "/checkout" : "/login"}
@@ -200,8 +210,8 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
                 {t("viewCart")}
               </Link>
             ) : null}
-          </div>
         </div>
+        </>
       ) : null}
     </div>
   );
@@ -252,14 +262,16 @@ function LineRow({ line, locale }: { line: Line; locale: Locale }) {
   }
   return (
     <li className="flex gap-3 py-3" data-testid="cart-line">
-      <div className="relative size-20 shrink-0 overflow-hidden rounded-md bg-muted">
+      <div className="relative aspect-[4/5] w-20 shrink-0 overflow-hidden rounded-md bg-muted" data-testid="line-thumb">
         {image ? (
           <Image src={image.url} alt={pick(image.alt, locale) || title} fill sizes="80px" className="object-cover" />
-        ) : null}
+        ) : (
+          <ImagePlaceholder name={t("home.brand")} className="[&_[data-testid=wordmark]]:text-xs" />
+        )}
       </div>
       <div className="min-w-0 flex-1 space-y-1">
         {p ? (
-          <Link href={`/shop/${encodeURIComponent(p.slug)}`} className="block truncate text-sm font-medium hover:underline">
+          <Link href={`/shop/${encodeURIComponent(p.slug)}`} className="line-clamp-2 text-sm font-medium hover:underline">
             {title}
           </Link>
         ) : (
@@ -283,7 +295,7 @@ function LineRow({ line, locale }: { line: Line; locale: Locale }) {
         {p && line.productId ? (
           <div className="flex items-center gap-2">
             {!unavailable ? (
-              <div className="inline-flex items-center rounded-md border border-border" role="group" aria-label={t("product.quantity")}>
+              <div className="inline-flex items-center rounded-full border border-input" role="group" aria-label={t("product.quantity")}>
                 <button
                   type="button"
                   aria-label={t("product.decrease")}
@@ -308,7 +320,17 @@ function LineRow({ line, locale }: { line: Line; locale: Locale }) {
             <button
               type="button"
               aria-label={t("cart.remove", { title })}
-              onClick={() => void setLineQty(line.productId as string, 0, stock)}
+              onClick={async () => {
+                // Remove with undo (CR-007): the toast action puts the same quantity back.
+                const productId = line.productId as string;
+                const qty = line.qty;
+                await setLineQty(productId, 0, stock);
+                if (useCartStore.getState().error) return;
+                toast(t("cart.removed", { title }), {
+                  id: `cart-removed-${productId}`,
+                  action: { label: t("cart.undo"), onClick: () => void setLineQty(productId, qty, stock) },
+                });
+              }}
               className="rounded-md p-1.5 text-muted-foreground hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Trash2 className="size-4" aria-hidden />

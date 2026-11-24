@@ -106,7 +106,9 @@
       "OUT_OF_STOCK": "Out of stock",
       "QTY_REDUCED": "Quantity reduced to the available stock",
       "PRICE_CHANGED": "Price changed from {oldPrice} to {newPrice}"
-    }
+    },
+    "removed": "{title} removed",
+    "undo": "Undo"
   },
   "checkout": {
     "title": "Checkout",

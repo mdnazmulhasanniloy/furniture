@@ -199,7 +199,8 @@ export function addToCart(product: CartProductLite, qty: number): Promise<boolea
         const existing = get().guest.find((l) => l.productId === product.id)?.qty ?? 0;
         guestSet(product, existing + qty);
       }
-      set((s) => ({ addedTick: s.addedTick + 1, drawerOpen: true }));
+      // Feedback is the fly-to-cart animation and a toast with a "View cart" action (CR-007): the drawer is not forced open.
+      set((s) => ({ addedTick: s.addedTick + 1 }));
       return true;
     } catch (e) {
       set({ error: codeOf(e), drawerOpen: true });

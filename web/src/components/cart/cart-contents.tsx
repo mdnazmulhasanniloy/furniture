@@ -83,7 +83,6 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
   const server = status === "authenticated" && user?.role === "CUSTOMER";
   const cart = useCartStore((s) => s.cart);
   const guest = useCartStore((s) => s.guest);
-  const loading = useCartStore((s) => s.loading);
   const error = useCartStore((s) => s.error);
   const mergeFailed = useCartStore((s) => s.mergeFailed);
   const config = useCartStore((s) => s.config);
@@ -93,6 +92,9 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
     if (!server) void resolveGuestProducts();
   }, [server, guest]);
 
+  // Nothing about the cart is shown until all of it is known: the session (guest or customer decides the label and the
+  // totals) and every line's product (a partial subtotal or SAR 0 would be wrong). One skeleton covers lines and summary.
+  const pending = status === "unknown" || (server ? cart === null && !error : lines.some((l) => l.loading));
   const effective = lines.filter((l) => !l.loading && l.issue !== "UNAVAILABLE" && l.issue !== "OUT_OF_STOCK" && l.product);
   const guestSubtotal = effective.reduce((n, l) => n + l.lineTotal, 0);
   const subtotal = server ? (cart?.subtotal ?? 0) : guestSubtotal;
@@ -110,7 +112,7 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
         <Heading id={variant === "drawer" ? "cart-drawer-title" : undefined} className={variant === "page" ? "text-3xl font-semibold" : "text-xl font-semibold"}>
           {t("title")}
         </Heading>
-        {count > 0 ? (
+        {!pending && count > 0 ? (
           <span className="text-sm text-muted-foreground">{t("itemsCount", { count })}</span>
         ) : null}
       </div>
@@ -128,8 +130,8 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
         </p>
       ) : null}
 
-      {loading && lines.length === 0 ? (
-        <p className="text-sm text-muted-foreground" role="status">{t("loading")}</p>
+      {pending ? (
+        <CartSkeleton rows={Math.max(1, Math.min(guest.length, 3))} />
       ) : lines.length === 0 ? (
         <div className="py-8 text-center" data-testid="cart-empty">
           <p className="text-sm text-muted-foreground">{t("empty")}</p>
@@ -145,7 +147,7 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
         </ul>
       )}
 
-      {lines.length > 0 ? (
+      {!pending && lines.length > 0 ? (
         <>
         <div
           className={`space-y-2 text-sm ${variant === "page" ? "border-t border-border pt-4" : "border-t border-border pt-3"}`}
@@ -213,6 +215,33 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
         </div>
         </>
       ) : null}
+    </div>
+  );
+}
+
+function CartSkeleton({ rows }: { rows: number }) {
+  const t = useTranslations("cart");
+  const bar = "animate-pulse rounded-sm bg-muted motion-reduce:animate-none";
+  return (
+    <div className="flex flex-col gap-4" data-testid="cart-skeleton" aria-busy="true">
+      <p className="sr-only" role="status">{t("loading")}</p>
+      <ul className="divide-y divide-border" aria-hidden>
+        {Array.from({ length: rows }, (_, i) => (
+          <li key={i} className="flex gap-3 py-3">
+            <div className={`aspect-[4/5] w-20 shrink-0 rounded-lg ${bar}`} />
+            <div className="flex-1 space-y-2">
+              <div className={`h-4 w-3/4 ${bar}`} />
+              <div className={`h-4 w-1/4 ${bar}`} />
+            </div>
+            <div className={`h-4 w-16 ${bar}`} />
+          </li>
+        ))}
+      </ul>
+      <div className="space-y-2 border-t border-border pt-4" aria-hidden>
+        <div className={`h-4 w-full ${bar}`} />
+        <div className={`h-4 w-full ${bar}`} />
+        <div className={`h-12 w-full rounded-md ${bar}`} />
+      </div>
     </div>
   );
 }

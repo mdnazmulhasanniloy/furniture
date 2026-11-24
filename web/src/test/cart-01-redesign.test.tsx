@@ -129,7 +129,7 @@ describe.each(["en", "ar"] as const)("CART-01 · redesigned cart (%s)", (locale)
     const withImage = { ...sofa, images: [{ url: "https://cdn.test/1.jpg", alt: { en: "x", ar: "س" } }] } as HomeProduct;
     useCartStore.setState({ cart: cartOf({}, withImage) });
     wrap(locale, <CartContents variant="page" />);
-    expect(screen.getByTestId("line-thumb").className).not.toMatch(/rounded/);
+    expect(screen.getByTestId("line-thumb").className).toContain("rounded-lg"); // ADR-018: 8 px corners
     expect(screen.getByTestId("line-thumb").querySelector("img")!.className).toContain("mix-blend-multiply");
     expect(screen.getByRole("group", { name: m.product.quantity }).className).toContain("rounded-sm");
     const summary = screen.getByTestId("cart-summary");

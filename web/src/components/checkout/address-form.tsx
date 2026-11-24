@@ -113,7 +113,7 @@ export function AddressForm({
   return (
     <form onSubmit={submit} noValidate className="space-y-3 border-t border-border pt-4" data-testid="address-form" aria-label={address ? t("editAddress") : t("newAddress")}>
       {apiError ? (
-        <p role="alert" className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">
+        <p role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">
           {apiErrorMessage(te as unknown as Parameters<typeof apiErrorMessage>[0], apiError)}
         </p>
       ) : null}

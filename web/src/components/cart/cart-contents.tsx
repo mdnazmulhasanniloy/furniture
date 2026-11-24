@@ -116,14 +116,14 @@ export function CartContents({ variant, onNavigate }: { variant: "drawer" | "pag
       </div>
 
       {mergeFailed ? (
-        <div role="alert" className="bg-muted p-3 text-sm" data-testid="cart-merge-error">
+        <div role="alert" className="rounded-lg bg-blush p-3 text-sm text-blush-foreground" data-testid="cart-merge-error">
           <p>{t("mergeError")}</p>
           <button type="button" className="mt-2 font-medium text-primary underline" onClick={() => void syncAfterLogin()}>
             {t("retry")}
           </button>
         </div>
       ) : error ? (
-        <p role="alert" className="bg-muted p-3 text-sm text-destructive" data-testid="cart-error">
+        <p role="alert" className="rounded-lg bg-blush p-3 text-sm text-destructive" data-testid="cart-error">
           {te(errorMessageKey(error))}
         </p>
       ) : null}
@@ -262,7 +262,7 @@ function LineRow({ line, locale }: { line: Line; locale: Locale }) {
   }
   return (
     <li className="flex gap-3 py-3" data-testid="cart-line">
-      <div className="relative aspect-[4/5] w-20 shrink-0 overflow-hidden bg-muted" data-testid="line-thumb">
+      <div className="relative aspect-[4/5] w-20 shrink-0 overflow-hidden rounded-lg bg-muted" data-testid="line-thumb">
         {image ? (
           <Image src={image.url} alt={pick(image.alt, locale) || title} fill sizes="80px" className="object-cover mix-blend-multiply" />
         ) : (

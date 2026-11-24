@@ -237,7 +237,7 @@ Order: backend T-080 first (seed), then the owner runs `demo:reset`, then T-081 
 ### T-096 Product cards and rails (hover zoom, hidden scrollbar, arrows, keyboard) · done (rail arrows reuse the approved carousel previous/next strings: confirm the wording)
 ### T-097 Listing: sticky filter sidebar, bottom sheet · done
 ### T-098 Product page: gallery, thumbnails, zoom, sticky buy box · done
-### T-099 Cart, checkout, order success · todo
+### T-099 Cart, checkout, order success · done
 ### T-100 Account, orders, wishlist, notifications · todo
 ### T-101 Static pages, 404, empty states · todo
 ### T-102 Home sections: shop the look, pre-owned band, trust strip, pre-owned picks (Q-2) · todo

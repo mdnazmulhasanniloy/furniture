@@ -198,7 +198,7 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
                 return (
                   <li key={a.id}>
                     <label
-                      className={`flex gap-3 rounded-md border p-4 text-sm ${a.isDeliverable ? "cursor-pointer" : "cursor-not-allowed opacity-70"} ${selectedId === a.id ? "border-[1.5px] border-primary" : "border-input"}`}
+                      className={`flex gap-3 rounded-lg border p-4 text-sm ${a.isDeliverable ? "cursor-pointer" : "cursor-not-allowed opacity-70"} ${selectedId === a.id ? "border-[1.5px] border-primary" : "border-input"}`}
                     >
                       <input
                         type="radio"
@@ -286,7 +286,7 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
                       data-testid="checkout-line"
                       data-invalid={bad ? "true" : undefined}
                     >
-                      <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-muted">
+                      <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-muted">
                         {image ? (
                           <Image src={image.url} alt={pick(image.alt, locale) || title} fill sizes="64px" className="object-cover" />
                         ) : null}
@@ -327,7 +327,7 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
 
           <section aria-labelledby="co-pay">
             <h2 id="co-pay" className="mb-3 text-xl font-semibold">{t("stepPayment")}</h2>
-            <label className="flex gap-3 rounded-md border-[1.5px] border-primary p-4 text-sm">
+            <label className="flex gap-3 rounded-lg border-[1.5px] border-primary p-4 text-sm">
               <input type="radio" name="payment" checked readOnly className="mt-1" aria-describedby="cod-info" />
               <span>
                 <span className="block font-medium">{t("cod")}</span>
@@ -338,7 +338,7 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
         </div>
 
         <aside
-          className="h-fit space-y-2 bg-muted p-5 text-sm lg:sticky lg:top-24"
+          className="h-fit space-y-2 rounded-lg bg-blush p-6 text-base text-blush-foreground lg:sticky lg:top-24"
           aria-label={t("title")}
           data-testid="checkout-summary"
         >
@@ -390,8 +390,8 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
 function Shell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("checkout");
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8 md:px-8 md:py-12" data-testid="checkout-page">
-      <h1 className="mb-8 text-3xl font-semibold">{t("title")}</h1>
+    <main className="band mx-auto w-full max-w-6xl px-5 sm:px-8 lg:px-12" data-testid="checkout-page">
+      <h1 className="mb-8 text-4xl md:text-5xl">{t("title")}</h1>
       {children}
     </main>
   );

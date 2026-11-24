@@ -256,20 +256,21 @@ for (const locale of ["en", "ar"] as const) {
       expect(screen.getByTestId("co-total").textContent).toContain("2,000");
     });
 
-    it(`UI-01 · checkout v2: flat sand summary, outlined address and payment options, no card around the form (${locale})`, async () => {
+    it(`UI-01 · checkout v3 (ADR-018): blush summary, outlined address and payment options, no card around the form (${locale})`, async () => {
       login();
       mockApi(baseHandler());
       await ready(locale);
       const summary = screen.getByTestId("checkout-summary");
-      expect(summary.className).toContain("bg-muted");
-      expect(summary.className).not.toMatch(/shadow|rounded|border/);
+      expect(summary.className).toContain("bg-blush");
+      expect(summary.className).toContain("rounded-lg");
+      expect(summary.className).not.toMatch(/shadow|border/);
       const options = within(screen.getByTestId("address-list")).getAllByRole("radio").map((r) => r.closest("label")!);
       expect(options[0].className).toContain("border-primary"); // the selected address
       expect(options[1].className).toContain("border-input"); // fields and options sit on paper with the input border
       expect(options[0].className).not.toMatch(/bg-card|bg-muted/);
       const cod = screen.getByRole("radio", { name: new RegExp(m.checkout.cod) }).closest("label")!;
       expect(cod.className).toContain("border-primary");
-      expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-3xl");
+      expect(screen.getByRole("heading", { level: 1 }).className).toContain("text-4xl");
     });
 
     it(`ORD-01 · VAT label follows pricesIncludeVat and the total is the API's (${locale})`, async () => {

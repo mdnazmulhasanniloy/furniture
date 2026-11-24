@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { ArchDefs } from "@/components/arch";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { Providers } from "@/components/providers";
@@ -62,7 +61,6 @@ export default async function LocaleLayout({
       className={`${fonts.heading.variable} ${fonts.body.variable}`}
     >
       <body>
-        <ArchDefs />
         <NextIntlClientProvider>
           <DirectionProvider dir={dir}>
             <Providers>

@@ -155,12 +155,6 @@ body {
   }
 }
 
-/* Arch (ADR-015): the Najdi arch mask. The path lives in components/arch.tsx (clipPath, objectBoundingBox).
-   Removed from the storefront by ADR-018; this rule and the component are deleted in T-094. */
-.arch {
-  clip-path: url(#fx-arch);
-}
-
 /* ADR-018 layout: one container, one vertical rhythm. */
 .container-wide {
   width: 100%;

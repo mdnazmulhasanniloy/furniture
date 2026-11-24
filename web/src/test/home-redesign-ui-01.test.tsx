@@ -275,12 +275,6 @@ describe.each(["en", "ar"] as const)("UI-04 · hero carousel (%s)", (locale) => 
 
 describe.each(["en", "ar"] as const)("UI-01 · home v2 category row and shelf (%s)", (locale) => {
   const m = messages[locale];
-  const cats = section("c1", "CATEGORY_GRID", {
-    categories: [
-      { id: "k1", slug: "sofas", name: { en: "Sofas", ar: "أرائك" }, image: { url: "https://cdn.test/k.jpg" } },
-      { id: "k2", slug: "beds", name: { en: "Beds", ar: "أسرّة" }, image: null },
-    ],
-  });
   const both = [
     section("n", "NEW_ARRIVALS", { products: [product("1", "NEW")] }),
     section("r", "RESALE_PICKS", { products: [product("2", "RESALE")] }),

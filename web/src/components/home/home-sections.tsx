@@ -109,7 +109,7 @@ function OptionalSection({ section, locale }: { section: HomeSection; locale: Lo
 }
 
 /**
- * Home composition (ADR-015): arch category row, ONE shelf (New / Pre-owned), any optional admin sections
+ * Home composition (ADR-015): category bento, ONE shelf (New / Pre-owned), any optional admin sections
  * in the same quiet style, then "How pre-owned works". Empty sections are skipped.
  */
 export function HomeSections({

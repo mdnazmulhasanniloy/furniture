@@ -6,7 +6,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import ar from "../../messages/ar.json";
 import en from "../../messages/en.json";
 
-import { Arch, ARCH_PATH, ArchDefs } from "@/components/arch";
 import { ImagePlaceholder, Wordmark } from "@/components/brand";
 import { Price } from "@/components/format";
 import { Badge } from "@/components/ui/badge";
@@ -86,31 +85,3 @@ describe("UI-01 · wordmark is plain text", () => {
   });
 });
 
-describe("UI-01 · the arch", () => {
-  it("UI-01 · ArchDefs defines one objectBoundingBox clipPath that .arch points at", () => {
-    const { container } = render(<ArchDefs />);
-    const clip = container.querySelector("clipPath#fx-arch");
-    expect(clip?.getAttribute("clipPathUnits")).toBe("objectBoundingBox");
-    expect(clip?.querySelector("path")?.getAttribute("d")).toBe(ARCH_PATH);
-  });
-
-  it("UI-01 · the arch path is symmetric around x = 0.5 so RTL needs no mirroring", () => {
-    // M0 1 V0.5 C0 0.22 0.3 0.1 0.5 0 C0.7 0.1 1 0.22 1 0.5 V1 Z: the second curve is the mirror of the first
-    const nums = [...ARCH_PATH.matchAll(/-?[0-9.]+/g)].map((m) => Number(m[0]));
-    expect(nums).toEqual([0, 1, 0.5, 0, 0.22, 0.3, 0.1, 0.5, 0, 0.7, 0.1, 1, 0.22, 1, 0.5, 1]);
-    expect(0.3 + 0.7).toBe(1);
-    expect(0 + 1).toBe(1);
-  });
-
-  it("UI-01 · Arch keeps its aspect ratio, masks the content and draws the gold outline only on request", () => {
-    const { container, rerender } = render(<Arch ratio="3/4"><span>x</span></Arch>);
-    expect(screen.getByTestId("arch").className).toContain("aspect-[3/4]");
-    expect(container.querySelector(".arch")).not.toBeNull();
-    expect(screen.queryByTestId("arch-outline")).toBeNull();
-    rerender(<Arch outline><span>x</span></Arch>);
-    expect(screen.getByTestId("arch").className).toContain("aspect-[4/5]");
-    const outline = screen.getByTestId("arch-outline");
-    expect(outline.getAttribute("class")).toContain("-end-3.5"); // logical offset: mirrors in RTL
-    expect(outline.querySelector("path")?.getAttribute("stroke")).toBe("var(--gold)");
-  });
-});

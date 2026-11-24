@@ -21,4 +21,26 @@ for (const locale of ["en", "ar"] as const) {
       await expect(steps.nth(i)).toHaveCSS("opacity", "1");
     }
   });
+
+  test(`UI-01: the hero is an arch with a gold outline and two actions in /${locale}`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(`/${locale}`);
+    const arch = page.getByTestId("arch").first();
+    await expect(arch).toBeVisible();
+    await expect(page.getByTestId("arch-outline").first()).toBeAttached();
+    // 4:5 portrait arch
+    const box = (await arch.boundingBox())!;
+    expect(Math.abs(box.height / box.width - 1.25)).toBeLessThan(0.02);
+    await expect(page.locator("h1.type-hero")).toBeVisible();
+    await expect(page.locator('main a[href$="/shop?type=resale"]').first()).toBeVisible();
+    // the clip-path is the arch mask, not a rounded rectangle
+    const clip = await arch.locator(".arch").evaluate((el) => getComputedStyle(el).clipPath);
+    expect(clip).toContain("fx-arch");
+  });
+
+  test(`UI-01: the contact strip is gone from home and contact lives in the footer in /${locale}`, async ({ page }) => {
+    await page.goto(`/${locale}`);
+    await expect(page.locator("main [data-testid='contact-strip']")).toHaveCount(0);
+    await expect(page.getByRole("contentinfo")).toBeVisible();
+  });
 }

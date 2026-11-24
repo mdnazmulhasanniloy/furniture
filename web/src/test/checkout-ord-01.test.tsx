@@ -264,7 +264,7 @@ for (const locale of ["en", "ar"] as const) {
           : null));
       await ready(locale);
       expect(screen.getByTestId("co-vat").parentElement?.textContent).toContain(m.cart.vatIncluded.replace("{rate}", "15"));
-      expect(screen.getByTestId("co-total").textContent).toContain("2,050");
+      await waitFor(() => expect(screen.getByTestId("co-total").textContent).toContain("2,050"));
       cleanup();
       mockApi(baseHandler((c) =>
         c.path.startsWith("/cart")
@@ -272,7 +272,7 @@ for (const locale of ["en", "ar"] as const) {
           : null));
       await ready(locale);
       expect(screen.getByTestId("co-vat").parentElement?.textContent).toContain(m.cart.vatAdded.replace("{rate}", "15"));
-      expect(screen.getByTestId("co-total").textContent).toContain("2,350");
+      await waitFor(() => expect(screen.getByTestId("co-total").textContent).toContain("2,350"));
     });
 
     it(`ORD-01 · the fee is re-fetched and shown when another address (city) is selected (${locale})`, async () => {

@@ -1,16 +1,16 @@
 {
   "home": {
     "brand": "Furnixa",
-    "tagline": "Warm, crafted furniture — new and pre-owned.",
-    "intro": "A well-lit showroom of natural wood, linen and clay. Shop new pieces or give quality furniture a second life.",
     "viewAll": "View all",
     "hero": {
       "label": "Featured offers",
       "slide": "Slide {current} of {total}",
-      "prev": "Previous slide",
-      "next": "Next slide",
       "goTo": "Go to slide {n}",
-      "cta": "Shop now"
+      "cta": "Shop now",
+      "headline": "Sofas, beds and dining tables for your home",
+      "sentence": "New pieces and pre-owned furniture with a clear condition grade, delivered to your door. You pay when it arrives.",
+      "shopNew": "Shop new",
+      "shopResale": "Shop pre-owned"
     },
     "resale": {
       "title": "How pre-owned works",
@@ -31,10 +31,10 @@
         }
       }
     },
-    "contact": {
-      "title": "Questions? Talk to us",
-      "text": "Our team answers by email, phone and WhatsApp.",
-      "whatsapp": "WhatsApp"
+    "shelf": {
+      "title": "New and pre-owned furniture",
+      "seeAllNew": "See all new",
+      "seeAllResale": "See all pre-owned"
     }
   },
   "lang": {

@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { setRequestLocale } from "next-intl/server";
 
-import { ContactStrip } from "@/components/home/contact-strip";
-import { Hero } from "@/components/home/hero";
-import { HomeSections } from "@/components/home/home-sections";
-import { Button } from "@/components/ui/button";
-import { Link } from "@/i18n/navigation";
+import { Hero, HeroFallback } from "@/components/home/hero";
+import { HomeSections, type ShelfFallback } from "@/components/home/home-sections";
 import type { Locale } from "@/i18n/routing";
-import { getHome, getSettings } from "@/lib/api/public";
+import { getHome, getProducts } from "@/lib/api/public";
+import { sectionHasContent } from "@/lib/home";
 import { alternatesFor } from "@/lib/seo";
 
 export async function generateMetadata({
@@ -17,32 +15,31 @@ export async function generateMetadata({
   return { alternates: alternatesFor(locale, "/") };
 }
 
+/** Newest products of a type, for a shelf tab the admin has not configured (ADR-015 Q-1). */
+async function newestByType(type: "NEW" | "RESALE") {
+  const res = await getProducts(`type=${type}&sort=newest&limit=8`);
+  return res?.items ?? [];
+}
+
 export default async function HomePage({
   params,
 }: Readonly<{ params: Promise<{ locale: string }> }>) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations();
-  const [{ banners, sections }, settings] = await Promise.all([getHome(), getSettings()]);
+  const { banners, sections } = await getHome();
+  const has = (type: string) => sections.some((s) => s.type === type && sectionHasContent(s));
+  const fallback: ShelfFallback = {};
+  const [newest, resale] = await Promise.all([
+    has("NEW_ARRIVALS") ? [] : newestByType("NEW"),
+    has("RESALE_PICKS") ? [] : newestByType("RESALE"),
+  ]);
+  fallback.new = newest;
+  fallback.resale = resale;
 
   return (
     <main>
-      {banners.length > 0 ? (
-        <Hero banners={banners} />
-      ) : (
-        // No active banner (or API unreachable): static intro so the page is never blank.
-        <div className="mx-auto max-w-7xl px-4 py-14" data-testid="home-fallback-hero">
-          <h1 className="font-display max-w-3xl text-4xl font-semibold leading-tight">
-            {t("home.tagline")}
-          </h1>
-          <p className="mt-4 max-w-xl text-muted-foreground">{t("home.intro")}</p>
-          <Button className="mt-8" size="lg" asChild>
-            <Link href="/shop">{t("nav.shop")}</Link>
-          </Button>
-        </div>
-      )}
-      <HomeSections sections={sections} locale={locale as Locale} />
-      <ContactStrip settings={settings} />
+      {banners.length > 0 ? <Hero banners={banners} /> : <HeroFallback />}
+      <HomeSections sections={sections} locale={locale as Locale} fallback={fallback} />
     </main>
   );
 }

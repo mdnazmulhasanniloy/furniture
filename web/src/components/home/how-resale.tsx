@@ -1,70 +1,30 @@
-"use client";
-
 import { useTranslations } from "next-intl";
-import { useEffect, useRef } from "react";
 
 const STEPS = ["browse", "grade", "deliver"] as const;
 
 /**
- * "How resale works" — 3 steps. On md+ with motion allowed, GSAP ScrollTrigger pins the
- * section and lights the steps one by one; otherwise it is a plain static list.
+ * "How pre-owned works": the only numbered block on the site, because it is a real three-step sequence.
+ * Static (no motion, ADR-015): a sand band, a date-gold hairline over each step.
  */
 export function HowResale() {
   const t = useTranslations("home.resale");
-  const root = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const el = root.current;
-    if (!el || typeof window.matchMedia !== "function") return;
-    let cleanup: (() => void) | undefined;
-    let cancelled = false;
-    void (async () => {
-      const { gsap } = await import("gsap");
-      const { ScrollTrigger } = await import("gsap/ScrollTrigger");
-      if (cancelled) return;
-      gsap.registerPlugin(ScrollTrigger);
-      const mm = gsap.matchMedia();
-      mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
-        const steps = el.querySelectorAll("[data-step]");
-        gsap.set(steps, { opacity: 0.35 });
-        const tl = gsap.timeline({
-          scrollTrigger: {
-            trigger: el,
-            start: "top top",
-            end: "+=900",
-            pin: true,
-            scrub: true,
-          },
-        });
-        steps.forEach((step) => tl.to(step, { opacity: 1, duration: 1 }));
-        tl.to({}, { duration: 0.5 });
-      });
-      cleanup = () => mm.revert();
-    })();
-    return () => {
-      cancelled = true;
-      cleanup?.();
-    };
-  }, []);
-
   return (
     <section
-      ref={root}
       data-testid="how-resale"
       aria-labelledby="how-resale-title"
-      className="bg-muted py-16 md:flex md:min-h-screen md:items-center"
+      className="bg-muted py-16 md:py-24"
     >
-      <div className="mx-auto w-full max-w-7xl px-4">
-        <h2 id="how-resale-title" className="font-display text-3xl font-semibold">
+      <div className="mx-auto w-full max-w-7xl px-4 md:px-8">
+        <h2 id="how-resale-title" className="text-3xl font-semibold">
           {t("title")}
         </h2>
-        <p className="mt-2 max-w-xl text-muted-foreground">{t("subtitle")}</p>
-        <ol className="mt-10 grid gap-6 md:grid-cols-3">
+        <p className="measure mt-3 text-muted-foreground">{t("subtitle")}</p>
+        <ol className="mt-12 grid gap-10 md:grid-cols-3 md:gap-12">
           {STEPS.map((key, i) => (
-            <li key={key} data-step className="rounded-lg border border-border bg-card p-6">
-              <span className="text-sm font-medium text-primary">{t("step", { n: i + 1 })}</span>
-              <h3 className="mt-2 text-lg font-semibold">{t(`steps.${key}.title`)}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{t(`steps.${key}.body`)}</p>
+            <li key={key} data-step className="border-t border-gold pt-5">
+              <span className="font-display text-sm font-medium text-muted-foreground">{t("step", { n: i + 1 })}</span>
+              <h3 className="mt-2 text-xl font-semibold">{t(`steps.${key}.title`)}</h3>
+              <p className="measure mt-2 text-muted-foreground">{t(`steps.${key}.body`)}</p>
             </li>
           ))}
         </ol>

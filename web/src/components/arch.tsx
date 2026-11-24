@@ -43,6 +43,7 @@ export function Arch({
       {outline ? (
         <svg
           data-testid="arch-outline"
+          data-arch-outline
           aria-hidden
           viewBox="0 0 1 1"
           preserveAspectRatio="none"

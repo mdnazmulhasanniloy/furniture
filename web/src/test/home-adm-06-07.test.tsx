@@ -70,7 +70,7 @@ describe.each(["en", "ar"] as const)("ADM-06 · hero banners (%s)", (locale) => 
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
       locale === "en" ? "Winter" : "الشتاء",
     );
-    fireEvent.click(screen.getByRole("button", { name: messages[locale].home.hero.next }));
+    fireEvent.click(screen.getByRole("button", { name: messages[locale].home.hero.goTo.replace("{n}", "2") }));
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
       locale === "en" ? "Spring" : "الربيع",
     );
@@ -81,9 +81,18 @@ describe.each(["en", "ar"] as const)("ADM-06 · hero banners (%s)", (locale) => 
     expect(screen.queryByRole("button")).toBeNull();
   });
 
-  it("ADM-06 · unsafe CTA links are not rendered", () => {
+  it("ADM-06 · unsafe CTA links are not rendered; the default Shop new action takes their place", () => {
     wrap(locale, <Hero banners={[banner("1", "W", "ش", { ctaHref: "javascript:alert(1)" })]} />);
-    expect(screen.queryByRole("link")).toBeNull();
+    const hrefs = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
+    expect(hrefs).toEqual(["/shop?type=new", "/shop?type=resale"]);
+  });
+
+  it("ADM-06 · the banner CTA is the primary action, Shop pre-owned stays second", () => {
+    wrap(locale, <Hero banners={[banner("1", "W", "ش")]} />);
+    const links = screen.getAllByRole("link");
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["/shop?type=new", "/shop?type=resale"]);
+    expect(links[0].textContent).toBe(locale === "en" ? "Browse" : "تصفح");
+    expect(links[1].textContent).toBe(messages[locale].home.hero.shopResale);
   });
 });
 
@@ -117,32 +126,25 @@ describe.each(["en", "ar"] as const)("ADM-07 · sections (%s)", (locale) => {
     }),
   ];
 
-  it("ADM-07 · renders sections in API order, how-resale before testimonials", () => {
+  it("ADM-07 · composes the category row, ONE shelf, optional sections, then how pre-owned works", () => {
     const { container } = wrap(locale, <HomeSections sections={sections} locale={locale} />);
     const order = Array.from(container.querySelectorAll("[data-testid]"))
       .map((e) => e.getAttribute("data-testid"))
-      .filter((x) => x === "how-resale" || x?.startsWith("home-section-"));
-    expect(order).toEqual([
-      "home-section-NEW_ARRIVALS",
-      "home-section-CATEGORY_GRID",
-      "home-section-RESALE_PICKS",
-      "how-resale",
-      "home-section-TESTIMONIALS",
-    ]);
+      .filter((x) => ["home-section-CATEGORY_GRID", "home-shelf", "home-section-TESTIMONIALS", "how-resale"].includes(x ?? "")
+        || x?.startsWith("home-section-NEW") || x?.startsWith("home-section-RESALE"));
+    expect(order).toEqual(["home-section-CATEGORY_GRID", "home-shelf", "home-section-TESTIMONIALS", "how-resale"]);
   });
 
-  it("ADM-07 · localizes titles, shows price and pre-owned grade badge", () => {
+  it("ADM-07 · localizes titles, shows price and the pre-owned grade chip on the shelf", () => {
     wrap(locale, <HomeSections sections={sections} locale={locale} />);
-    expect(screen.getByRole("heading", { name: locale === "en" ? "T-a" : "ع-a" })).toBeTruthy();
-    const resale = screen.getByTestId("home-section-RESALE_PICKS");
-    expect(resale.textContent).toContain(messages[locale].condition.GOOD);
-    expect(resale.querySelector("bdi")).not.toBeNull();
-    expect(screen.getByRole("link", { name: /Sofa 1|أريكة 1/ }).getAttribute("href")).toBe(
-      "/shop/p-1",
-    );
+    expect(screen.getByRole("heading", { name: locale === "en" ? "T-b" : "ع-b" })).toBeTruthy();
+    const shelf = screen.getByTestId("home-shelf");
+    expect(shelf.textContent).toContain(messages[locale].condition.GOOD);
+    expect(shelf.querySelector("bdi")).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Sofa 1|أريكة 1/ }).getAttribute("href")).toBe("/shop/p-1");
   });
 
-  it("ADM-07 · hides empty sections", () => {
+  it("ADM-07 · hides empty sections (no shelf either)", () => {
     const empty: HomeSection[] = [
       sec("e1", "FEATURED_PRODUCTS", { products: [] }),
       sec("e2", "CATEGORY_GRID", { categories: [] }),
@@ -152,6 +154,7 @@ describe.each(["en", "ar"] as const)("ADM-07 · sections (%s)", (locale) => {
     expect(empty.some(sectionHasContent)).toBe(false);
     const { container } = wrap(locale, <HomeSections sections={empty} locale={locale} />);
     expect(container.querySelector('[data-testid^="home-section-"]')).toBeNull();
+    expect(screen.queryByTestId("home-shelf")).toBeNull();
   });
 
   it("ADM-07 · promo banner renders when resolved; testimonials are quiet static quotes", () => {

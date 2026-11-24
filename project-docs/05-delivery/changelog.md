@@ -1,5 +1,7 @@
 # Changelog
 
+## 2026-11-24 (web T-054 home done)
+- **web T-054 (CAT-01, ADM-06, ADM-07, UI-01): home v2.** Arched hero with the single GSAP moment, arch category row, one New / Pre-owned shelf, static How pre-owned works; contact strip removed from home. Strings added (en, ar): `home.hero.headline/sentence/shopNew/shopResale`, `home.shelf.*`; removed: `home.contact.*`, `home.tagline`, `home.intro`, `home.hero.prev/next`. See the task note for the decisions to confirm (hero actions, type-split shelf, copy without "inspected").
 ## 2026-11-24 (web T-053 header and footer done)
 - **web T-053 (UI-01, ADM-09): slim header with prominent search, emerald footer.** See the task note. Strings added: `footer.cities`, `footer.cod` (en, ar). Decision (autopilot) — owner to confirm: the COD sentence is "You pay in cash when your order arrives. No card needed." / «تدفع نقدًا عند وصول طلبك، ولا تحتاج إلى بطاقة.»; button shadows removed globally.
 ## 2026-11-24 (web T-052 foundation v2 done)

@@ -1,18 +1,131 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+import { Arch } from "@/components/arch";
+import { ImagePlaceholder } from "@/components/brand";
 import { CtaLink } from "@/components/home/cta-link";
+import { buttonVariants } from "@/components/ui/button";
+import { Link } from "@/i18n/navigation";
 import type { Banner } from "@/lib/api/public";
+import { safeHref } from "@/lib/home";
 import { pick } from "@/lib/pick";
+import { cn } from "@/lib/utils";
 import { useReducedMotion } from "@/lib/use-reduced-motion";
 
-const AUTO_ADVANCE_MS = 6000;
+const ROTATE_MS = 7000;
+const actionCls = "h-12 w-full px-8 sm:w-auto";
 
-/** Hero carousel from the active banners (W-01). GSAP: headline stagger + image parallax. */
+/**
+ * The one orchestrated moment of the site (ADR-015, design-system section 7), once on home load:
+ * the arch clip grows from its base (700 ms), the gold outline draws, the headline settles (rises 16 px).
+ * The image is already painted (LCP): the timeline only animates clip-path, opacity and transform, and
+ * clears its inline styles at the end. Skipped completely under prefers-reduced-motion.
+ */
+function useArchMoment(root: React.RefObject<HTMLElement | null>) {
+  const reduced = useReducedMotion();
+  useEffect(() => {
+    const el = root.current;
+    if (!el || reduced) return;
+    let cancelled = false;
+    let revert: (() => void) | undefined;
+    void (async () => {
+      const { gsap } = await import("gsap");
+      if (cancelled) return;
+      const ctx = gsap.context(() => {
+        const open = "inset(0% 0% 0% 0%)";
+        const closed = "inset(100% 0% 0% 0%)";
+        const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+        tl.fromTo("[data-arch-reveal]", { clipPath: closed }, { clipPath: open, duration: 0.7, clearProps: "clipPath" })
+          .fromTo(
+            "[data-arch-outline]",
+            { clipPath: closed },
+            { clipPath: open, duration: 0.6, ease: "power2.inOut", clearProps: "clipPath" },
+            "-=0.25",
+          )
+          .from(
+            "[data-hero-line]",
+            { opacity: 0, y: 16, duration: 0.5, stagger: 0.08, clearProps: "opacity,transform" },
+            "-=0.3",
+          );
+      }, el);
+      revert = () => ctx.revert();
+    })();
+    return () => {
+      cancelled = true;
+      revert?.();
+    };
+  }, [root, reduced]);
+}
+
+function Actions({ primary }: { primary?: { href: string | null | undefined; label: string } }) {
+  const t = useTranslations("home.hero");
+  const secondary = cn(buttonVariants({ variant: "secondary" }), actionCls);
+  const primaryCls = cn(buttonVariants(), actionCls);
+  return (
+    <div data-hero-line className="mt-8 flex flex-col gap-3 sm:flex-row">
+      {primary && safeHref(primary.href) ? (
+        <CtaLink href={primary.href} className={primaryCls}>
+          {primary.label}
+        </CtaLink>
+      ) : (
+        <Link href="/shop?type=new" className={primaryCls}>
+          {t("shopNew")}
+        </Link>
+      )}
+      <Link href="/shop?type=resale" className={secondary}>
+        {t("shopResale")}
+      </Link>
+    </div>
+  );
+}
+
+function HeroFrame({
+  root,
+  testId,
+  headline,
+  sentence,
+  actions,
+  art,
+  below,
+  ...aria
+}: {
+  root: React.RefObject<HTMLElement | null>;
+  testId: string;
+  headline: string;
+  sentence?: string;
+  actions: React.ReactNode;
+  art: React.ReactNode;
+  below?: React.ReactNode;
+} & React.HTMLAttributes<HTMLElement>) {
+  return (
+    <section ref={root} data-testid={testId} className="overflow-x-clip" {...aria}>
+      <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-10 md:px-8 md:py-16 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
+        <div>
+          <h1 data-hero-line className="type-hero measure">
+            {headline}
+          </h1>
+          {sentence ? (
+            <p data-hero-line className="measure mt-6 text-lg text-muted-foreground">
+              {sentence}
+            </p>
+          ) : null}
+          {actions}
+        </div>
+        <div className="mx-auto w-full max-w-md lg:me-0 lg:ms-auto">
+          <Arch ratio="4/5" outline>
+            {art}
+          </Arch>
+          {below}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Hero from the active banners (W-01): arched image, headline, two actions. Crossfade every 7 s. */
 export function Hero({ banners }: { banners: Banner[] }) {
   const t = useTranslations("home.hero");
   const locale = useLocale();
@@ -21,158 +134,115 @@ export function Hero({ banners }: { banners: Banner[] }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const count = banners.length;
-  const banner = banners[Math.min(index, count - 1)];
+  const current = Math.min(index, Math.max(count - 1, 0));
+  const banner = banners[current];
 
-  // Auto-advance only when motion is allowed and the user is not interacting.
+  useArchMoment(root);
+
+  // Auto-rotate only when motion is allowed and the user is not hovering or focused inside the hero.
   useEffect(() => {
     if (count < 2 || reduced || paused) return;
-    const id = window.setInterval(() => setIndex((i) => (i + 1) % count), AUTO_ADVANCE_MS);
+    const id = window.setInterval(() => setIndex((i) => (i + 1) % count), ROTATE_MS);
     return () => window.clearInterval(id);
   }, [count, reduced, paused]);
 
-  // GSAP is loaded on demand (home only). x offsets flip in RTL (CLAUDE.md rule 3).
-  useEffect(() => {
-    const el = root.current;
-    if (!el || reduced || typeof window.matchMedia !== "function") return;
-    let cleanup: (() => void) | undefined;
-    let cancelled = false;
-    void (async () => {
-      const { gsap } = await import("gsap");
-      const { ScrollTrigger } = await import("gsap/ScrollTrigger");
-      if (cancelled) return;
-      gsap.registerPlugin(ScrollTrigger);
-      const dir = document.documentElement.dir === "rtl" ? -1 : 1; // mirror x offsets in RTL
-      const mm = gsap.matchMedia();
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.from(el.querySelectorAll("[data-hero-line]"), {
-          opacity: 0,
-          x: 28 * dir,
-          y: 12,
-          duration: 0.7,
-          stagger: 0.12,
-          ease: "power2.out",
-        });
-        // Slow image zoom, started only now (after load and hydration), so it never delays the LCP image.
-        gsap.fromTo(
-          el.querySelectorAll("[data-hero-image] img"),
-          { scale: 1 },
-          { scale: 1.08, duration: 16, ease: "none" },
-        );
-        const image = el.querySelector("[data-hero-image]");
-        if (image) {
-          gsap.to(image, {
-            yPercent: 10,
-            ease: "none",
-            scrollTrigger: { trigger: el, start: "top top", end: "bottom top", scrub: true },
-          });
-        }
-      });
-      cleanup = () => mm.revert();
-    })();
-    return () => {
-      cancelled = true;
-      cleanup?.();
-    };
-  }, [index, reduced]);
-
   if (!banner) return null;
-  const title = pick(banner.title, locale);
-  const subtitle = pick(banner.subtitle, locale);
-  const ctaLabel = pick(banner.ctaLabel, locale);
-  const mobile = banner.imageMobile?.url;
+  const sentence = pick(banner.subtitle, locale);
+  const ctaLabel = pick(banner.ctaLabel, locale) || t("shopNew");
 
   return (
-    <section
-      ref={root}
+    <HeroFrame
+      root={root}
+      testId="home-hero"
       aria-roledescription="carousel"
       aria-label={t("label")}
-      data-testid="home-hero"
-      className="relative isolate overflow-hidden bg-muted"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
-    >
-      <div
-        key={banner.id}
-        role="group"
-        aria-roledescription="slide"
-        aria-label={t("slide", { current: index + 1, total: count })}
-        className="relative min-h-[26rem] md:min-h-[32rem]"
-      >
-        <div data-hero-image className="absolute inset-x-0 -top-8 -bottom-8 -z-10">
-          {mobile ? (
-            <Image
-              src={mobile}
-              alt=""
-              fill
-              priority={index === 0}
-              sizes="100vw"
-              className="object-cover md:hidden"
-            />
-          ) : null}
-          <Image
-            src={banner.imageDesktop.url}
-            alt={pick(banner.imageDesktop.alt, locale)}
-            fill
-            priority={index === 0}
-            sizes="100vw"
-            className={mobile ? "hidden object-cover md:block" : "object-cover"}
-          />
-          <div className="absolute inset-0 bg-foreground/45" aria-hidden />
+      headline={pick(banner.title, locale)}
+      sentence={sentence || undefined}
+      actions={<Actions key={banner.id} primary={{ href: banner.ctaHref, label: ctaLabel }} />}
+      art={
+        <div data-arch-reveal className="absolute inset-0">
+          {banners.map((b, i) => {
+            const active = i === current;
+            const mobile = b.imageMobile?.url;
+            return (
+              <div
+                key={b.id}
+                role="group"
+                aria-roledescription="slide"
+                aria-label={t("slide", { current: i + 1, total: count })}
+                aria-hidden={active ? undefined : true}
+                data-active={active}
+                className={cn(
+                  "absolute inset-0 transition-opacity duration-700 motion-reduce:transition-none",
+                  active ? "opacity-100" : "opacity-0",
+                )}
+              >
+                {mobile ? (
+                  <Image
+                    src={mobile}
+                    alt={active ? pick(b.imageDesktop.alt, locale) : ""}
+                    fill
+                    priority={i === 0}
+                    sizes="(min-width: 1024px) 28rem, 90vw"
+                    className="object-cover object-center md:hidden"
+                  />
+                ) : null}
+                <Image
+                  src={b.imageDesktop.url}
+                  alt={active ? pick(b.imageDesktop.alt, locale) : ""}
+                  fill
+                  priority={i === 0}
+                  sizes="(min-width: 1024px) 28rem, 90vw"
+                  className={cn("object-cover object-center", mobile && "hidden md:block")}
+                />
+              </div>
+            );
+          })}
         </div>
-        <div className="mx-auto flex min-h-[inherit] max-w-7xl flex-col justify-end gap-4 px-4 pb-16 pt-24 text-primary-foreground">
-          <h1
-            data-hero-line
-            className="font-display max-w-2xl text-4xl font-semibold leading-tight md:text-5xl"
-          >
-            {title}
-          </h1>
-          {subtitle ? (
-            <p data-hero-line className="max-w-xl text-lg">
-              {subtitle}
-            </p>
-          ) : null}
-          <CtaLink
-            href={banner.ctaHref}
-            className="relative inline-flex h-11 w-fit items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <span data-hero-line>{ctaLabel || t("cta")}</span>
-          </CtaLink>
-        </div>
-      </div>
-      {count > 1 ? (
-        <div className="absolute inset-x-0 bottom-4 flex items-center justify-center gap-3">
-          <button
-            type="button"
-            aria-label={t("prev")}
-            onClick={() => setIndex((i) => (i - 1 + count) % count)}
-            className="rounded-full bg-card/80 p-2 text-foreground"
-          >
-            <ChevronLeft className="size-4 rtl:rotate-180" aria-hidden />
-          </button>
-          <div className="flex gap-2">
+      }
+      below={
+        count > 1 ? (
+          <div className="mt-6 flex justify-center gap-1">
             {banners.map((b, i) => (
               <button
                 key={b.id}
                 type="button"
                 aria-label={t("goTo", { n: i + 1 })}
-                aria-current={i === index}
+                aria-current={i === current}
                 onClick={() => setIndex(i)}
-                className={`size-2.5 rounded-full ${i === index ? "bg-primary" : "bg-card/70"}`}
-              />
+                className="flex size-6 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className={cn("size-2.5 rounded-full", i === current ? "bg-primary" : "bg-stone")} />
+              </button>
             ))}
           </div>
-          <button
-            type="button"
-            aria-label={t("next")}
-            onClick={() => setIndex((i) => (i + 1) % count)}
-            className="rounded-full bg-card/80 p-2 text-foreground"
-          >
-            <ChevronRight className="size-4 rtl:rotate-180" aria-hidden />
-          </button>
+        ) : null
+      }
+    />
+  );
+}
+
+/** No active banner (or API unreachable): the same composition with the default copy, so the page is never blank. */
+export function HeroFallback() {
+  const t = useTranslations("home");
+  const root = useRef<HTMLElement>(null);
+  useArchMoment(root);
+  return (
+    <HeroFrame
+      root={root}
+      testId="home-fallback-hero"
+      headline={t("hero.headline")}
+      sentence={t("hero.sentence")}
+      actions={<Actions />}
+      art={
+        <div data-arch-reveal className="absolute inset-0">
+          <ImagePlaceholder name={t("brand")} />
         </div>
-      ) : null}
-    </section>
+      }
+    />
   );
 }

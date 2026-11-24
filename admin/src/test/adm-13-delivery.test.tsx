@@ -250,7 +250,7 @@ describe.each([
     expect(puts().length).toBe(0);
   });
 
-  it("ADM-14 · saving keeps General, SEO, VAT, phone and socials untouched and sends no currency", async () => {
+  it("ADM-14 · saving keeps General, SEO, VAT, the contact details and socials untouched and sends no currency", async () => {
     await openDelivery();
     fill(d.baseFee, "16");
     fireEvent.click(screen.getByTestId("settings-save"));
@@ -263,7 +263,8 @@ describe.each([
     expect(b.address).toEqual(o.address);
     expect(b.seo).toEqual(o.seo);
     expect(b.vat).toEqual(o.vat);
-    expect(b.contactPhone).toBe(o.contactPhone);
+    // the same number, in the canonical form the API stores (owner 2026-11-24)
+    expect(b.contactPhone).toBe("+966112345678");
     expect(b.socials).toEqual(o.socials);
     expect(b.defaultLocale).toBe("ar");
     expect("currency" in b).toBe(false);

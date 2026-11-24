@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { KernedText } from "@/components/kerned-text";
 import { Button } from "@/components/ui/button";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api/errors";
@@ -63,7 +64,7 @@ export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl md:text-5xl">{t("loginTitle")}</h1>
+      <h1 className="text-4xl md:text-5xl"><KernedText>{t("loginTitle")}</KernedText></h1>
       <p className="mt-2 mb-8 text-base text-muted-foreground">{t("loginIntro")}</p>
       <form onSubmit={onSubmit} noValidate className="space-y-5">
         {resetDone ? <FormNotice>{t("resetDone")}</FormNotice> : null}

@@ -130,10 +130,14 @@ html[lang="ar"] {
 .type-hero {
   font-family: var(--font-display);
   font-weight: 700;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
   font-size: clamp(2.25rem, 1.2rem + 4.2vw, 4.5rem);
   line-height: 1.08;
+  letter-spacing: -0.025em;
 }
 html[lang="ar"] .type-hero {
+  letter-spacing: 0; /* Arabic is never tracked: it breaks the joins */
   line-height: 1.35;
 }
 /* Measure: running text never wider than 65 characters. */

@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { KernedText } from "@/components/kerned-text";
 import { Button } from "@/components/ui/button";
 import { Link, useRouter } from "@/i18n/navigation";
 import { register, type Locale } from "@/lib/auth/flows";
@@ -78,7 +79,7 @@ export function RegisterForm() {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl md:text-5xl">{t("registerTitle")}</h1>
+      <h1 className="text-4xl md:text-5xl"><KernedText>{t("registerTitle")}</KernedText></h1>
       <p className="mt-2 mb-8 text-base text-muted-foreground">{t("registerIntro")}</p>
       <form onSubmit={onSubmit} noValidate className="space-y-5">
         <ErrorSummary show={summary.shown} />

@@ -221,6 +221,16 @@ describe.each(["en", "ar"] as const)("UI-04 · hero carousel (%s)", (locale) => 
     expect(source.getAttribute("srcset")).toContain("https://cdn.test/m1.jpg");
   });
 
+  it(`UI-04 · an admin banner photo uses the banner title as its alt text; static slides are decorative (${locale})`, () => {
+    const withMobile = { ...banner("1"), imageMobile: { url: "https://cdn.test/m1.jpg", alt: { en: "other", ar: "آخر" } } } as Banner;
+    const { unmount } = wrap(locale, <Hero banners={[withMobile]} />);
+    expect(screen.getByRole("img").getAttribute("alt")).toBe(locale === "en" ? "Banner 1" : "لافتة 1");
+    unmount();
+    wrap(locale, <HeroFallback />);
+    const hero = screen.getByTestId("home-fallback-hero");
+    expect([...hero.querySelectorAll("img")].every((i) => i.getAttribute("alt") === "")).toBe(true);
+  });
+
   it(`UI-04 · the hero has a branded gradient behind the photo, never a plain dark void (${locale})`, () => {
     wrap(locale, <Hero banners={[banner("1")]} />);
     const cls = screen.getByTestId("home-hero").className;

@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
+import { KernedText } from "@/components/kerned-text";
 import { Button } from "@/components/ui/button";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api/errors";
@@ -102,7 +103,7 @@ export function VerifyForm() {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl md:text-5xl">{t("verifyTitle")}</h1>
+      <h1 className="text-4xl md:text-5xl"><KernedText>{t("verifyTitle")}</KernedText></h1>
       <p className="mt-2 text-base text-muted-foreground">{t("verifyIntro")}</p>
       <p className="mt-1 mb-6 text-sm text-foreground">
         <bdi>{t("otpSent", { email: pending.email })}</bdi>

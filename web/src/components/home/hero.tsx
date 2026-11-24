@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { getImageProps } from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { KernedText } from "@/components/kerned-text";
 import { CtaLink } from "@/components/home/cta-link";
 import { buttonVariants } from "@/components/ui/button";
 import type { Banner } from "@/lib/api/public";
@@ -154,9 +155,13 @@ function Slides({ slides, testId }: { slides: Slide[]; testId: string }) {
               <div className="container-wide absolute inset-x-0 bottom-0 pb-24 md:pb-28">
                 <div className="max-w-2xl">
                   {active ? (
-                    <h1 className="type-hero">{s.title}</h1>
+                    <h1 className="type-hero">
+                      <KernedText>{s.title}</KernedText>
+                    </h1>
                   ) : (
-                    <p className="type-hero">{s.title}</p>
+                    <p className="type-hero">
+                      <KernedText>{s.title}</KernedText>
+                    </p>
                   )}
                   {s.line ? <p className="mt-4 max-w-xl text-lg">{s.line}</p> : null}
                   {s.ctas.length > 0 ? (
@@ -254,7 +259,8 @@ export function Hero({ banners }: { banners: Banner[] }) {
   if (banners.length === 0) return null;
   const slides: Slide[] = banners.map((b) => {
     const safe = safeHref(b.ctaHref);
-    const alt = pick(b.imageDesktop.alt, locale);
+    // an admin banner's photo is described by the banner title (review item 7); static slides stay decorative
+    const alt = pick(b.title, locale);
     return {
       id: b.id,
       title: pick(b.title, locale),
@@ -263,7 +269,7 @@ export function Hero({ banners }: { banners: Banner[] }) {
         ? [{ href: b.ctaHref as string, label: pick(b.ctaLabel, locale) || t("shopNew") }]
         : [{ href: "/shop?type=new", label: t("shopNew") }],
       desktop: { src: b.imageDesktop.url, alt },
-      mobile: b.imageMobile?.url ? { src: b.imageMobile.url, alt: pick(b.imageMobile.alt, locale) || alt } : null,
+      mobile: b.imageMobile?.url ? { src: b.imageMobile.url, alt } : null,
     };
   });
   return <Slides slides={slides} testId="home-hero" />;

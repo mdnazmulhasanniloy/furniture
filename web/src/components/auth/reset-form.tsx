@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { KernedText } from "@/components/kerned-text";
 import { Button } from "@/components/ui/button";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api/errors";
@@ -60,7 +61,7 @@ export function ResetForm() {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl md:text-5xl">{t("resetTitle")}</h1>
+      <h1 className="text-4xl md:text-5xl"><KernedText>{t("resetTitle")}</KernedText></h1>
       <p className="mt-2 mb-8 text-base text-muted-foreground">
         {carried ? <bdi>{t("resetIntro", { email: carried })}</bdi> : t("resetIntroNoEmail")}
       </p>

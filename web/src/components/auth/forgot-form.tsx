@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
+import { KernedText } from "@/components/kerned-text";
 import { Button } from "@/components/ui/button";
 import { Link, useRouter } from "@/i18n/navigation";
 import { forgotPassword } from "@/lib/auth/flows";
@@ -47,7 +48,7 @@ export function ForgotForm() {
 
   return (
     <AuthShell>
-      <h1 className="text-4xl md:text-5xl">{t("forgotTitle")}</h1>
+      <h1 className="text-4xl md:text-5xl"><KernedText>{t("forgotTitle")}</KernedText></h1>
       <p className="mt-2 mb-8 text-base text-muted-foreground">{t("forgotIntro")}</p>
       <form onSubmit={onSubmit} noValidate className="space-y-5">
         <ErrorSummary show={summary.shown} />

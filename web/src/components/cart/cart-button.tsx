@@ -46,7 +46,7 @@ export function CartButton({ config }: { config?: CartConfig }) {
           {count > 0 ? (
             <span
               data-testid="cart-count"
-              className="absolute -end-1 -top-1 min-w-4 rounded-full bg-accent px-1 text-center text-[10px] font-semibold leading-4 text-accent-foreground"
+              className="absolute -end-1 -top-1 min-w-4 rounded-full bg-gold px-1 text-center text-[10px] font-semibold leading-4 text-gold-foreground"
             >
               <span aria-hidden>{count > 99 ? "99+" : count}</span>
               <span className="sr-only">{t("cart.badgeLabel", { count })}</span>

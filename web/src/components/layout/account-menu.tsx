@@ -45,7 +45,7 @@ export function AccountActions() {
             <span
               data-testid="notifications-count"
               aria-hidden
-              className="absolute -end-1 -top-1 min-w-4 rounded-full bg-accent px-1 text-center text-[10px] font-semibold leading-4 text-accent-foreground"
+              className="absolute -end-1 -top-1 min-w-4 rounded-full bg-gold px-1 text-center text-[10px] font-semibold leading-4 text-gold-foreground"
             >
               {unread > 99 ? "99+" : unread}
             </span>

@@ -79,7 +79,7 @@ export async function ProductDetailView({
           </p>
 
           <p
-            className={`text-sm font-medium ${soldOut ? "text-destructive" : resale ? "text-warning" : "text-success"}`}
+            className={`text-sm font-medium ${soldOut ? "text-destructive" : resale ? "text-warning-foreground" : "text-success-foreground"}`}
             data-testid="stock-text"
           >
             {soldOut

@@ -2,8 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 // UI-01 — design tokens and per-locale fonts actually applied.
 
-// linen --background #FBF8F3 → rgb(251, 248, 243)
-const LINEN_RGB = "rgb(251, 248, 243)";
+// white --background #FFFFFF → rgb(255, 255, 255) (CR-007 "Emerald and gold")
+const LINEN_RGB = "rgb(255, 255, 255)";
 
 // Next's font-preload manifest is per route entry; [locale] is one entry, so
 // next/font preload would ship BOTH locales' fonts to everyone. Fonts therefore use
@@ -58,7 +58,7 @@ async function fontNetworkAudit(page: Page, url: string) {
 
 test.describe("UI-01 — tokens, fonts and locale-scoped preloads", () => {
   for (const locale of ["en", "ar"] as const) {
-    test(`UI-01: body uses the linen --background token in /${locale}`, async ({
+    test(`UI-01: body uses the white --background token in /${locale}`, async ({
       page,
     }) => {
       await page.goto(`/${locale}`);

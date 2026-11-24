@@ -4,7 +4,7 @@ import { formatPrice } from "@/lib/format";
 
 /** Price inside <bdi> so symbol and number do not reorder in Arabic text. */
 export function Price({ halalas, locale }: { halalas: number; locale: Locale }) {
-  return <bdi>{formatPrice(halalas, locale)}</bdi>;
+  return <bdi className="text-price">{formatPrice(halalas, locale)}</bdi>;
 }
 
 export function PhoneText({ value }: { value: string }) {

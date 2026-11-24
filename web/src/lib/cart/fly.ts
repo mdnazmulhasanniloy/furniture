@@ -15,7 +15,7 @@ export function flyToCart(from: Element | null): void {
     const dot = document.createElement("div");
     dot.setAttribute("aria-hidden", "true");
     dot.setAttribute("data-testid", "fly-dot");
-    dot.className = "pointer-events-none fixed z-[60] size-4 rounded-full bg-accent";
+    dot.className = "pointer-events-none fixed z-[60] size-4 rounded-full bg-gold";
     dot.style.left = `${a.left + a.width / 2 - 8}px`;
     dot.style.top = `${a.top + a.height / 2 - 8}px`;
     document.body.appendChild(dot);

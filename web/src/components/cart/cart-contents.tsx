@@ -231,9 +231,9 @@ function FreeDeliveryProgress({ subtotal, threshold, locale }: { subtotal: numbe
         aria-valuemax={100}
         aria-valuenow={pct}
         aria-label={t("freeDeliveryReached")}
-        className="h-2 overflow-hidden rounded-full bg-muted"
+        className="h-2 overflow-hidden rounded-full border border-input bg-muted"
       >
-        <div className="h-full bg-success transition-[width] motion-reduce:transition-none" style={{ width: `${pct}%` }} />
+        <div className="h-full bg-gold-strong transition-[width] motion-reduce:transition-none" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -271,7 +271,7 @@ function LineRow({ line, locale }: { line: Line; locale: Locale }) {
           </p>
         ) : null}
         {line.issue && p ? (
-          <p className="text-xs text-warning" data-testid="cart-issue">
+          <p className="text-xs text-warning-foreground" data-testid="cart-issue">
             {line.issue === "PRICE_CHANGED" && line.details
               ? t("cart.issue.PRICE_CHANGED", {
                   oldPrice: formatPrice(line.details.oldPrice, locale),

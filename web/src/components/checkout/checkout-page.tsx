@@ -303,7 +303,7 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
                               : t("lineOutOfStock")}
                           </p>
                         ) : l.issue && p ? (
-                          <p className="text-xs text-warning" data-testid="checkout-issue">
+                          <p className="text-xs text-warning-foreground" data-testid="checkout-issue">
                             {l.issue === "PRICE_CHANGED" && l.details
                               ? tc("issue.PRICE_CHANGED", {
                                   oldPrice: formatPrice(l.details.oldPrice, locale),
@@ -369,7 +369,7 @@ export function CheckoutPage({ cities }: { cities: CityOption[] }) {
             <p role="alert" className="text-destructive" data-testid="co-not-deliverable">{tc("notDeliverable")}</p>
           ) : null}
           {totalsUpdated ? (
-            <p role="status" className="rounded-md border border-warning/50 p-2 text-warning" data-testid="totals-updated">
+            <p role="status" className="rounded-md border border-warning/50 p-2 text-warning-foreground" data-testid="totals-updated">
               {t("totalsUpdated")}
             </p>
           ) : null}

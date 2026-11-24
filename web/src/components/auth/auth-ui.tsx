@@ -71,7 +71,7 @@ export function FormAlert({ error }: { error: unknown }) {
 
 export function FormNotice({ children }: { children: React.ReactNode }) {
   return (
-    <p role="status" className="rounded-md border border-success/40 bg-card p-3 text-sm text-success">
+    <p role="status" className="rounded-md border border-success/40 bg-card p-3 text-sm text-success-foreground">
       {children}
     </p>
   );

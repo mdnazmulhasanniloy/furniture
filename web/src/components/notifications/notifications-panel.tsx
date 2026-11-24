@@ -113,7 +113,7 @@ export function NotificationsPanel() {
                   <span className="flex items-center gap-2">
                     {unreadRow ? (
                       <>
-                        <span aria-hidden className="size-2 shrink-0 rounded-full bg-accent" />
+                        <span aria-hidden className="size-2 shrink-0 rounded-full bg-gold" />
                         <span className="sr-only">{t("unread")}</span>
                       </>
                     ) : null}

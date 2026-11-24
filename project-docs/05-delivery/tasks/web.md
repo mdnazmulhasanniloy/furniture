@@ -114,9 +114,11 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 Order: T-046 first, then T-047, T-049 (and backend T-031, admin T-077), then T-048, T-050, T-051. Each task: plan, tests in en and ar, typecheck/lint/i18n/build/e2e, `/review-task`, one commit.
 
-### T-046 Redesign foundation: tokens, AA gate, motion hook, placeholder · todo
+### T-046 Redesign foundation: tokens, AA gate, motion hook, placeholder · done
 - Req: UI-01, UI-02 · Depends: — · Docs: `design-system.md` §1, §5, `adr/ADR-014`
 - Done: `globals.css` token values and new tokens (`--gold-foreground`, `--gold-strong`, `--price`, `--input`, `--warning-foreground`, `--success-foreground`), `--accent` removed and its call sites remapped; `Price`, Button and badge variants on tokens; shared reduced-motion + RTL motion hook; wordmark and image placeholder component (emerald pattern + wordmark); test `UI-02 · AA contrast` parsing the real CSS (body, muted, price, every button and badge text ≥ 4.5:1; ring, `--input`, `--gold-strong` ≥ 3:1); existing no-raw-colour test stays green.
+
+- Closed 2026-11-24: `/review-task T-046` PASS. Tests `UI-02 · AA contrast ...` (23, reads the real `globals.css` and the Button/Badge class strings) in `src/test/ui-02-aa-contrast.test.ts`, `UI-01 · foundation` (en + ar) in `src/test/ui-01-foundation.test.tsx`; e2e `ui.spec.ts` background assertion updated from linen to white (the palette changed by CR-007). Web 336 tests, typecheck, lint, i18n, build, e2e 62/62. Added: `Badge`, Button `gold` variant, `useMotionPrefs`, `Wordmark` / `ImagePlaceholder` (`.pattern-emerald`), `Price` uses `text-price`, header wordmark. `--accent` call sites: cart/account count badge and unread dot and fly dot -> `gold`; `text-warning`/`text-success` -> `*-foreground`; cart progress fill -> `gold-strong` with an `input` outline. Web has no dark theme, so the AA test covers light only (admin T-077 covers dark).
 
 ### T-047 Product card redesign · todo
 - Req: PROD-01 · Depends: T-046 · Docs: `design-system.md` §4

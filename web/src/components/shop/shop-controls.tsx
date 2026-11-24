@@ -116,7 +116,7 @@ function ShopFrameInner({
   ];
 
   return (
-    <div className="mt-6 grid gap-8 lg:grid-cols-[16rem_1fr]">
+    <div className="mt-8 grid gap-8 lg:grid-cols-[17rem_1fr] lg:gap-12">
       {open ? (
         <button
           type="button"
@@ -135,8 +135,8 @@ function ShopFrameInner({
         aria-modal={open ? true : undefined}
         className={
           open
-            ? "fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-y-auto rounded-t-[10px] bg-background p-4 pb-6 shadow-float lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:p-0 lg:shadow-none"
-            : "hidden lg:block"
+            ? "fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-y-auto rounded-t-lg bg-background p-4 pb-6 shadow-float lg:sticky lg:top-24 lg:z-auto lg:max-h-[calc(100svh-7rem)] lg:self-start lg:overflow-y-auto lg:rounded-none lg:p-0 lg:pe-2 lg:shadow-none"
+            : "hidden lg:sticky lg:top-24 lg:block lg:max-h-[calc(100svh-7rem)] lg:self-start lg:overflow-y-auto lg:pe-2"
         }
       >
         <div className="mb-4 flex items-center justify-between lg:hidden">
@@ -158,8 +158,8 @@ function ShopFrameInner({
         <form onSubmit={apply} className="space-y-6" aria-label={t("filters")}>
           {categories.length > 0 && (
             <fieldset className="space-y-2">
-              <legend className="mb-1 text-sm font-semibold">{t("category")}</legend>
-              <label className="flex items-center gap-2 text-sm">
+              <legend className="mb-2 text-base font-semibold">{t("category")}</legend>
+              <label className="flex items-center gap-2 text-[0.9375rem]">
                 <input
                   type="radio"
                   name="category"
@@ -170,7 +170,7 @@ function ShopFrameInner({
               </label>
               {categories.map((root) => (
                 <div key={root.id} className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm">
+                  <label className="flex items-center gap-2 text-[0.9375rem]">
                     <input
                       type="radio"
                       name="category"
@@ -196,9 +196,9 @@ function ShopFrameInner({
           )}
 
           <fieldset className="space-y-2">
-            <legend className="mb-1 text-sm font-semibold">{t("type.label")}</legend>
+            <legend className="mb-2 text-base font-semibold">{t("type.label")}</legend>
             {typeOptions.map((o) => (
-              <label key={o.id} className="flex items-center gap-2 text-sm">
+              <label key={o.id} className="flex items-center gap-2 text-[0.9375rem]">
                 <input
                   type="radio"
                   name="type"
@@ -211,9 +211,9 @@ function ShopFrameInner({
           </fieldset>
 
           <fieldset className="space-y-2">
-            <legend className="mb-1 text-sm font-semibold">{t("condition")}</legend>
+            <legend className="mb-2 text-base font-semibold">{t("condition")}</legend>
             {CONDITIONS.map((c) => (
-              <label key={c} className="flex items-center gap-2 text-sm">
+              <label key={c} className="flex items-center gap-2 text-[0.9375rem]">
                 <input
                   type="checkbox"
                   checked={draft.condition.includes(c)}
@@ -225,7 +225,7 @@ function ShopFrameInner({
           </fieldset>
 
           <fieldset className="space-y-2">
-            <legend className="mb-1 text-sm font-semibold">{t("priceRange")}</legend>
+            <legend className="mb-2 text-base font-semibold">{t("priceRange")}</legend>
             <div className="flex items-center gap-2">
               <input
                 className={fieldClass}
@@ -257,7 +257,7 @@ function ShopFrameInner({
             />
           </label>
 
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-[0.9375rem]">
             <input
               type="checkbox"
               checked={draft.inStock}

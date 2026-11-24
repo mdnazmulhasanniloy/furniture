@@ -116,11 +116,11 @@ export function ProductGrid({
   if (items.length === 0) {
     return (
       <div
-        className="flex flex-col items-center gap-4 bg-muted px-4 py-16 text-center"
+        className="flex flex-col items-center gap-4 rounded-lg bg-blush px-4 py-16 text-center text-blush-foreground"
         data-testid="shop-empty"
       >
-        <p className="font-display text-xl font-semibold">{t("empty.title")}</p>
-        <p className="max-w-sm text-sm text-muted-foreground">{t("empty.body")}</p>
+        <p className="font-display text-2xl font-bold">{t("empty.title")}</p>
+        <p className="max-w-sm text-base text-muted-foreground">{t("empty.body")}</p>
         {hasActiveFilters(filters) && (
           <Link
             href="/shop"

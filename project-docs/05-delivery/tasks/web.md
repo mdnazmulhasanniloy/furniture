@@ -235,7 +235,7 @@ Order: backend T-080 first (seed), then the owner runs `demo:reset`, then T-081 
 ### T-095 Header (transparent over the hero, solid on scroll) and footer · done
 - Req: UI-04
 ### T-096 Product cards and rails (hover zoom, hidden scrollbar, arrows, keyboard) · done (rail arrows reuse the approved carousel previous/next strings: confirm the wording)
-### T-097 Listing: sticky filter sidebar, bottom sheet · todo
+### T-097 Listing: sticky filter sidebar, bottom sheet · done
 ### T-098 Product page: gallery, thumbnails, zoom, sticky buy box · todo
 ### T-099 Cart, checkout, order success · todo
 ### T-100 Account, orders, wishlist, notifications · todo

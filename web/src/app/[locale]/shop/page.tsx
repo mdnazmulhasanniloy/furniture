@@ -34,8 +34,8 @@ export default async function ShopPage({
   ]);
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-12">
-      <h1 className="text-4xl font-semibold">{t("title")}</h1>
+    <main className="container-wide band">
+      <h1 className="text-4xl md:text-5xl">{t("title")}</h1>
       <ShopFrame filters={filters} categories={categories} locale={locale}>
         {result ? (
           <>
@@ -49,7 +49,7 @@ export default async function ShopPage({
         ) : (
           <p
             role="alert"
-            className="bg-muted p-6 text-center text-sm"
+            className="rounded-lg bg-blush p-6 text-center text-base text-blush-foreground"
             data-testid="shop-error"
           >
             {t("loadError")}

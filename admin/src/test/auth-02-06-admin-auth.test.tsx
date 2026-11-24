@@ -320,6 +320,14 @@ describe.each([
     expect(authStore.get().accessToken).toBe("at-i");
   });
 
+  it("AUTH-02 · Arabic-Indic digits typed on an Arabic keyboard are accepted and sent as ASCII", async () => {
+    stubApi((c) => (c.path === "/auth/accept-invite" ? json({ accessToken: "at-i", user: adminUser }) : undefined));
+    mount("/accept-invite?email=new%40furnixa.test");
+    await fill("١٢٣٤٥٦", "Passw0rdOK");
+    expect(await screen.findByTestId("sidebar")).toBeTruthy();
+    expect((calls.find((c) => c.path === "/auth/accept-invite")!.body as { code: string }).code).toBe("123456");
+  });
+
   it("AUTH-02 · weak password and malformed code are rejected locally with the localized rule", async () => {
     stubApi(() => undefined);
     mount("/accept-invite?email=new%40furnixa.test");

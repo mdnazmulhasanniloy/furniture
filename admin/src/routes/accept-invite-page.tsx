@@ -10,6 +10,7 @@ import { ApiError } from "@/lib/api/errors";
 import { errorMessage } from "@/lib/api/messages";
 import { acceptInvite } from "@/lib/auth/flows";
 import { useAuth } from "@/lib/auth/use-auth";
+import { toAsciiDigits } from "@/lib/utils";
 import { PublicFrame } from "./public-frame";
 
 // api-spec accept-invite: 6-digit code, password 8-128 chars with a letter and a number (PRD AUTH-03 rule).
@@ -84,7 +85,7 @@ export function AcceptInvitePage() {
             maxLength={6}
             dir="ltr"
             aria-invalid={!!errors.code}
-            {...register("code")}
+            {...register("code", { setValueAs: toAsciiDigits })}
           />
           {errors.code && (
             <span role="alert" className="text-destructive">

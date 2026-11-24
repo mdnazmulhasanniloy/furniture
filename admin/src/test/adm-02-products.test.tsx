@@ -415,6 +415,15 @@ describe.each([
     expect(document.body.textContent).not.toContain(p.form.required);
   });
 
+  it("ADM-02 · the category dropdown lists each child under its parent (B6)", async () => {
+    mount("/products/new");
+    await screen.findByTestId("product-save");
+    await screen.findByRole("option", { name: `— ${child.name[L]}` });
+    const select = screen.getByLabelText(p.form.category) as HTMLSelectElement;
+    // placeholder, Sofas, its child Armchairs, Lamps - not the API's flat sortOrder order
+    expect(Array.from(select.options).map((o) => o.value)).toEqual(["", "c1", "c2", "c3"]);
+  });
+
   it("ADM-02 · the category select keeps an edit made before the options loaded (A2)", async () => {
     mount("/products/p1");
     await screen.findByTestId("product-save");

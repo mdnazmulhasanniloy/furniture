@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/errors";
 import { errorMessage } from "@/lib/api/messages";
-import { slugify, useCategories } from "@/lib/categories";
+import { slugify, sortAsTree, useCategories } from "@/lib/categories";
 import { formatPrice, toLocale } from "@/lib/format";
 import { parseSar } from "@/lib/money";
 import {
@@ -237,7 +237,8 @@ function ProductEditor({ product, onReload }: { product: AdminProduct | null; on
             {sel(
               "categoryId",
               t("products.form.category"),
-              (cats.data ?? []).map((c) => ({ value: c.id, label: `${c.parentId ? "— " : ""}${c.name[locale]}` })),
+              // Each child under its parent (QA B6), indented with an em dash.
+              sortAsTree(cats.data ?? []).map((c) => ({ value: c.id, label: `${c.parentId ? "— " : ""}${c.name[locale]}` })),
             )}
             {sel(
               "type",

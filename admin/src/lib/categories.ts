@@ -26,6 +26,27 @@ export type CategoryWrite = {
   image?: { key: string; alt?: { en: string; ar: string } } | null;
 };
 
+/**
+ * QA B6 (2026-11-24): the API returns categories by `sortOrder`, so a child whose sortOrder is lower
+ * than its parent's was listed above it. This keeps the API's order among the parents and puts each
+ * parent's children straight after it - the shape the list and the product dropdown both show. The
+ * data model is one level deep (a child never has children of its own); a child whose parent is not
+ * in the list (deleted, or filtered out) is treated as a top-level entry, so nothing disappears.
+ */
+export function sortAsTree(list: AdminCategory[]): AdminCategory[] {
+  const ids = new Set(list.map((c) => c.id));
+  const children = new Map<string, AdminCategory[]>();
+  const roots: AdminCategory[] = [];
+  for (const c of list) {
+    if (c.parentId && ids.has(c.parentId) && c.parentId !== c.id) {
+      children.set(c.parentId, [...(children.get(c.parentId) ?? []), c]);
+    } else {
+      roots.push(c);
+    }
+  }
+  return roots.flatMap((parent) => [parent, ...(children.get(parent.id) ?? [])]);
+}
+
 const KEY = ["admin", "categories"] as const;
 
 export function useCategories() {

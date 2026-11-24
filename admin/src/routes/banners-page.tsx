@@ -10,6 +10,7 @@ import {
   storedImage,
   type UploaderImage,
 } from "@/components/image-uploader";
+import { ArchCrop } from "@/components/arch-crop";
 import { Field, Modal } from "@/components/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +59,6 @@ function Preview({
   const title = v[`title${L}`];
   const subtitle = v[`subtitle${L}`];
   const cta = v[`ctaLabel${L}`];
-  const src = desktop ?? mobile;
   return (
     <div data-testid="banner-preview" className="mt-4">
       <div className="mb-1 flex items-center justify-between">
@@ -77,22 +77,30 @@ function Preview({
           ))}
         </div>
       </div>
+      {/* Mirrors the web hero: text on the start side, the image cropped from its centre into the 4:5 arch on the end side. */}
       <div
         dir={lang === "ar" ? "rtl" : "ltr"}
         lang={lang}
-        className="relative overflow-hidden rounded-lg border border-border bg-muted"
+        data-testid="banner-preview-frame"
+        className="flex items-center justify-between gap-4 bg-muted p-4"
       >
-        {src && <img src={src} alt="" className="h-40 w-full object-cover" />}
-        <div className="absolute inset-0 flex flex-col justify-center gap-1 bg-foreground/70 p-4 text-background">
+        <div className="min-w-0">
           <p className="font-display text-xl font-semibold" data-testid="banner-preview-title">
             {title}
           </p>
-          {subtitle && <p className="text-sm">{subtitle}</p>}
+          {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
           {cta && (
-            <span className="mt-1 w-fit rounded-md bg-primary px-3 py-1 text-sm text-primary-foreground">{cta}</span>
+            <span className="mt-3 inline-block rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground">{cta}</span>
           )}
         </div>
+        <div className="flex gap-3">
+          {desktop && <ArchCrop src={desktop} label={t("banners.form.cropDesktop")} testId="banner-crop-desktop" />}
+          {mobile && <ArchCrop src={mobile} label={t("banners.form.cropMobile")} testId="banner-crop-mobile" />}
+        </div>
       </div>
+      <p className="mt-2 text-xs text-muted-foreground" data-testid="banner-crop-hint">
+        {t("banners.form.cropHint")}
+      </p>
     </div>
   );
 }
@@ -286,6 +294,9 @@ function BannerForm({
             testId="banner-image-desktop"
             removeLabel={t("banners.form.removeDesktop")}
           />
+          <p className="mt-1 text-xs text-muted-foreground" data-testid="banner-image-hint">
+            {t("banners.form.imageHint")}
+          </p>
         </div>
         <div className="mt-3">
           <p className="mb-1 text-sm font-medium">{t("banners.form.imageMobile")}</p>

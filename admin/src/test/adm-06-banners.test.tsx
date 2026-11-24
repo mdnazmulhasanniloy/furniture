@@ -432,6 +432,46 @@ describe.each([
     expect(within(preview).getByTestId("banner-preview-title").closest("[dir]")?.getAttribute("dir")).toBe("rtl");
   });
 
+  it("UI-01 · the editor hints that the middle of the image shows inside the web hero arch", async () => {
+    await openNew();
+    expect(screen.getByTestId("banner-image-hint").textContent).toBe(b.form.imageHint);
+    expect(screen.getByTestId("banner-crop-hint").textContent).toBe(b.form.cropHint);
+    // no image yet: nothing to crop
+    expect(screen.queryByTestId("banner-crop-desktop")).toBeNull();
+  });
+
+  it("UI-01 · the preview centre-crops each stored image into a 4:5 arch (desktop and mobile)", async () => {
+    mount();
+    await screen.findByTestId("banners-table");
+    fireEvent.click(screen.getByRole("button", { name: b.editNamed.replace("{name}", base()[0].title[L]) }));
+    const preview = await screen.findByTestId("banner-preview");
+    const desktop = within(preview).getByTestId("banner-crop-desktop");
+    const mobile = within(preview).getByTestId("banner-crop-mobile");
+    expect(within(desktop).getByTestId("banner-crop-desktop-mask").className).toContain("aspect-[4/5]");
+    const img = desktop.querySelector("img")!;
+    expect(img.getAttribute("src")).toBe("https://cdn.test/d1.webp");
+    expect(img.className).toContain("object-cover");
+    expect(img.className).toContain("object-center"); // same as the web hero: the middle is what shows
+    expect(mobile.querySelector("img")!.getAttribute("src")).toBe("https://cdn.test/m1.webp");
+    expect(desktop.textContent).toBe(b.form.cropDesktop);
+    expect(mobile.textContent).toBe(b.form.cropMobile);
+    // the mask is the symmetric arch path in bounding-box units
+    const maskId = /url\(#([^)]+)\)/.exec(within(desktop).getByTestId("banner-crop-desktop-mask").getAttribute("style") ?? "")![1];
+    const clip = desktop.querySelector(`clipPath[id="${maskId}"]`)!;
+    expect(clip.getAttribute("clipPathUnits")).toBe("objectBoundingBox");
+    expect(clip.querySelector("path")!.getAttribute("d")).toBe("M0 1 V0.5 C0 0.22 0.3 0.1 0.5 0 C0.7 0.1 1 0.22 1 0.5 V1 Z");
+  });
+
+  it("UI-01 · the preview puts the copy on the start side and keeps it flat (no dark overlay, no border)", async () => {
+    await openNew();
+    fillBasics();
+    const frame = screen.getByTestId("banner-preview-frame");
+    expect(frame.className).toContain("bg-muted");
+    expect(frame.className).not.toMatch(/border|rounded|shadow/);
+    expect(frame.innerHTML).not.toContain("bg-foreground/70");
+    expect(frame.firstElementChild!.querySelector('[data-testid="banner-preview-title"]')).not.toBeNull();
+  });
+
   it("ADM-06 · the page follows the UI direction and dark mode uses token classes only", async () => {
     document.documentElement.classList.add("dark");
     mount();

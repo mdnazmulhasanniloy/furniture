@@ -23,7 +23,7 @@ All colour comes from CSS variables (`web/src/app/globals.css`, `admin/src/index
 | `--input`, `--ring` | `#7D8A85`, `#0F4C45` | Field borders (on paper only), focus ring |
 | `--destructive`, `--success`, `--success-foreground`, `--warning`, `--warning-foreground` | as ADR-014 | Status |
 
-Contrast (computed, WCAG): ink on paper 16.8, ink on sand 13.9, white on emerald 9.8, emerald on sand 8.1, stone ink `#5C6360` on paper 6.2 / on sand 5.1, price `#7A5E22` on paper 6.1 / on sand 5.0, sand text on emerald 8.1. Date gold on paper is 2.9 and on emerald 3.3: that is why it is a decorative hairline only. Admin dark mode keeps the ADR-014 values. The AA tests in `web` and `admin` keep scanning the real CSS and every colour call site.
+Contrast (computed, WCAG): ink on paper 16.8, ink on sand 13.9, white on emerald 9.8, emerald on sand 8.1, stone ink `#5C6360` on paper 6.2 / on sand 5.1, price `#7A5E22` on paper 6.1 / on sand 5.0, sand text on emerald 8.1. Date gold on paper is 2.9 and on emerald 3.3: that is why it is a decorative hairline only. Admin dark mode keeps the ADR-014 values. **Admin deviation:** fields can sit on sand panels in the admin, so its `--input` is `#78857F` (3.2:1 on sand, 3.9:1 on paper) instead of `#7D8A85`; the admin gate requires 3:1 on every surface, the web gate requires it on paper only. The admin destructive and blocked chips use a 10 % tint (`bg-destructive/10`, 4.6:1 on sand; 15 % was 4.3:1). The AA tests in `web` and `admin` keep scanning the real CSS and every colour call site.
 
 Dropped from v1: `--secondary` cream `#F6EFD9`, cool grey `#F4F6F5`, `--gold` `#C8A24A`, the old ink `#1C2321`. Fewer neutrals: paper, sand, ink, stone.
 

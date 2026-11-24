@@ -1,5 +1,7 @@
 # Changelog
 
+## 2026-11-24 (admin T-079 redesign v2 done; CR-008 complete)
+- **admin T-079 (UI-01, UI-02, ADM-06): admin follows v2.** Tokens, Readex Pro + IBM Plex (the admin had never loaded a font; Fontsource packages added, owner to confirm), AA gate green in light and dark (two sand-surface contrast fixes), banner editor crop preview and hint (en, ar). With this, CR-008 is implemented: web T-052 to T-058 and admin T-079, one commit each on `autopilot/2026-11-24`, nothing pushed. Open for the owner: Q-2 wording (grade texts, byline, the demo notes that say "Inspected by our team."), the COD sentence, the hero copy without "inspected", the new font dependencies, checkout/OTP screenshots after a login.
 ## 2026-11-24 (web T-058 auth pages done; web redesign v2 complete)
 - **web T-058 (AUTH-01..04): arch image panel, flat form, OTP boxes.** No new strings. This closes the web side of CR-008 (T-052 to T-058). Final web screenshots are in `03-design/screens-v2/` (home, shop, shop pre-owned, product new and pre-owned, cart, login, register, forgot-password; 390 and 1440, /ar and /en). Not captured: checkout, success, verify and reset (they need a session or a pending sign-up; see the task notes). Admin T-079 follows.
 ## 2026-11-24 (web T-057 cart and checkout restyle done)

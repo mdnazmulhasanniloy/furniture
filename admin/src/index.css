@@ -1,29 +1,41 @@
-/* Design tokens — source: project-docs/03-design/design-system.md ("Emerald and gold", ADR-014).
-   Admin copy of the web tokens + dark theme. Checked by src/test/ui-02-aa-contrast.test.ts. */
+/* Design tokens — source: project-docs/03-design/design-system.md ("Najdi arch", ADR-015; contrast rules of ADR-014).
+   Admin copy of the web tokens + dark theme (calm: no arch, no hero motion, no scroll reveals).
+   Checked by src/test/ui-02-aa-contrast.test.ts. */
 @import "tailwindcss";
+@import "@fontsource-variable/readex-pro/index.css";
+@import "@fontsource-variable/ibm-plex-sans/index.css";
+@import "@fontsource/ibm-plex-sans-arabic/400.css";
+@import "@fontsource/ibm-plex-sans-arabic/500.css";
+@import "@fontsource/ibm-plex-sans-arabic/600.css";
 
 :root {
+  /* paper / ink */
   --background: #ffffff;
-  --foreground: #1c2321;
+  --foreground: #14201d;
   --card: #ffffff;
-  --card-foreground: #1c2321;
+  --card-foreground: #14201d;
   --popover: #ffffff;
-  --popover-foreground: #1c2321;
-  --muted: #f4f6f5;
-  --muted-foreground: #5f6b66;
+  --popover-foreground: #14201d;
+  /* sand: quiet bands, table heads, chips. Never the page background. */
+  --muted: #efe9dd;
+  /* stone ink: secondary text on paper AND on sand (5.1:1 on sand). */
+  --muted-foreground: #5c6360;
+  /* stone: hairlines, icons, placeholders. Not for text on sand. */
+  --stone: #6b726f;
   --primary: #0f4c45;
   --primary-foreground: #ffffff;
-  --secondary: #f6efd9;
-  --secondary-foreground: #6b5318;
-  /* gold: decoration, icons, CTA fill. Never as text on white (2.41:1). */
-  --gold: #c8a24a;
-  --gold-foreground: #1c2321;
-  /* gold-strong: meaningful gold graphics, >= 3:1 on white and muted. */
+  --secondary: #efe9dd;
+  --secondary-foreground: #14201d;
+  /* date gold: decorative lines only. Never text, never a meaningful graphic (2.9:1 on paper). */
+  --gold: #b8913a;
+  --gold-foreground: #14201d;
+  /* gold-strong: meaningful gold graphics, >= 3:1 on paper and sand. */
   --gold-strong: #9c7a2e;
-  --price: #86672a;
-  --border: #e6e9e7;
-  /* input: form-field borders (>= 3:1); --border stays decorative. */
-  --input: #7d8a85;
+  --price: #7a5e22;
+  --border: #e4e0d6;
+  /* input: form-field borders. Admin deviation from the web (#7D8A85): fields can sit on sand panels here,
+     so the border is 3.2:1 on sand and 3.9:1 on paper. */
+  --input: #78857f;
   --ring: #0f4c45;
   --destructive: #b42318;
   --success: #1f7a4d;
@@ -32,7 +44,8 @@
   --warning: #b7791f;
   --warning-foreground: #7a4b05;
   --radius: 10px;
-  --shadow-soft: 0 8px 24px -12px rgb(15 76 69 / 0.18);
+  /* one soft shadow, only for floating layers (modal, menu, toast). Content has none. */
+  --shadow-soft: 0 10px 30px -12px rgb(20 32 29 / 0.22);
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -45,6 +58,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-stone: var(--stone);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -63,16 +77,42 @@
   --color-warning-foreground: var(--warning-foreground);
   --radius-sm: 6px;
   --radius-md: var(--radius);
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --font-display: var(--font-fraunces), var(--font-noto-kufi), serif;
-  --font-sans: var(--font-manrope), var(--font-plex-arabic), system-ui, sans-serif;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+  --font-display: "Readex Pro Variable", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans Arabic", system-ui, sans-serif;
 }
 
+/* Readex Pro covers both scripts (headings); body is IBM Plex Sans, IBM Plex Sans Arabic for Arabic.
+   The font packages ship unicode-range subsets, so a locale only downloads the files its text needs. */
+html {
+  line-height: 1.6;
+}
 html[lang="ar"] {
-  --font-display: var(--font-noto-kufi), serif;
-  --font-sans: var(--font-plex-arabic), system-ui, sans-serif;
-  line-height: 1.7;
+  --font-sans: "IBM Plex Sans Arabic", "IBM Plex Sans Variable", system-ui, sans-serif;
+  line-height: 1.85;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  html[lang="en"] :is(h1, h2, h3, h4) {
+    letter-spacing: -0.02em;
+  }
+  html[lang="ar"] :is(h1, h2, h3, h4) {
+    line-height: 1.5;
+    letter-spacing: 0;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--primary);
+  }
 }
 
 body {
@@ -98,6 +138,7 @@ body {
   --popover-foreground: #eef2f0;
   --muted: #1a2522;
   --muted-foreground: #a3b0ab;
+  --stone: #8a9893;
   --primary: #4fb3a3;
   --primary-foreground: #0e1513;
   --secondary: #2a2616;

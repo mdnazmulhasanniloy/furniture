@@ -103,8 +103,17 @@ describe.each(["light", "dark"] as const)("UI-02 · AA contrast on the admin des
     expect(Object.keys(t).length).toBeGreaterThan(18);
     expect(t.accent).toBeUndefined();
     if (theme === "light") {
+      // v2 (ADR-015): paper, ink, sand, stone ink, date gold, price
+      expect(t.background).toBe("#ffffff");
+      expect(t.foreground).toBe("#14201d");
+      expect(t.muted).toBe("#efe9dd");
+      expect(t["muted-foreground"]).toBe("#5c6360");
       expect(t.primary).toBe("#0f4c45");
-      expect(t.price).toBe("#86672a");
+      expect(t.gold).toBe("#b8913a");
+      expect(t.price).toBe("#7a5e22");
+      expect(t.stone).toBe("#6b726f");
+      // admin deviation: fields can sit on sand panels, so the border is a little darker than the web token
+      expect(t.input).toBe("#78857f");
     } else {
       expect(t.background).toBe("#0e1513");
       expect(t.primary).toBe("#4fb3a3");

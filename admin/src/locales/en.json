@@ -326,7 +326,11 @@
       "desktopRequired": "Add a desktop image.",
       "altRequired": "Each image needs alt text in both English and Arabic.",
       "stale": "This banner was changed, reload. Your edits are kept below.",
-      "reload": "Reload the latest version"
+      "reload": "Reload the latest version",
+      "cropDesktop": "Desktop",
+      "cropMobile": "Mobile",
+      "cropHint": "The home hero shows the middle of the image inside an arch (portrait, 4:5). The edges are cropped, so keep the subject in the centre.",
+      "imageHint": "Landscape images are fine: only the middle part shows in the home hero arch, see the preview below."
     }
   },
   "sections": {

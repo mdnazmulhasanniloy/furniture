@@ -84,7 +84,7 @@ function InviteDialog({ onClose, onDone }: { onClose: () => void; onDone: () => 
 function StatusBadge({ admin }: { admin: AdminUser }) {
   const { t } = useTranslation();
   const [key, cls] = admin.isBlocked
-    ? (["blocked", "bg-destructive/15 text-destructive"] as const)
+    ? (["blocked", "bg-destructive/10 text-destructive"] as const)
     : !admin.isVerified
       ? (["pending", "bg-warning/15 text-warning-foreground"] as const)
       : (["active", "bg-success/15 text-success-foreground"] as const);

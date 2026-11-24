@@ -87,7 +87,7 @@ export const STATUS_CLASS: Record<OrderStatus, string> = {
   PROCESSING: "bg-gold/20 text-foreground",
   OUT_FOR_DELIVERY: "bg-secondary text-secondary-foreground",
   DELIVERED: "bg-success/15 text-success-foreground",
-  CANCELLED: "bg-destructive/15 text-destructive",
+  CANCELLED: "bg-destructive/10 text-destructive",
 };
 
 export const PAGE_SIZE = 20;

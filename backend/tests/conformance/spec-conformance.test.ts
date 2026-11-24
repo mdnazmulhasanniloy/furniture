@@ -611,7 +611,31 @@ it('NFR-01 · admin user routes conform (customers + admins + accept-invite)', a
     status: 200,
     path: `/admin/customers/${customer2Id}/block`,
     token: adminToken,
-    body: { isBlocked: true },
+    body: { isBlocked: true, reason: 'Conformance check' }, // CR-011: a reason is required to block
+  });
+  // CR-011 (ADM-17): edit name and phone, then soft-delete a throwaway customer.
+  const victim = await prisma.user.create({
+    data: {
+      firstName: 'Conf',
+      lastName: 'Victim',
+      email: 'conf-victim@example.com',
+      passwordHash: 'x',
+      isVerified: true,
+      phone: null,
+      invitedById: null,
+    },
+  });
+  await call('patch', '/admin/customers/{id}', {
+    status: 200,
+    path: `/admin/customers/${victim.id}`,
+    token: adminToken,
+    body: { expectedUpdatedAt: victim.updatedAt.toISOString(), firstName: 'Changed', phone: '0551112233' },
+  });
+  await call('delete', '/admin/customers/{id}', {
+    status: 200,
+    path: `/admin/customers/${victim.id}`,
+    token: adminToken,
+    body: { confirmEmail: 'conf-victim@example.com' },
   });
   const invite = await call('post', '/admin/admins', {
     status: 201,

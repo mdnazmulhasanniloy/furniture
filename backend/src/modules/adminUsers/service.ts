@@ -9,12 +9,23 @@ import { prisma } from '../../lib/prisma.js';
 import { isDuplicateKey } from '../../lib/rateLimit.js';
 import { escapeRegex } from '../../lib/searchText.js';
 import { normalizeSaudiPhone } from '../../lib/phone.js';
+import { createLogger } from '../../lib/logger.js';
 import { createTestHooks } from '../../lib/testHooks.js';
 import { revokeAllForUser } from '../../lib/tokens.js';
 import { toPublicUser } from '../auth/auth.service.js';
 import { assertCanIssue, createOtp, UNCONSUMED } from '../auth/otp.service.js';
 import { toOrder, USER_INCLUDE } from '../orders/service.js';
-import type { CustomerOrdersQuery, InviteAdminBody, ListCustomersQuery } from './schema.js';
+import type { Logger } from '../../lib/logger.js';
+import { releaseUploads } from '../../lib/r2.js';
+import { notSet } from '../../lib/prismaFilters.js';
+import type {
+  BlockCustomerBody,
+  CustomerOrdersQuery,
+  DeleteCustomerBody,
+  InviteAdminBody,
+  ListCustomersQuery,
+  UpdateCustomerBody,
+} from './schema.js';
 
 const OBJECT_ID = /^[a-f0-9]{24}$/;
 const notFound = () => new AppError(404, 'NOT_FOUND', 'User not found');
@@ -40,10 +51,73 @@ export const testHooks = createTestHooks<{
   beforeAdminBlockGuard?: (attempt: number) => Promise<void> | void;
 }>();
 
-// ---------------------------------------------------------------- ADM-05 customers
+// ---------------------------------------------------------------- ADM-05 / ADM-17 customers
+
+const forbiddenTarget = () => new AppError(403, 'FORBIDDEN_TARGET', 'This account cannot be changed here');
+const customerDeleted = () => new AppError(409, 'CUSTOMER_DELETED', 'This customer was deleted');
+
+/** The context a customer action needs for its single audit log line (CR-011). */
+export interface CustomerActionContext {
+  log?: Pick<Logger, 'info'>;
+  requestId?: string;
+}
+
+/**
+ * Admin view of a customer (CR-011): the public user plus the blocked fields and the concurrency token. The
+ * blocked reason is admin-only (never in `toPublicUser`, which the customer's own endpoints use) and there is no
+ * password hash anywhere in this shape.
+ */
+export const toAdminCustomer = (u: User) => ({
+  ...toPublicUser(u),
+  updatedAt: u.updatedAt,
+  blockedReason: u.blockedReason ?? null,
+  blockedAt: u.blockedAt ?? null,
+  blockedById: u.blockedById ?? null,
+  deletedAt: u.deletedAt ?? null,
+  deletedById: u.deletedById ?? null,
+});
+
+/**
+ * One structured log line per customer action (CR-011, owner Q-8): who (actor id), what (action), on whom (target
+ * id), when, and the NAMES of the changed fields. Never a name, email, phone, reason or any other personal data.
+ */
+function audit(
+  ctx: CustomerActionContext,
+  action: 'customer.block' | 'customer.unblock' | 'customer.update' | 'customer.delete',
+  actorId: string,
+  targetId: string,
+  fields: string[],
+) {
+  const log = ctx.log ?? (auditFallback ??= createLogger(getEnv()));
+  log.info({ event: action, actorId, targetId, fields, at: new Date().toISOString(), requestId: ctx.requestId }, action);
+}
+let auditFallback: Logger | undefined;
+
+/**
+ * The guard shared by block, update and delete. The caller's own id -> 403 FORBIDDEN_TARGET; another admin (or any
+ * non-customer, or an unknown id) -> 404, as before; so an admin can never block, edit or delete an admin or themselves
+ * through these routes.
+ */
+async function loadCustomerTarget(db: Prisma.TransactionClient | typeof prisma, actorId: string, id: string) {
+  if (!OBJECT_ID.test(id)) throw notFound();
+  if (id === actorId) throw forbiddenTarget();
+  const user = await db.user.findUnique({ where: { id } });
+  if (!user || user.role !== 'CUSTOMER') throw notFound();
+  return user;
+}
+
+const NOT_DELETED = notSet<Prisma.UserWhereInput>('deletedAt');
 
 export async function listCustomers(query: ListCustomersQuery) {
-  const where: Prisma.UserWhereInput = { role: 'CUSTOMER' };
+  const and: Prisma.UserWhereInput[] = [{ role: 'CUSTOMER' }];
+  // Rule 8: 'not deleted' must match documents created without the field, so it goes through notSet.
+  if (query.status === 'deleted') and.push({ NOT: NOT_DELETED });
+  else {
+    and.push(NOT_DELETED);
+    if (query.status === 'active') and.push({ isBlocked: false });
+    if (query.status === 'blocked') and.push({ isBlocked: true });
+  }
+  const where: Prisma.UserWhereInput = { AND: and };
   if (query.q) {
     // Rule 9: Prisma MongoDB contains/insensitive is $regex-backed -> always escaped, max 100 chars.
     const literal = escapeRegex(query.q);
@@ -55,7 +129,7 @@ export async function listCustomers(query: ListCustomersQuery) {
     // T-014 pattern: a query that normalises to a Saudi mobile also matches the exact stored phone.
     const phone = normalizeSaudiPhone(query.q);
     if (phone) or.push({ phone });
-    where.OR = or;
+    and.push({ OR: or });
   }
   const [rows, total] = await Promise.all([
     prisma.user.findMany({
@@ -76,7 +150,7 @@ export async function listCustomers(query: ListCustomersQuery) {
     : [];
   const countByUser = new Map(counts.map((c) => [c.userId, c._count._all]));
   return {
-    items: rows.map((u) => ({ ...toPublicUser(u), orderCount: countByUser.get(u.id) ?? 0 })),
+    items: rows.map((u) => ({ ...toAdminCustomer(u), orderCount: countByUser.get(u.id) ?? 0 })),
     meta: pageMeta(query.page, query.limit, total),
   };
 }
@@ -96,28 +170,141 @@ export async function getCustomer(id: string, query: CustomerOrdersQuery) {
     prisma.order.count({ where: { userId: id } }),
   ]);
   return {
-    user: toPublicUser(user),
+    user: toAdminCustomer(user),
     orders: orders.map(toOrder),
     meta: pageMeta(query.page, query.limit, total),
   };
 }
 
 /**
- * ADM-05. Customers only (an ADMIN id -> 404; admins go through blockAdmin). Blocking revokes every
- * refresh token in the same transaction, then kicks live sockets after commit (best effort, T-023).
- * Unblocking only clears the flag — the login lockout key stays (it is abuse protection, T-005).
+ * ADM-05 / ADM-17. Block needs a reason (admin-only, stored with who and when); unblock clears the three fields to
+ * explicit null. Customers only (see loadCustomerTarget); a soft-deleted customer -> 409 CUSTOMER_DELETED.
+ * Blocking revokes every refresh token in the same transaction, then kicks live sockets after commit (best effort,
+ * T-023). The customer is then refused at login, refresh, password reset (no code is issued for a blocked user) and
+ * on every authenticated call, including placing an order (requireAuth), always with the same generic response.
  */
-export async function blockCustomer(id: string, isBlocked: boolean) {
-  if (!OBJECT_ID.test(id)) throw notFound();
+export async function blockCustomer(
+  actor: Pick<User, 'id'>,
+  id: string,
+  body: BlockCustomerBody,
+  ctx: CustomerActionContext = {},
+) {
+  const { isBlocked, reason } = body;
   const updated = await prisma.$transaction(async (tx) => {
-    const user = await tx.user.findUnique({ where: { id } });
-    if (!user || user.role !== 'CUSTOMER') throw notFound();
-    const u = await tx.user.update({ where: { id }, data: { isBlocked } });
+    const user = await loadCustomerTarget(tx, actor.id, id);
+    if (user.deletedAt) throw customerDeleted();
+    const data: Prisma.UserUpdateInput = isBlocked
+      ? { isBlocked: true, blockedReason: reason ?? null, blockedAt: new Date(), blockedById: actor.id }
+      : { isBlocked: false, blockedReason: null, blockedAt: null, blockedById: null };
+    const u = await tx.user.update({ where: { id }, data });
     if (isBlocked) await revokeAllForUser(id, tx);
     return u;
   });
   if (isBlocked) socketEmitter.disconnectUser(id);
-  return toPublicUser(updated);
+  audit(ctx, isBlocked ? 'customer.block' : 'customer.unblock', actor.id, id, ['isBlocked', 'blockedReason', 'blockedAt', 'blockedById']);
+  return toAdminCustomer(updated);
+}
+
+/**
+ * ADM-17. Name and phone only (the schema is strict), optimistic concurrency on `expectedUpdatedAt`
+ * (409 STALE_UPDATE with the current customer in `details.current`). Phone is already normalised to +9665XXXXXXXX.
+ */
+export async function updateCustomer(
+  actor: Pick<User, 'id'>,
+  id: string,
+  body: UpdateCustomerBody,
+  ctx: CustomerActionContext = {},
+) {
+  const data: Prisma.UserUpdateInput = {};
+  const fields: string[] = [];
+  if (body.firstName !== undefined) {
+    data.firstName = body.firstName;
+    fields.push('firstName');
+  }
+  if (body.lastName !== undefined) {
+    data.lastName = body.lastName;
+    fields.push('lastName');
+  }
+  if (body.phone !== undefined) {
+    data.phone = body.phone; // null clears it (explicit null, rule 8)
+    fields.push('phone');
+  }
+  const updated = await prisma.$transaction(async (tx) => {
+    const user = await loadCustomerTarget(tx, actor.id, id);
+    if (user.deletedAt) throw customerDeleted();
+    const res = await tx.user.updateMany({ where: { id, updatedAt: body.expectedUpdatedAt }, data });
+    if (res.count === 0) {
+      throw new AppError(409, 'STALE_UPDATE', 'The customer was changed by someone else; reload and retry', {
+        current: toAdminCustomer(user),
+      });
+    }
+    return tx.user.findUniqueOrThrow({ where: { id } });
+  });
+  audit(ctx, 'customer.update', actor.id, id, fields);
+  return toAdminCustomer(updated);
+}
+
+/**
+ * ADM-17 (owner Q-7). Soft delete with anonymisation; orders and their address snapshots are kept (sales and VAT
+ * record). Refused while a PENDING or CONFIRMED order exists. One transaction; sockets and the avatar object are
+ * handled after commit. The admin must send the customer's exact email, compared here as well as in the UI.
+ */
+export async function deleteCustomer(
+  actor: Pick<User, 'id'>,
+  id: string,
+  body: DeleteCustomerBody,
+  ctx: CustomerActionContext = {},
+) {
+  // argon2 is slow: hash outside the transaction. Random bytes, so nobody can ever log in with it.
+  const unusableHash = await hashPassword(randomBytes(32).toString('hex'));
+  let avatarKey: string | null = null;
+  const updated = await prisma.$transaction(async (tx) => {
+    const user = await loadCustomerTarget(tx, actor.id, id);
+    if (user.deletedAt) throw customerDeleted();
+    if (body.confirmEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
+      throw new AppError(422, 'CONFIRM_EMAIL_MISMATCH', 'The typed email does not match this customer');
+    }
+    const open = await tx.order.count({ where: { userId: id, status: { in: ['PENDING', 'CONFIRMED'] } } });
+    if (open > 0) {
+      throw new AppError(409, 'CUSTOMER_HAS_OPEN_ORDERS', 'This customer has pending or confirmed orders', {
+        openOrders: open,
+      });
+    }
+    avatarKey = user.avatar;
+    const originalEmail = user.email;
+    const u = await tx.user.update({
+      where: { id },
+      data: {
+        firstName: 'Deleted',
+        lastName: 'customer',
+        email: `deleted-${id}@deleted.invalid`, // unique, never deliverable; frees the real address
+        phone: null,
+        avatar: null,
+        passwordHash: unusableHash,
+        isBlocked: true,
+        isVerified: false,
+        failedLoginCount: 0,
+        lockedUntil: null,
+        passwordChangedAt: new Date(), // older access tokens stop working
+        blockedReason: null,
+        blockedAt: null,
+        blockedById: null,
+        deletedAt: new Date(),
+        deletedById: actor.id,
+      },
+    });
+    await revokeAllForUser(id, tx);
+    await tx.address.deleteMany({ where: { userId: id } });
+    await tx.cart.deleteMany({ where: { userId: id } });
+    await tx.wishlist.deleteMany({ where: { userId: id } });
+    await tx.notification.deleteMany({ where: { userId: id } });
+    await tx.otp.deleteMany({ where: { email: originalEmail } });
+    return u;
+  });
+  socketEmitter.disconnectUser(id);
+  if (avatarKey) await releaseUploads([avatarKey], { requestId: ctx.requestId });
+  audit(ctx, 'customer.delete', actor.id, id, ['firstName', 'lastName', 'email', 'phone', 'avatar', 'passwordHash', 'isBlocked', 'deletedAt']);
+  return toAdminCustomer(updated);
 }
 
 // ---------------------------------------------------------------- ADM-11 admins

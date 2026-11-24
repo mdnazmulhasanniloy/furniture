@@ -2,6 +2,9 @@ import type { Request, RequestHandler } from 'express';
 import * as service from './service.js';
 import type {
   BlockBody,
+  BlockCustomerBody,
+  DeleteCustomerBody,
+  UpdateCustomerBody,
   CustomerOrdersQuery,
   InviteAdminBody,
   ListCustomersQuery,
@@ -33,9 +36,45 @@ export const getCustomer: RequestHandler = async (req, res) => {
     );
 };
 
+const customerCtx = (req: Request) => ({ log: req.log, requestId: String(req.id) });
+
 export const blockCustomer: RequestHandler = async (req, res) => {
-  const { isBlocked } = req.body as BlockBody;
-  res.status(200).json(await service.blockCustomer(req.params.id as string, isBlocked));
+  res
+    .status(200)
+    .json(
+      await service.blockCustomer(
+        req.user!,
+        req.params.id as string,
+        req.body as BlockCustomerBody,
+        customerCtx(req),
+      ),
+    );
+};
+
+export const updateCustomer: RequestHandler = async (req, res) => {
+  res
+    .status(200)
+    .json(
+      await service.updateCustomer(
+        req.user!,
+        req.params.id as string,
+        req.body as UpdateCustomerBody,
+        customerCtx(req),
+      ),
+    );
+};
+
+export const deleteCustomer: RequestHandler = async (req, res) => {
+  res
+    .status(200)
+    .json(
+      await service.deleteCustomer(
+        req.user!,
+        req.params.id as string,
+        req.body as DeleteCustomerBody,
+        customerCtx(req),
+      ),
+    );
 };
 
 export const listAdmins: RequestHandler = async (_req, res) => {

@@ -185,6 +185,12 @@ model User {
   avatar            String?
   preferredLocale   Locale         @default(ar)
   invitedById       String?        @db.ObjectId // T-017 audit: the admin who created the invite; explicit null otherwise
+  // CR-011 / ADM-17 (additive, explicit null when unset; "not deleted" filters use notSet, rule 8)
+  blockedReason     String? // admin-only, 3 to 300 chars, never returned to the customer
+  blockedAt         DateTime?
+  blockedById       String?        @db.ObjectId
+  deletedAt         DateTime? // set by the soft delete (anonymised account, orders kept)
+  deletedById       String?        @db.ObjectId
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
   addresses         Address[]

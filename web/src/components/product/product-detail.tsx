@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/navigation";
 import type { Locale } from "@/i18n/routing";
 import type { HomeProduct, ProductDetail, SiteSettings } from "@/lib/api/public";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, formatPercent } from "@/lib/format";
 import { pick } from "@/lib/pick";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -39,6 +39,8 @@ export async function ProductDetailView({
   const soldOut = product.stock <= 0;
   const resale = product.type === "RESALE";
   const hasCompare = !!product.compareAtPrice && product.compareAtPrice > product.price;
+  // the same percentage the product cards show
+  const off = hasCompare ? Math.round((((product.compareAtPrice as number) - product.price) / (product.compareAtPrice as number)) * 100) : 0;
   const vat = settings?.vat;
   const description = pick(product.description, locale);
   const d = product.dimensions;
@@ -85,6 +87,11 @@ export async function ProductDetailView({
                 : t("badge.new")}
             </Badge>
             {soldOut ? <Badge variant="soldOut">{t("badge.soldOut")}</Badge> : null}
+            {!soldOut && off > 0 ? (
+              <Badge variant="featured" data-testid="sale-badge">
+                <bdi>{`−${formatPercent(off / 100, locale)}`}</bdi>
+              </Badge>
+            ) : null}
           </div>
           <div className="flex items-start justify-between gap-3">
             <h1 className="text-3xl md:text-4xl">{title}</h1>

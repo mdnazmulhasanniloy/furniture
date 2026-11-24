@@ -27,6 +27,7 @@ import { Gallery } from "@/components/product/gallery";
 import { ProductDetailView } from "@/components/product/product-detail";
 import { PurchaseBox } from "@/components/product/purchase-box";
 import type { HomeProduct, ProductDetail } from "@/lib/api/public";
+import { formatPercent } from "@/lib/format";
 
 type L = "en" | "ar";
 const wrap = (locale: L, ui: React.ReactNode) => {
@@ -69,6 +70,17 @@ for (const locale of ["en", "ar"] as const) {
       expect(specs.getByText(locale === "en" ? /200 × 90 × 85 cm/ : /200 × 90 × 85 سم/)).toBeTruthy();
       expect(within(screen.getByTestId("related")).getByText(locale === "en" ? "Chair" : "كرسي")).toBeTruthy();
       expect(screen.getByText(messages[locale].product.delivery.body)).toBeTruthy();
+    });
+
+    it(`QA-10 · the discount percentage badge shows next to the price like on the cards, and not without a reduction or when sold out (${locale})`, async () => {
+      await view(locale);
+      expect(screen.getByTestId("sale-badge").textContent).toBe(`−${formatPercent(0.19, locale)}`); // 129 950 of 159 900
+      cleanup();
+      await view(locale, { compareAtPrice: null });
+      expect(screen.queryByTestId("sale-badge")).toBeNull();
+      cleanup();
+      await view(locale, { stock: 0 });
+      expect(screen.queryByTestId("sale-badge")).toBeNull();
     });
 
     it(`PROD-02 · sold out disables Add to cart and shows "Sold out" (${locale})`, async () => {

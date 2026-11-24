@@ -241,4 +241,4 @@ Order: backend T-080 first (seed), then the owner runs `demo:reset`, then T-081 
 ### T-100 Account, orders, wishlist, notifications · done
 ### T-101 Static pages, 404, empty states · done (404 copy pages.notFound.* is NEW: pending owner approval)
 ### T-102 Home sections: shop the look, pre-owned band, trust strip, pre-owned picks (Q-2) · done (pre-owned picks = the shelf's Pre-owned tab, no duplicate rail: owner to confirm)
-### T-103 Checkpoint 2 screenshots (screens-v6) · todo
+### T-103 Checkpoint 2 screenshots (screens-v6) · done

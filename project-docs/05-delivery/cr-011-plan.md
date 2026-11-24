@@ -263,3 +263,26 @@ Desktop LCP is higher than before because the hero image is now full width; it s
 - **Item 4 (spacing):** one token, 40 px mobile and 64 px desktop between home sections, measured by e2e (at most 80 px).
 - **Items 5, 6, 7:** auth column 5fr/6fr with 52 px fields and larger type; Bodoni pairs kerned (the optical-size axis was tried and rejected: thinner hairlines, same gap); admin banner photos use the banner title as alt.
 - **T-045:** `POST /api/revalidate` built per B-028 (see web/src/lib/revalidate-route.ts): 405 for other methods, 401 with no body for a missing, wrong or unset secret (SHA-256 digests with timingSafeEqual), 400 for a bad body or any tag outside the allow-list (home, products, settings, product:slug, page:slug), tags expire immediately, nothing is logged. Rate limit: 60 requests and 10 failed secrets per client per minute, then 429; it is in memory, so on a serverless host it is per instance (a speed bump, not a global cap). Set `REVALIDATE_SECRET` on the web and the backend to the same long random value.
+
+## 13. Checkpoint 2 result (2026-11-24): STOP for owner review
+
+Built (web T-095 to T-103): header (transparent over the hero, solid after scroll, solid on every other page; top scrim on the hero), footer (champagne hairline, larger type), product cards and the Rail component (related products: hidden scrollbar, arrows, keys, RTL), listing (sticky self-scrolling filter sidebar on desktop, bottom sheet on mobile), product page (larger gallery and thumbnails, 8 px corners, sticky buy box and mobile bar kept), cart, checkout, order success, account, wishlist, static pages, a styled 404 inside the site layout (catch-all route), and the home sections of Q-2 (shop the look, pre-owned band with corrected steps, trust strip). Screenshots: `03-design/screens-v6/` (72 JPEGs, 390 / 768 / 1440, en and ar: home top, scrolled header, full home, shop the look open, listing, filter sheet or sticky filters, product, cart with one item, wishlist, 404, static page).
+
+**Checks:** 607 web unit tests, 90 e2e tests, lint, typecheck and i18n all pass.
+
+**Vitals** (same harness, 5 runs, median; before = CR-009 baseline):
+
+| Page | Before | After checkpoint 2 | Budget | Result |
+|---|---|---|---|---|
+| /en 390 | 1368 ms, 0.0351, 706 KB | 1044 ms, 0.0305, 667 KB | 1505 ms, 0.042, 812 KB | pass |
+| /ar 390 | 1436 ms, 0.0417, 852 KB | 944 ms, 0.0122, 848 KB | 1580 ms, 0.042, 980 KB | pass |
+| /en 1440 | 176 ms, 0.0049, 794 KB | 152 ms, 0.0003, 919 KB | 400 ms, 0.01, 913 KB | **transfer 6 KB over the 15 % line (+15.7 %)**; LCP and CLS pass |
+| /ar 1440 | 208 ms, 0.0082, 941 KB | 128 ms, 0.0008, 1048 KB | 400 ms, 0.01, 1082 KB | pass |
+
+**New copy to approve (not in the earlier approved lists):** `pages.notFound.title` Page not found / الصفحة غير موجودة; `pages.notFound.body` The page you are looking for does not exist or has moved. / الصفحة التي تبحث عنها غير موجودة أو تم نقلها.; `pages.notFound.home` Back to home / العودة إلى الرئيسية. The look, trust-strip and pre-owned step strings are the CR-009 approved table (section 5 of cr-009-plan.md); the three pre-owned steps replace the old ones (the old step 3 said "Pay at checkout", which contradicted cash on delivery). Rail arrows reuse "Previous slide / Next slide" (home.carousel.*): confirm or give "Previous / Next".
+
+**Decisions and limits**
+- "Pre-owned picks" is the existing Pre-owned tab of the shelf; I did not add a second pre-owned rail (it would repeat the same products). Say if you want it as a separate rail.
+- Screenshots of the logged-in pages (account, orders, order detail, notifications, checkout, order success) are NOT taken: they need a customer login and I have no test credentials (the demo password lives in the backend env, which I did not read or use). Their layout changes are covered by unit tests; send a test login or run them yourself.
+- The dev database has no look section until you reseed; the "shop the look" screenshots came from a read-only proxy that adds one look section on top of the real API (nothing was written). The hero banner subtitle in the database still says "across Saudi Arabia" until you edit it in Admin.
+- Old tests that asserted the cancelled square corners, the sand checkout summary and the gold hairline now assert the new rules (8 px corners, blush summary, champagne hairline); none was deleted or loosened otherwise.

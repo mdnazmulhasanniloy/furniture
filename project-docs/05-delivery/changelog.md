@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (CR-011 Checkpoint 2 built: STOP for review)
+- Web T-095 to T-103: header over the hero, footer, cards and rails, listing, product page, cart, checkout and success, account and wishlist, 404 and static pages, shop the look, trust strip, corrected pre-owned steps. Screenshots in `03-design/screens-v6`. New copy `pages.notFound.*` pending approval. Vitals table and open decisions in `cr-011-plan.md` section 13. Nothing pushed; no data command run.
+
 ## 2026-11-24 (CR-011 checkpoint 1 review fixes, T-045)
 - Review fixes 1 to 7 (commits 8eb847a, 184a597, 6eae351, 836dc49, 0532a2c): auth error boundary and fetch timeouts, hero image, city-count copy, spacing scale, auth form size, Bodoni kerning, banner alt. Blocker B-039 (blank /ar/register not reproduced). Screenshots retaken in `screens-v5`.
 - Web T-045 (first part): `POST /api/revalidate` with tests (11) and a live check. Nothing pushed.

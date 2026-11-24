@@ -253,3 +253,8 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 - Req: ADM-05, ADM-17 · Depends: approval · Docs: cr-011-plan.md section 4 and 6
 ### T-105 Banner reorder endpoint `PUT /admin/banners/order` · done (CR-011 checkpoint 3A; includes the banner focal point focalX/focalY, Q-5)
 - Req: ADM-06
+
+### T-108 Change own password while signed in (`POST /auth/change-password`) · plan only, awaiting approval
+- Req: AUTH-03, ADM-11 · Depends: owner approval of `05-delivery/admin-account-menu-plan.md` (QA C5)
+- The signed-in path does not exist today (only the OTP forgot/reset flow). Plan: current password verified with argon2, the shared policy module on the new one (400 `PASSWORD_TOO_WEAK` with the unmet rules), 422 `SAME_PASSWORD` for a no-op, every other session revoked plus their sockets disconnected, `passwordChangedAt` set - so the response must carry a fresh access token and refresh cookie or the caller would log themselves out - the existing `password-changed` email, and a new `changePassword:user:<id>` rate limit (5 / 15 min). Deliberately under `/auth`, not `/admin`, so the storefront can reuse it (PROF-01). Full detail, including the tests, in section 2 of the plan. **No code written.**
+

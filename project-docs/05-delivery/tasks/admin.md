@@ -116,3 +116,8 @@ Backend, for completeness (same commands): `npm audit --omit=dev` is **4 high**,
 - Req: ADM-06 · Depends: T-105
 ### T-107 Customers list filters, detail actions and dialogs · done (CR-011 checkpoint 3B)
 - Req: ADM-05, ADM-17 · Depends: T-104
+
+### T-109 Account menu: Change password and Profile · plan only, awaiting approval
+- Req: ADM-11, PROF-01 · Depends: backend T-108 (change password only), owner approval of `05-delivery/admin-account-menu-plan.md` (QA C5)
+- Two dialogs in the avatar menu above Sign out. **Profile needs no API work**: `PATCH /me` is behind `requireAuth` with no role check, so an admin may already update their own name; the email is shown read-only (no endpoint exists, by design). **Change password** needs backend T-108 and reuses the live `PasswordRules` checklist from the invite screen; it keeps the admin signed in here and says that the other devices were signed out. All new en/ar copy is listed in section 4 of the plan and needs approval first. One open question for the owner in section 5 (should other admins be notified). **No code written.**
+

@@ -112,7 +112,7 @@ export const PRODUCTS: DemoProduct[] = [
     slug: 'nordic-corner-sofa-pre-owned',
     category: 'living-room-sofas',
     sub: 'corner-sofas',
-    title: { en: 'Nordic Corner Sofa (Pre-owned)', ar: 'أريكة نورديك زاوية (مستعملة)' },
+    title: { en: 'Nordic Corner Sofa', ar: 'أريكة نورديك زاوية' },
     description: {
       en: 'Pre-owned corner sofa from a smoke-free, pet-free home. Frame is solid and the cushions have been professionally cleaned.',
       ar: 'أريكة زاوية مستعملة من منزل خالٍ من التدخين والحيوانات الأليفة. الهيكل متين والوسائد منظّفة باحتراف.',
@@ -173,7 +173,7 @@ export const PRODUCTS: DemoProduct[] = [
   {
     slug: 'scandi-lounge-armchair-pre-owned',
     category: 'armchairs',
-    title: { en: 'Scandi Lounge Armchair (Pre-owned)', ar: 'كرسي سكاندي للاسترخاء (مستعمل)' },
+    title: { en: 'Scandi Lounge Armchair', ar: 'كرسي سكاندي للاسترخاء' },
     description: {
       en: 'Light oak frame with a removable grey seat cushion. Light wear on the arms, otherwise in very good shape.',
       ar: 'هيكل من البلوط الفاتح مع وسادة رمادية قابلة للإزالة. آثار استخدام خفيفة على الذراعين وحالته جيدة جداً.',
@@ -187,7 +187,7 @@ export const PRODUCTS: DemoProduct[] = [
   {
     slug: 'leather-club-armchair-pre-owned',
     category: 'armchairs',
-    title: { en: 'Leather Club Armchair (Pre-owned)', ar: 'كرسي نادي جلدي (مستعمل)' },
+    title: { en: 'Leather Club Armchair', ar: 'كرسي نادي جلدي' },
     description: {
       en: 'A roomy leather club chair that has softened beautifully with age. Minor creasing on the seat.',
       ar: 'كرسي نادي جلدي واسع ازداد نعومة مع الزمن. تجاعيد طفيفة على المقعد.',
@@ -232,8 +232,8 @@ export const PRODUCTS: DemoProduct[] = [
     slug: 'extendable-walnut-dining-table-pre-owned',
     category: 'dining-tables',
     title: {
-      en: 'Extendable Walnut Dining Table (Pre-owned)',
-      ar: 'طاولة طعام جوز قابلة للتمديد (مستعملة)',
+      en: 'Extendable Walnut Dining Table',
+      ar: 'طاولة طعام جوز قابلة للتمديد',
     },
     description: {
       en: 'Extends from 160 to 220 cm for larger gatherings. A few light surface marks, refinished edges.',
@@ -249,7 +249,7 @@ export const PRODUCTS: DemoProduct[] = [
     slug: 'industrial-dining-table-pre-owned',
     category: 'dining-tables',
     soldOut: true,
-    title: { en: 'Industrial Dining Table (Pre-owned)', ar: 'طاولة طعام صناعية (مستعملة)' },
+    title: { en: 'Industrial Dining Table', ar: 'طاولة طعام صناعية' },
     description: {
       en: 'Reclaimed wood top on a black steel frame. A one-off pre-owned piece with real character.',
       ar: 'سطح من الخشب المعاد تدويره على هيكل فولاذي أسود. قطعة مستعملة فريدة بطابع مميز.',
@@ -294,8 +294,8 @@ export const PRODUCTS: DemoProduct[] = [
     slug: 'wooden-dining-chairs-set-of-6-pre-owned',
     category: 'dining-chairs',
     title: {
-      en: 'Wooden Dining Chairs (Set of 6, Pre-owned)',
-      ar: 'كراسي طعام خشبية (طقم 6، مستعمل)',
+      en: 'Wooden Dining Chairs (Set of 6)',
+      ar: 'كراسي طعام خشبية (طقم 6)',
     },
     description: {
       en: 'A matching set of six solid beech chairs. Sturdy joints; two seats have small cosmetic scuffs.',
@@ -310,7 +310,7 @@ export const PRODUCTS: DemoProduct[] = [
   {
     slug: 'velvet-dining-chairs-pair-pre-owned',
     category: 'dining-chairs',
-    title: { en: 'Velvet Dining Chairs (Pair, Pre-owned)', ar: 'كراسي طعام مخمل (زوج، مستعملة)' },
+    title: { en: 'Velvet Dining Chairs (Pair)', ar: 'كراسي طعام مخمل (زوج)' },
     description: {
       en: 'A pair of dusty-pink velvet chairs with gold legs. Seats show light wear.',
       ar: 'زوج كراسي مخمل وردي هادئ بأرجل ذهبية. المقاعد عليها آثار استخدام خفيفة.',
@@ -358,8 +358,8 @@ export const PRODUCTS: DemoProduct[] = [
     category: 'beds',
     sub: 'king-beds',
     title: {
-      en: 'King Bed Frame with Storage (Pre-owned)',
-      ar: 'هيكل سرير كينج مع تخزين (مستعمل)',
+      en: 'King Bed Frame with Storage',
+      ar: 'هيكل سرير كينج مع تخزين',
     },
     description: {
       en: 'King frame with two large under-bed drawers. Mattress not included. Drawer runners work smoothly.',
@@ -375,7 +375,7 @@ export const PRODUCTS: DemoProduct[] = [
     slug: 'single-metal-bed-frame-pre-owned',
     category: 'beds',
     sub: 'single-beds',
-    title: { en: 'Single Metal Bed Frame (Pre-owned)', ar: 'هيكل سرير مفرد معدني (مستعمل)' },
+    title: { en: 'Single Metal Bed Frame', ar: 'هيكل سرير مفرد معدني' },
     description: {
       en: 'A sturdy black metal single frame. Some touched-up paint at the corners.',
       ar: 'هيكل سرير مفرد معدني أسود متين. بعض الزوايا أُعيد طلاؤها.',
@@ -419,7 +419,7 @@ export const PRODUCTS: DemoProduct[] = [
   {
     slug: 'mirrored-4-door-wardrobe-pre-owned',
     category: 'wardrobes',
-    title: { en: 'Mirrored 4-Door Wardrobe (Pre-owned)', ar: 'خزانة بأربعة أبواب بمرآة (مستعملة)' },
+    title: { en: 'Mirrored 4-Door Wardrobe', ar: 'خزانة بأربعة أبواب بمرآة' },
     description: {
       en: 'Four doors, two with full-length mirrors. Disassembled for transport. Small chips on the base trim.',
       ar: 'أربعة أبواب، اثنان منها بمرايا كاملة الطول. تُسلَّم مفككة. رقائق صغيرة في حافة القاعدة.',
@@ -434,7 +434,7 @@ export const PRODUCTS: DemoProduct[] = [
     slug: 'vintage-oak-armoire-pre-owned',
     category: 'wardrobes',
     draft: true,
-    title: { en: 'Vintage Oak Armoire (Pre-owned)', ar: 'خزانة بلوط عتيقة (مستعملة)' },
+    title: { en: 'Vintage Oak Armoire', ar: 'خزانة بلوط عتيقة' },
     description: {
       en: 'An antique-style oak armoire with carved details. Photos and condition notes to follow.',
       ar: 'خزانة بلوط بطراز عتيق وتفاصيل منحوتة. الصور وملاحظات الحالة قريباً.',
@@ -477,7 +477,7 @@ export const PRODUCTS: DemoProduct[] = [
   {
     slug: 'executive-wooden-desk-pre-owned',
     category: 'office-desks',
-    title: { en: 'Executive Wooden Desk (Pre-owned)', ar: 'مكتب مدير خشبي (مستعمل)' },
+    title: { en: 'Executive Wooden Desk', ar: 'مكتب مدير خشبي' },
     description: {
       en: 'A large executive desk with three drawers and a leather inlay top. Light wear on the inlay.',
       ar: 'مكتب مدير كبير بثلاثة أدراج وسطح بحشوة جلدية. آثار استخدام خفيفة على الحشوة.',
@@ -491,7 +491,7 @@ export const PRODUCTS: DemoProduct[] = [
   {
     slug: 'compact-writing-desk-pre-owned',
     category: 'office-desks',
-    title: { en: 'Compact Writing Desk (Pre-owned)', ar: 'مكتب كتابة صغير (مستعمل)' },
+    title: { en: 'Compact Writing Desk', ar: 'مكتب كتابة صغير' },
     description: {
       en: 'A small writing desk that fits a bedroom corner. Surface has a few visible marks.',
       ar: 'مكتب كتابة صغير يناسب زاوية غرفة النوم. السطح عليه بعض العلامات الظاهرة.',
@@ -534,7 +534,7 @@ export const PRODUCTS: DemoProduct[] = [
   {
     slug: 'large-round-gold-mirror-pre-owned',
     category: 'decor-lighting',
-    title: { en: 'Large Round Gold Mirror (Pre-owned)', ar: 'مرآة مستديرة ذهبية كبيرة (مستعملة)' },
+    title: { en: 'Large Round Gold Mirror', ar: 'مرآة مستديرة ذهبية كبيرة' },
     description: {
       en: 'An 80 cm round mirror with a slim gold frame. Glass is flawless; a small scratch on the frame.',
       ar: 'مرآة مستديرة بقطر 80 سم وإطار ذهبي رفيع. الزجاج بلا عيوب مع خدش صغير على الإطار.',
@@ -548,7 +548,7 @@ export const PRODUCTS: DemoProduct[] = [
   {
     slug: 'ceramic-vase-set-of-3-pre-owned',
     category: 'decor-lighting',
-    title: { en: 'Ceramic Vase Set of 3 (Pre-owned)', ar: 'طقم 3 مزهريات خزفية (مستعمل)' },
+    title: { en: 'Ceramic Vase Set of 3', ar: 'طقم 3 مزهريات خزفية' },
     description: {
       en: 'Three hand-finished ceramic vases in graduated sizes. All intact, one with a small glaze mark.',
       ar: 'ثلاث مزهريات خزفية بتشطيب يدوي بأحجام متدرجة. جميعها سليمة، وإحداها بها علامة صغيرة في الطلاء.',

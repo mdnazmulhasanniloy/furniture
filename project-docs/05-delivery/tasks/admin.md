@@ -64,7 +64,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 - Plan (autopilot, pending owner review): every VAT rule is explicit (PRD ADM-14, ADR-009, api-spec `VatSetting`), so no blocker: `lib/vat.ts` (`parseRate` percent text to basis points by string arithmetic, 0-50, at most 2 decimals, more decimals and out-of-range REJECTED never rounded; wire value is the PERCENT number (15 = 15%); registration number `^3[0-9]{13}3$`, optional, empty saves null; `exampleVat` = ADR-009 half-up formulas on a 100 SAR price), `routes/settings-vat.tsx` (VAT tab between Delivery and Social: rate, "Apply VAT to delivery fee" switch disabled while rate is 0, "Prices include VAT" switch, registration number, live example, note that existing orders keep their VAT snapshot), wired into the shared form/save bar with `expectedUpdatedAt` / `STALE_UPDATE`; other tabs' values still round-trip untouched.
 - Closed 2026-11-24 (autopilot): self-review PASS. Tests `ADM-14 · ...` in `src/test/adm-14-vat.test.tsx` (en + ar, RTL, dark mode): default state rate 0 and no example VAT, toggles/rate/number persist, invalid rate (>2 decimals, negative, >50) and number rejected with nothing sent, example formulas (15% on 125 SAR: 16.30 incl / 18.75 excl), other tabs survive a save, `STALE_UPDATE` localised. "Existing orders untouched" is backend snapshot behaviour (T-013/T-021); this screen never calls an order endpoint. Assumptions (autopilot) — owner to confirm: (1) the rate is typed as text, required (default 0), no thousands separators; (2) the registration number accepts Western digits only, surrounding spaces trimmed; (3) the delivery switch is disabled at rate 0 but keeps its stored value, which is still sent; (4) the live example uses a fixed 100 SAR product price (delivery excluded) and is indicative only, the API computes real totals; (5) the VAT tab sits between Delivery and Social; (6) en/ar wording is mine. B-013 (ZATCA) stays open and out of scope.
 
-### T-075 Upgrade admin to zod 4 and vitest 5 (npm audit) · todo
+### T-075 Upgrade admin to zod 4 and vitest 5 (npm audit) · partly done (zod 4 by T-075a 2026-11-25); vitest 5 still todo
 - Req: NFR (security) · Depends: T-074 · Same approach as backend T-029: upgrade `zod` to 4 and `vitest` (and related packages) to 5, fix breaking changes, no force flags, `--ignore-scripts` installs, no lifecycle script edits. Run every check (i18n:check, typecheck, lint, test, build, e2e) and `npm audit`; record remaining advisories.
 
 #### Audit triage 2026-11-25 (QA B8, owner asked for it)
@@ -77,6 +77,17 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 | `i18next` < 26.3.4 | moderate | production (1 entry) | `deepExtend` recurses into inherited built-ins, allowing corruption of shared built-ins (DoS, CWE-471 / CWE-1321) | `i18next@27` (**major**, we are on 24.x) | Not reachable: the only resources merged are the two static locale JSON files; nothing user-supplied is ever merged. |
 | `vitest` / `@vitest/mocker` / `tinypool` | **2 critical** + moderate | **dev only** | Tinypool prototype-pollution gadget to RCE in worker options; mocker path traversal / code injection | `vitest@5.1.1` (**major**) - T-075's second half | Test runner only; never shipped and never run against untrusted input. |
 | `typescript-eslint` chain + `minimatch` | moderate | **dev only** | `minimatch` globparts denial of service | **non-major** (`fixAvailable: true`) | Lint tooling only. Left alone deliberately: the owner's instruction was to fix production ones and list the rest here. |
+
+**Owner decision 2026-11-25 (after the QA B8 triage):** `zod` was taken now, as **T-075a** below. The other two production majors are
+**post-launch**, with the exposure that makes that safe written down here:
+
+- **`@tiptap/*` 2.x -> 3.35 (moderate, 27 entries, one cause: `@tiptap/core` `mergeAttributes()` turning an own `__proto__` key into
+  inherited executable DOM attributes).** Reachable only through the CMS page editor, by an authenticated admin, on content they type
+  themselves; every write is sanitised server-side with the ADR-013 allowlist, and the storefront renders only that sanitised HTML. A
+  2.x -> 3.x upgrade rewrites the editor's extension setup, so it is its own task, not an audit chore.
+- **`i18next` 24.x -> 27 (moderate: `deepExtend` recursing into inherited built-ins, DoS).** Not reachable at all: the only resources ever
+  merged are the two static locale JSON files that ship with the bundle. Nothing user-supplied reaches `deepExtend`.
+- **`vitest` 5 (the two criticals) stays in T-075**: dev-only, never shipped, never run against untrusted input.
 
 Backend, for completeness (same commands): `npm audit --omit=dev` is **4 high**, all one root cause - the `prisma` **CLI** (`@prisma/config` -> `deepmerge-ts` stack exhaustion, `effect` ReDoS). The offered fix is `prisma@7`, which **ADR-001 forbids**; `@prisma/client`, the only Prisma code in the request path, is not flagged, and the CLI runs at build/migrate time, so there is nothing to patch at runtime. Web: **0** production advisories.
 
@@ -120,4 +131,11 @@ Backend, for completeness (same commands): `npm audit --omit=dev` is **4 high**,
 ### T-109 Account menu: Change password and Profile · plan only, awaiting approval
 - Req: ADM-11, PROF-01 · Depends: backend T-108 (change password only), owner approval of `05-delivery/admin-account-menu-plan.md` (QA C5)
 - Two dialogs in the avatar menu above Sign out. **Profile needs no API work**: `PATCH /me` is behind `requireAuth` with no role check, so an admin may already update their own name; the email is shown read-only (no endpoint exists, by design). **Change password** needs backend T-108 and reuses the live `PasswordRules` checklist from the invite screen; it keeps the admin signed in here and says that the other devices were signed out. All new en/ar copy is listed in section 4 of the plan and needs approval first. One open question for the owner in section 5 (should other admins be notified). **No code written.**
+
+### T-075a Admin on zod 4 · done 2026-11-25
+- Req: NFR (security) · Depends: T-075 triage (QA B8) · Owner: scheduled before launch, own commit, all admin checks green.
+- `zod` 3.25.76 -> **4.6.7**, which clears the only **high** production advisory in the admin (memory exhaustion validating oversized constrained collections, CWE-770). `npm audit --omit=dev`: 29 -> 28 entries, **high 1 -> 0**; total 39 -> 38. The two remaining production causes are tiptap and i18next, post-launch per the owner (above).
+- **`@hookform/resolvers` 4.1.3 -> 5.9.2 came with it, and had to.** v4 only speaks zod 3: with zod 4 installed, `zodResolver` returned no messages and twelve form-validation tests across ADM-03, ADM-07 and ADM-08 failed with their error text missing. v5.9.2 declares `zod: ^3.25.0 || ^4.0.0` and `react-hook-form: ^7.55.0` (installed 7.91.0). It is an upgrade of a package already in use, not a new dependency, installed with `--ignore-scripts`.
+- Lockfile: exactly two version changes (`zod`, `@hookform/resolvers`); `ajv` and `json-schema-traverse` only moved from the root to nested under `eslint` (the old resolver had pinned the hoisted copy). No package name added or removed, no install scripts, every `resolved` URL on registry.npmjs.org.
+- **No source change was needed**: typecheck, 552 tests, lint, i18n (686 keys), build and 9 e2e all pass as they stood. `.email()` and `superRefine()` are deprecated in zod 4 but still supported; migrating them to `z.email()` / `.check()` is cosmetic and was left for whenever zod 5 removes them, to keep this commit to the upgrade itself.
 

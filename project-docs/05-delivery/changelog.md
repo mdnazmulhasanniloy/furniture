@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-24 (CR-011 checkpoint 1 review fixes, T-045)
+- Review fixes 1 to 7 (commits 8eb847a, 184a597, 6eae351, 836dc49, 0532a2c): auth error boundary and fetch timeouts, hero image, city-count copy, spacing scale, auth form size, Bodoni kerning, banner alt. Blocker B-039 (blank /ar/register not reproduced). Screenshots retaken in `screens-v5`.
+- Web T-045 (first part): `POST /api/revalidate` with tests (11) and a live check. Nothing pushed.
+
 ## 2026-11-24 (CR-011 Checkpoint 1 built: STOP for review)
 - Web T-090 to T-094 done (commits beedbbe, 94c0800, 5808f20, 2972516, 2fbaca8): Bodoni Moda / El Messiri, blush and champagne tokens, container and rails utilities, hero carousel, category bento, auth split screen, Arch removed. Backend: additive `productCount` on home CATEGORY_GRID items (spec, code, test). Vitals within the CR-009 budget (table in `cr-011-plan.md` section 11). Screenshots in `03-design/screens-v5/`. Nothing pushed; no data command run.
 

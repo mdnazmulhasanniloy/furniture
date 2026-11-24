@@ -18,7 +18,7 @@ for (const locale of ["en", "ar"] as const) {
     await inputs.nth(0).fill("Sara");
     await inputs.nth(1).fill("Ali");
     await inputs.nth(2).fill("sara@example.com");
-    await inputs.nth(3).fill("abc12345");
+    await inputs.nth(3).fill("Abc12345!");
     await page.locator("main form button[type=submit]").click();
     await expect(page).toHaveURL(new RegExp(`/${locale}/verify$`));
     expect(registerBody).toMatchObject({ email: "sara@example.com", preferredLocale: locale });

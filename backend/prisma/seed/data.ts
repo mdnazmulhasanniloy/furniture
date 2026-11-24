@@ -42,11 +42,6 @@ const COMING_SOON: L = {
   ar: 'المحتوى قريبًا.',
 };
 
-const PLACEHOLDER: L = {
-  en: 'PLACEHOLDER - replace before launch',
-  ar: 'نص مؤقت - يجب استبداله قبل الإطلاق',
-};
-
 export const PAGES: {
   slug: string;
   title: L;

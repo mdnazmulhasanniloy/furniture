@@ -4,3 +4,6 @@ dist
 .env.preview-check
 coverage
 /uploads
+
+# demo-data image download cache
+scripts/demo-data/.cache/

@@ -31,6 +31,8 @@ const schema = z.object({
   SEED_DEMO_DATA: optStr,
   SEED_CONTACT_EMAIL: optStr,
   SEED_CONTACT_PHONE: optStr,
+  // Demo-data tooling only (npm run demo:reset); read from process.env by the script, never by the API.
+  DEMO_CUSTOMER_PASSWORD: optStr,
   ACCESS_TOKEN_SECRET: optStr,
   REFRESH_TOKEN_PEPPER: optStr,
   CSRF_SECRET: optStr,

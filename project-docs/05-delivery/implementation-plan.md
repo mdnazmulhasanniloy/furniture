@@ -13,3 +13,4 @@ Gate 0 — **Sign-off**: client reviews PRD, design system, API spec; blockers B
 
 Critical path: T-001 → T-002 → T-004 → T-005 → T-010 → T-012 → T-013 → T-014 → T-016.
 Parallelism: web and admin start at M1 against `api-spec.yaml` with mocked responses (MSW) until backend endpoints land.
+Developer tooling (off the critical path): T-078 demo-data reset and seed, local development only.

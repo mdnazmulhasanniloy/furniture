@@ -138,7 +138,7 @@ const riyadhYmd = (now: Date): string =>
  * (`orderNo:{YYYYMMDD}`), an E11000 race on the first upsert retried once (T-024 pattern). Taken
  * before the transaction: a failed placement leaves a gap, which is harmless (`orderNo` is unique).
  */
-async function nextOrderNo(now = new Date()): Promise<string> {
+export async function nextOrderNo(now = new Date()): Promise<string> {
   const ymd = riyadhYmd(now);
   const run = () =>
     db.run({

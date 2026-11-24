@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   DeleteObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -211,6 +212,51 @@ export async function deleteObjects(
     }),
   );
   return { deleted, failed };
+}
+
+// ---------------------------------------------------------------- server-side put / list (tooling)
+
+/**
+ * Server-side upload of an already validated image (used by the demo-data tooling; the API itself only presigns).
+ * The caller owns validation of type and size; the key must be a valid key inside `furnixa/{env}/`.
+ */
+export async function putObject(
+  key: string,
+  body: Uint8Array,
+  contentType: AllowedContentType,
+): Promise<void> {
+  if (!isValidKey(key)) throw uploadNotAllowed('Invalid image key');
+  await getS3().send(
+    new PutObjectCommand({
+      Bucket: r2Config().bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      ContentLength: body.byteLength,
+    }),
+  );
+}
+
+/** All object keys under `prefix` (follows pagination). */
+export async function listKeys(prefix: string): Promise<string[]> {
+  const keys: string[] = [];
+  let token: string | undefined;
+  do {
+    const res: {
+      Contents?: { Key?: string }[];
+      IsTruncated?: boolean;
+      NextContinuationToken?: string;
+    } = await getS3().send(
+      new ListObjectsV2Command({
+        Bucket: r2Config().bucket,
+        Prefix: prefix,
+        ContinuationToken: token,
+      }),
+    );
+    for (const o of res.Contents ?? []) if (o.Key) keys.push(o.Key);
+    token = res.IsTruncated ? res.NextContinuationToken : undefined;
+  } while (token);
+  return keys;
 }
 
 // ---------------------------------------------------------------- attach / release / sync

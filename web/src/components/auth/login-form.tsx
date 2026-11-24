@@ -1,12 +1,13 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 
 import { KernedText } from "@/components/kerned-text";
 import { Button } from "@/components/ui/button";
 import { Link, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api/errors";
+import { accountTarget, safeNext } from "@/lib/auth/next-path";
 import { login } from "@/lib/auth/session";
 import { usePendingAuth } from "@/lib/auth/pending";
 import { useAuthStore } from "@/lib/auth/store";
@@ -14,11 +15,21 @@ import { validateEmail, type FieldError } from "@/lib/auth/validation";
 
 import { AuthShell, ErrorSummary, Field, FormAlert, FormNotice, useErrorSummary } from "./auth-ui";
 
-/** AUTH-02. `resetDone` shows the post-reset notice (AUTH-03 sends users here). */
-export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
+/**
+ * AUTH-02. `resetDone` shows the post-reset notice (AUTH-03 sends users here).
+ *
+ * `next` (QA B2, 2026-11-24) is the path to continue to, from `?next=`; only a path on this site is
+ * used (`safeNext`). A visitor who is already signed in - the session is restored by a refresh first,
+ * so this is known a moment after the page opens - goes to it, or to the account page. A fresh login
+ * follows `next` as well and otherwise lands on the home page, as before.
+ */
+export function LoginForm({ resetDone = false, next }: { resetDone?: boolean; next?: string }) {
   const t = useTranslations("auth");
+  const locale = useLocale();
   const router = useRouter();
   const status = useAuthStore((s) => s.status);
+  const target = accountTarget(next, locale);
+  const afterLogin = safeNext(next, locale) ?? "/";
   const setPending = usePendingAuth((s) => s.setPending);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,8 +43,8 @@ export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
   const checkPassword = (v: string) => setErrors((e) => ({ ...e, password: v ? null : ("required" as const) }));
 
   useEffect(() => {
-    if (status === "authenticated") router.replace("/");
-  }, [status, router]);
+    if (status === "authenticated") router.replace(target);
+  }, [status, router, target]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -48,7 +59,7 @@ export function LoginForm({ resetDone = false }: { resetDone?: boolean }) {
     setApiError(null);
     try {
       await login(email.trim().toLowerCase(), password);
-      router.replace("/");
+      router.replace(afterLogin);
     } catch (err) {
       if (err instanceof ApiError && err.code === "EMAIL_NOT_VERIFIED") {
         // The API re-sent an OTP (api-spec.yaml /auth/login): go to the verify screen.

@@ -20,10 +20,11 @@ export default async function Page({
   searchParams,
 }: Readonly<{
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ reset?: string }>;
+  searchParams: Promise<{ reset?: string; next?: string }>;
 }>) {
   const { locale } = await params;
-  const { reset } = await searchParams;
+  const { reset, next } = await searchParams;
   setRequestLocale(locale);
-  return <LoginForm resetDone={reset === "1"} />;
+  // `next` is sanitised in the form (same-origin paths only, QA B2).
+  return <LoginForm resetDone={reset === "1"} next={next} />;
 }

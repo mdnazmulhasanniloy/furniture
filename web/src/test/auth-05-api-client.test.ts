@@ -108,14 +108,35 @@ describe("AUTH-05 · 401 -> single refresh -> retry once", () => {
     expect(useAuthStore.getState().accessToken).toBe("new");
   });
 
-  it("AUTH-05 · fetches the CSRF token first when none is cached", async () => {
+  // QA B2 (owner 2026-11-24): the token is no longer fetched up front - only a session can be answered
+  // CSRF_INVALID, so asking first meant a guest's page load made a GET /auth/csrf answered 401 by design.
+  it("AUTH-05 · the refresh goes out with no CSRF token and fetches one only when the API asks", async () => {
+    let refreshes = 0;
     const calls = setup((c) => {
       if (c.url.endsWith("/auth/csrf")) return json(200, { csrfToken: "csrfX" });
-      if (c.url.endsWith("/auth/refresh")) return json(200, { accessToken: "new", user });
+      if (c.url.endsWith("/auth/refresh")) {
+        return ++refreshes === 1
+          ? json(403, { code: "CSRF_INVALID", message: "x" })
+          : json(200, { accessToken: "new", user });
+      }
       return c.init.headers.Authorization ? json(200, {}) : json(401, { code: "UNAUTHORIZED", message: "x" });
     });
     await apiRequest("/me");
+    expect(countOf(calls, "/auth/refresh")).toBe(2);
     expect(countOf(calls, "/auth/csrf")).toBe(1);
+    expect(calls.findIndex((c) => c.url.endsWith("/auth/csrf"))).toBeGreaterThan(
+      calls.findIndex((c) => c.url.endsWith("/auth/refresh")),
+    );
+  });
+
+  it("AUTH-05 · a guest refresh never calls /auth/csrf", async () => {
+    const calls = setup((c) =>
+      c.url.endsWith("/auth/refresh")
+        ? json(401, { code: "UNAUTHORIZED", message: "x" })
+        : json(401, { code: "UNAUTHORIZED", message: "x" }),
+    );
+    await expect(apiRequest("/me")).rejects.toThrow();
+    expect(countOf(calls, "/auth/csrf")).toBe(0);
   });
 
   it("AUTH-05 · a second 401 after the refresh is not retried again (no loop)", async () => {

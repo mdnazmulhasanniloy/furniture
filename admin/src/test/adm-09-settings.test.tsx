@@ -195,6 +195,16 @@ describe.each([
     expect(puts().length).toBe(0);
   });
 
+  it("ADM-09 · an empty contact email saves, so no other setting depends on contact details (owner 2026-11-24)", async () => {
+    mount();
+    await screen.findByTestId("settings-form");
+    fill(m.form.contactEmail, "");
+    fireEvent.click(screen.getByTestId("settings-save"));
+    await waitFor(() => expect(puts().length).toBe(1));
+    expect(puts()[0].body.contactEmail).toBe("");
+    expect(screen.queryByText(m.form.emailInvalid)).toBeNull();
+  });
+
   it("ADM-09 · SEO is edited per language and omitted when emptied", async () => {
     mount();
     await screen.findByTestId("settings-form");

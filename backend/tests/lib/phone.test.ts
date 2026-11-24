@@ -3,7 +3,10 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ZodError, z } from 'zod';
 import {
+  normalizeSaudiContactPhone,
   normalizeSaudiPhone,
+  SAUDI_CONTACT_PHONE_MAX_LENGTH,
+  SAUDI_CONTACT_PHONE_PATTERN,
   SAUDI_PHONE_MAX_LENGTH,
   SAUDI_PHONE_PATTERN,
   saudiPhone,
@@ -119,6 +122,48 @@ describe('NFR-06 · Saudi phone validator', () => {
     const maxLength = /maxLength: (\d+)/.exec(block)?.[1];
     expect(canonical).toBe(SAUDI_PHONE_PATTERN.source);
     expect(Number(maxLength)).toBe(SAUDI_PHONE_MAX_LENGTH);
+  });
+
+  it('NFR-06 · the contact-phone validator equals x-canonical-pattern of SaudiContactPhoneInput in api-spec.yaml', () => {
+    const spec = readFileSync(
+      resolve(process.cwd(), '../project-docs/04-architecture/api-spec.yaml'),
+      'utf8',
+    );
+    const block = spec.split(/^ {4}SaudiContactPhoneInput:\n/m)[1]!.split(/^ {4}\S/m)[0]!;
+    expect(/x-canonical-pattern: '([^']+)'/.exec(block)?.[1]).toBe(
+      SAUDI_CONTACT_PHONE_PATTERN.source,
+    );
+    expect(Number(/maxLength: (\d+)/.exec(block)?.[1])).toBe(SAUDI_CONTACT_PHONE_MAX_LENGTH);
+  });
+
+  it('NFR-06 · the store contact phone takes a landline and a unified number as well as a mobile, and rejects anything else (B-033, owner 2026-11-24)', () => {
+    expect(normalizeSaudiContactPhone('011 234 5678')).toBe('+966112345678');
+    expect(normalizeSaudiContactPhone('0112345678')).toBe('+966112345678');
+    expect(normalizeSaudiContactPhone('+966112345678')).toBe('+966112345678');
+    expect(normalizeSaudiContactPhone('0551234567')).toBe('+966551234567');
+    expect(normalizeSaudiContactPhone('٠٥٥١٢٣٤٥٦٧')).toBe('+966551234567');
+    // unified numbers: 9200XXXXX (9 digits) and toll-free 800XXXXXXX (10)
+    expect(normalizeSaudiContactPhone('9200 12345')).toBe('+966920012345');
+    expect(normalizeSaudiContactPhone('800 123 4567')).toBe('+9668001234567');
+    expect(normalizeSaudiContactPhone('+9668001234567')).toBe('+9668001234567');
+    for (const bad of [
+      '',
+      '   ',
+      'seed-phone',
+      '+1 202 555 0147',
+      '05512345',
+      '0051234567',
+      '011-234-567x',
+      '0'.repeat(45),
+      null,
+      42,
+    ]) {
+      expect(normalizeSaudiContactPhone(bad), String(bad)).toBeNull();
+    }
+    // idempotent, so saving a loaded value again keeps it
+    expect(normalizeSaudiContactPhone(normalizeSaudiContactPhone('011 234 5678')!)).toBe(
+      '+966112345678',
+    );
   });
 
   it('NFR-06 · an invalid phone is a zod issue on the phone path (-> 422 VALIDATION_ERROR through the error handler)', () => {

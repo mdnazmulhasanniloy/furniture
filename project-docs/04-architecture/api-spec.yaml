@@ -1770,6 +1770,19 @@ components:
       pattern: '^\+9665[0-9]{8}$'
       description: Normalized E.164 Saudi mobile number returned by the API.
       examples: ['+966551234567']
+    SaudiContactPhoneInput:
+      type: string
+      maxLength: 40
+      x-canonical-pattern: '^(\+966|00966|0)?(800\d{7}|[1-9]\d{8})$'
+      description: >-
+        The store's own contact number (B-033, owner 2026-11-24: mobile, landline and unified 9200/800 numbers,
+        normalised to E.164, a validator of its own, separate from the customer mobile rule SaudiPhoneInput).
+        Optional: `""` clears it and the storefront footer then shows no phone line. Same normalisation as
+        SaudiPhoneInput (trim, Arabic-Indic digits to ASCII, remove spaces/dashes/dots/parentheses); the national
+        part is then 9 digits starting 1-9 (mobile `5XXXXXXXX`, landline `11XXXXXXX`, unified `9200XXXXX`) or a
+        10-digit toll-free `800XXXXXXX`, each optionally written with `0`, `+966` or `00966` in front. Anything
+        else is VALIDATION_ERROR. The stored and returned value is always `+966` plus the national part.
+      examples: ['0112345678', '011 234 5678', '+966 55 123 4567', '9200 12345', '800 123 4567']
     DeliveryCity:
       type: object
       required: [code, name, isActive, sortOrder]
@@ -2450,20 +2463,24 @@ components:
     SiteSettingInput:
       type: object
       additionalProperties: false
-      required: [expectedUpdatedAt, storeName, contactEmail, contactPhone, deliveryFee, vat, deliveryCities, defaultLocale]
+      required: [expectedUpdatedAt, storeName, deliveryFee, vat, deliveryCities, defaultLocale]
       description: >-
         Body of PUT /admin/settings (full replace, owner 2026-11-22, T-011). `currency` is fixed to SAR and not
         accepted (unknown field -> 422). The logo is an ImageAssetInput (`url` recomputed from `key`). Limits:
-        storeName <= 120, address <= 300 per locale, contactEmail <= 120, contactPhone free text <= 40, social
+        storeName <= 120, address <= 300 per locale, contactEmail <= 120, social
         URLs <= 300, SEO title <= 120 / description <= 300 per locale, city name <= 60 per locale, city code
         <= 40. Duplicate city codes, a missing ar/en city name, no active city or > 100 cities -> 422.
         Delivery-city codes are immutable: every existing code must be present (T-022), see PUT /admin/settings.
+        Contact details are optional (owner 2026-11-24, closes B-033): `contactEmail` and `contactPhone` may be
+        omitted or sent as `""`, which clears them and hides those lines in the storefront footer, so saving VAT,
+        the delivery fee or any other setting never requires contact details. A non-empty value must be valid
+        (email format; a Saudi phone, see SaudiContactPhoneInput) or the request is 422.
       properties:
         expectedUpdatedAt: { type: string, format: date-time, description: The `updatedAt` the admin loaded; mismatch -> 409 STALE_UPDATE }
         storeName: { $ref: '#/components/schemas/LocalizedText' }
         logo: { oneOf: [{ $ref: '#/components/schemas/ImageAssetInput' }, { type: 'null' }] }
-        contactEmail: { type: string, format: email }
-        contactPhone: { type: string, description: Free text; the store may list a landline }
+        contactEmail: { type: string, maxLength: 120, description: 'Optional; `""` clears it. A non-empty value must be a valid email address' }
+        contactPhone: { $ref: '#/components/schemas/SaudiContactPhoneInput' }
         address: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
         socials:
           type: object
@@ -2490,8 +2507,8 @@ components:
         storeName: { $ref: '#/components/schemas/LocalizedText' }
         # logo/address/socials/seo are optional; writers store explicit null (rule 8), so responses carry null, not absence (T-019).
         logo: { oneOf: [{ $ref: '#/components/schemas/ImageAsset' }, { type: 'null' }] }
-        contactEmail: { type: string, format: email }
-        contactPhone: { type: string, description: Free text; the store may list a landline }
+        contactEmail: { type: string, description: 'Email address, or `""` when the store has not published one (the footer then shows no email line)' }
+        contactPhone: { type: string, description: 'Normalized `+966XXXXXXXXX`, or `""` when the store has not published one (the footer then shows no phone line)' }
         address: { oneOf: [{ $ref: '#/components/schemas/LocalizedText' }, { type: 'null' }] }
         socials:
           type: [object, 'null']

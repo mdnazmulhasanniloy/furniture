@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { normalizeSaudiContactPhone, SAUDI_CONTACT_PHONE_MAX_LENGTH } from '../../lib/phone.js';
 import { isSafeHref } from '../../lib/safeHtml.js';
 
 const MAX_MONEY = 100_000_000; // halalas (owner 2026-11-22, same cap as products)
@@ -237,6 +238,32 @@ const seo = z
   .strict();
 
 /**
+ * Contact details are optional (owner 2026-11-24, closes B-033): absent or `''` clears them and the storefront
+ * footer hides that line, so saving VAT, the delivery fee or any other setting never requires contact details.
+ * A non-empty value must be valid: an email address, or a Saudi phone stored as `+966XXXXXXXXX`.
+ */
+const optionalContactEmail = z
+  .string()
+  .trim()
+  .max(120)
+  .refine((v) => v === '' || z.email().safeParse(v).success, 'Invalid email address')
+  .optional();
+
+const optionalContactPhone = z
+  .string()
+  .max(SAUDI_CONTACT_PHONE_MAX_LENGTH, 'Phone is too long')
+  .transform((value, ctx) => {
+    if (value.trim() === '') return '';
+    const normalized = normalizeSaudiContactPhone(value);
+    if (normalized === null) {
+      ctx.addIssue({ code: 'custom', message: 'Invalid Saudi phone number' });
+      return z.NEVER;
+    }
+    return normalized;
+  })
+  .optional();
+
+/**
  * Full replace (owner 2026-11-22): absent optional fields are cleared. `currency` is fixed to SAR and not
  * accepted (strict -> 422). City immutability and last-active rules are T-022; here only shape is checked.
  */
@@ -249,8 +276,8 @@ export const putSettingsBody = z
       .strict()
       .nullable()
       .optional(),
-    contactEmail: z.string().trim().pipe(z.email().max(120)),
-    contactPhone: z.string().trim().min(1).max(40),
+    contactEmail: optionalContactEmail,
+    contactPhone: optionalContactPhone,
     address: localizedLoose(300).nullable().optional(),
     socials: socials.nullable().optional(),
     deliveryFee: z.number().int().min(0).max(MAX_MONEY),

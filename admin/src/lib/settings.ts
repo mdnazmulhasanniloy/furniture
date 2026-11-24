@@ -114,12 +114,13 @@ export const settingsSchema = z
     storeNameAr: z.string().trim().min(1, "settings.form.required").max(120, "settings.form.tooLong"),
     addressEn: z.string().trim().max(300, "settings.form.tooLong"),
     addressAr: z.string().trim().max(300, "settings.form.tooLong"),
+    // Optional since 2026-11-24 (owner): an empty email clears it and the storefront hides the line, so
+    // saving the VAT or delivery tabs never depends on contact details. A typed value must still be valid.
     contactEmail: z
       .string()
       .trim()
-      .min(1, "settings.form.required")
       .max(120, "settings.form.tooLong")
-      .regex(EMAIL, "settings.form.emailInvalid"),
+      .refine((v) => v === "" || EMAIL.test(v), "settings.form.emailInvalid"),
     defaultLocale: z.enum(["ar", "en"]),
     seoTitleEn: z.string().trim().max(120, "settings.form.tooLong"),
     seoTitleAr: z.string().trim().max(120, "settings.form.tooLong"),

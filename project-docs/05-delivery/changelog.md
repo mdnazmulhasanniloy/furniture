@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-11-24 (CR-007 UI redesign, docs)
+- **CR-007 (docs only, owner 2026-11-24, SRC-008).** UI redesign "Emerald and gold" on white, motion split (GSAP home, Framer components/pages, AOS content), product card, FAV-01 account favourites, auth split layout, home, cart. ADR-014 Accepted. Docs: design-system §1/§4/§5 rewritten (new tokens `--gold-strong`, `--input`, `--price`, `--warning-foreground`, `--success-foreground`; `--accent` removed), PRD (wishlist leaves non-goals, new FAV-01, UI-01/02, PROD-01, CART-01, AUTH visual, ADM-07 fixed parts), screen-specs (W-01/02/04/06, new W-08), api-spec (`/me/wishlist`, `/me/wishlist/{productId}`, `/me/wishlist/merge`, `Wishlist`, `WISHLIST_LIMIT_REACHED`, `WISHLIST_CONFLICT`), data-model (Wishlist). Owner answers: per-item wishlist writes, contact strip only (newsletter = future CR), text wordmark until B-006, sonner approved, enter-only page transitions. Tasks: backend T-031; web T-046..T-051; admin T-077. B-006 (real logo) still open.
+
 ## 2026-11-24 (owner answers to autopilot blockers)
 - B-028 to B-034 resolved by the owner and new B-035 (cart productId) recorded as resolved; see blockers.md. PRD ADM-02, ADM-07, ADM-09 and ADR-010 updated. `@axe-core/playwright` approved as a web devDependency (T-042).
 - New tasks, nothing implemented yet: backend T-030, web T-045, admin T-075 (zod 4 + vitest 5) and T-076.

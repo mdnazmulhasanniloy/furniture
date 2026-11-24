@@ -226,7 +226,7 @@ Order: backend T-080 first (seed), then the owner runs `demo:reset`, then T-081 
 - Req: UI-04, UI-01, UI-02 · Depends: approval of CR-011 · Docs: ADR-018
 ### T-091 Hero carousel · done
 - Req: CAT-01, ADM-06, UI-04 · Depends: T-090
-### T-092 Category bento · todo
+### T-092 Category bento · done (includes additive backend productCount on home CATEGORY_GRID items, spec and test)
 - Req: CAT-01, UI-04 · Depends: T-090
 ### T-093 Auth split screen, floating labels, live rules, six-box OTP · todo
 - Req: AUTH-01..AUTH-04, UI-04 · Depends: T-090

@@ -1,4 +1,4 @@
-import type { Banner, Prisma } from '@prisma/client';
+import type { Banner, Category, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma.js';
 import { notSet } from '../../lib/prismaFilters.js';
 import { toCategory } from '../categories/service.js';
@@ -70,9 +70,25 @@ async function resolveProductsByIds(
     .map(toProduct);
 }
 
+/** CR-011 T-092: PUBLISHED products per category, counting direct sub-categories like the shop filter does. */
+async function withProductCounts(
+  picked: Category[],
+  all: Category[],
+): Promise<(ReturnType<typeof toCategory> & { productCount: number })[]> {
+  const ids = [...new Set(picked.flatMap((c) => [c.id, ...all.filter((x) => x.parentId === c.id).map((x) => x.id)]))];
+  const rows = ids.length
+    ? await prisma.product.groupBy({ by: ['categoryId'], where: { status: 'PUBLISHED', categoryId: { in: ids } }, _count: { _all: true } })
+    : [];
+  const countBy = new Map(rows.map((r) => [r.categoryId, r._count._all]));
+  return picked.map((c) => {
+    const own = [c.id, ...all.filter((x) => x.parentId === c.id).map((x) => x.id)];
+    return { ...toCategory(c), productCount: own.reduce((n, id) => n + (countBy.get(id) ?? 0), 0) };
+  });
+}
+
 type ResolvedSection = SectionResponse & {
   products?: ReturnType<typeof toProduct>[];
-  categories?: ReturnType<typeof toCategory>[];
+  categories?: (ReturnType<typeof toCategory> & { productCount: number })[];
   banner?: BannerResponse;
   look?: {
     image: unknown;
@@ -135,14 +151,13 @@ async function resolveSection(
         const byId = new Map(active.map((c) => [c.id, c]));
         const picked = ids
           .map((id) => byId.get(id))
-          .filter((c) => c !== undefined)
-          .map(toCategory);
-        return { ...section, categories: picked };
+          .filter((c) => c !== undefined);
+        return { ...section, categories: await withProductCounts(picked, active) };
       }
       // Roots are found in memory: a `{ parentId: null }` where-filter would miss documents created
       // without the field (null-vs-missing, CLAUDE.md rule 8; seeded categories carry explicit null,
       // but older imports may not).
-      return { ...section, categories: active.filter((c) => !c.parentId).map(toCategory) };
+      return { ...section, categories: await withProductCounts(active.filter((c) => !c.parentId), active) };
     }
     case 'PROMO_BANNER': {
       const banner = activeBanners.find((b) => b.id === cfg.bannerId);

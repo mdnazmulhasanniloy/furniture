@@ -101,6 +101,8 @@ export type HomeCategory = {
   slug: string;
   name: LocalizedText;
   image?: ImageAsset | null;
+  /** PUBLISHED products in the category and its sub-categories (CR-011 T-092). */
+  productCount?: number;
 };
 
 export type HomeSectionType =

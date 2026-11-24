@@ -560,7 +560,16 @@ paths:
                         - type: object
                           properties:
                             products: { type: array, items: { $ref: '#/components/schemas/Product' } }
-                            categories: { type: array, items: { $ref: '#/components/schemas/Category' } }
+                            categories:
+                              type: array
+                              description: >-
+                                CATEGORY_GRID items carry `productCount` (CR-011 T-092): PUBLISHED products in the category and its direct sub-categories, the same set the shop filter shows.
+                              items:
+                                allOf:
+                                  - $ref: '#/components/schemas/Category'
+                                  - type: object
+                                    required: [productCount]
+                                    properties: { productCount: { type: integer, minimum: 0 } }
                             banner: { $ref: '#/components/schemas/Banner' }
                             look: { $ref: '#/components/schemas/ResolvedLook' }
   /cms/settings:

@@ -286,27 +286,56 @@ describe.each(["en", "ar"] as const)("UI-01 · home v2 category row and shelf (%
     section("r", "RESALE_PICKS", { products: [product("2", "RESALE")] }),
   ];
 
-  it(`UI-01 · categories are a scroll-snap row of 3:4 arches with the name under each (${locale})`, () => {
-    wrap(locale, <HomeSections sections={[cats]} locale={locale} />);
-    const row = screen.getByTestId("category-row");
-    expect(row.className).toContain("snap-x");
-    expect(row.className).toContain("overflow-x-auto");
-    const tiles = within(row).getAllByRole("listitem");
-    expect(tiles).toHaveLength(2);
-    for (const tile of tiles) {
-      expect(tile.className).toContain("snap-start");
-      expect(within(tile).getByTestId("arch").className).toContain("aspect-[3/4]");
-      expect(within(tile).queryByTestId("arch-outline")).toBeNull(); // the gold outline is a hero detail
-    }
-    expect(within(row).getByRole("link", { name: locale === "en" ? "Sofas" : "أرائك" }).getAttribute("href")).toBe("/shop?category=sofas");
+  const five = section("c5", "CATEGORY_GRID", {
+    categories: [1, 2, 3, 4, 5, 6].map((n) => ({
+      id: `k${n}`,
+      slug: `cat-${n}`,
+      name: { en: `Cat ${n}`, ar: `فئة ${n}` },
+      image: n === 2 ? null : { url: `https://cdn.test/c${n}.jpg` },
+      productCount: n === 1 ? 12 : n === 3 ? 1 : 0,
+    })),
   });
 
-  it(`UI-01 · a category without an image gets a flat sand placeholder inside the arch (${locale})`, () => {
-    wrap(locale, <HomeSections sections={[cats]} locale={locale} />);
-    const ph = screen.getByTestId("image-placeholder");
-    expect(ph.getAttribute("aria-label")).toBe(m.home.brand);
-    expect(ph.className).toContain("bg-muted");
-    expect(ph.className).not.toMatch(/pattern|gradient/);
+  it(`UI-04 · categories are a bento grid: one large tile, four small, no scroll row, no arch (${locale})`, () => {
+    wrap(locale, <HomeSections sections={[five]} locale={locale} />);
+    const grid = screen.getByTestId("category-grid");
+    expect(grid.className).toContain("grid-cols-2");
+    expect(grid.className).toContain("lg:grid-cols-4");
+    expect(grid.className).not.toMatch(/overflow-x|snap-/);
+    expect(screen.queryByTestId("category-row")).toBeNull();
+    expect(screen.queryByTestId("arch")).toBeNull();
+    const tiles = within(grid).getAllByRole("listitem");
+    expect(tiles).toHaveLength(5); // the sixth category is not shown
+    expect(tiles[0].className).toContain("col-span-2");
+    expect(tiles[0].className).toContain("lg:row-span-2");
+    for (const tile of tiles.slice(1)) expect(tile.className).not.toContain("col-span-2");
+    const first = within(tiles[0]).getByRole("link");
+    expect(first.getAttribute("href")).toBe("/shop?category=cat-1");
+    expect(first.className).toContain("zoom-on-hover");
+    expect(first.className).toContain("rounded-lg");
+  });
+
+  it(`UI-04 · a tile shows a dark gradient, the name in the heading font and the product count (${locale})`, () => {
+    wrap(locale, <HomeSections sections={[five]} locale={locale} />);
+    const tiles = within(screen.getByTestId("category-grid")).getAllByRole("listitem");
+    const name = within(tiles[0]).getByText(locale === "en" ? "Cat 1" : "فئة 1");
+    expect(name.className).toContain("font-display");
+    expect(tiles[0].querySelector(".bg-gradient-to-t")).toBeTruthy();
+    expect(within(tiles[0]).getByText(locale === "en" ? "12 products" : "12 منتجًا")).toBeTruthy();
+    expect(within(tiles[2]).getByText(locale === "en" ? "1 product" : "منتج واحد")).toBeTruthy();
+    expect(within(tiles[3]).getByText(locale === "en" ? "0 products" : "لا منتجات")).toBeTruthy();
+  });
+
+  it(`UI-04 · a category without a photo gets a static fallback photo, never an empty block (${locale})`, () => {
+    wrap(locale, <HomeSections sections={[five]} locale={locale} />);
+    const tiles = within(screen.getByTestId("category-grid")).getAllByRole("listitem");
+    expect(tiles[1].querySelector("img")?.getAttribute("src")).toBe("/home/cat-2.jpg");
+    expect(tiles[0].querySelector("img")?.getAttribute("src")).toBe("https://cdn.test/c1.jpg");
+  });
+
+  it(`UI-04 · a "view all categories" link goes to the shop (${locale})`, () => {
+    wrap(locale, <HomeSections sections={[five]} locale={locale} />);
+    expect(screen.getByRole("link", { name: m.home.categories.viewAll }).getAttribute("href")).toBe("/shop");
   });
 
   it(`UI-01 · ONE shelf with a New / Pre-owned switch; New is selected first (${locale})`, () => {

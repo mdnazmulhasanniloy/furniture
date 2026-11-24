@@ -110,7 +110,7 @@ function AdminNote({ order }: { order: AdminOrder }) {
         </p>
       )}
       {saved && (
-        <p role="status" className="mt-1 text-sm text-success">
+        <p role="status" className="mt-1 text-sm text-success-foreground">
           {t("orders.adminNote.saved")}
         </p>
       )}

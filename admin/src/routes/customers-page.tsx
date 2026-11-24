@@ -15,7 +15,7 @@ export function StateBadge({ blocked }: { blocked: boolean }) {
       data-testid="customer-state"
       className={cn(
         "inline-block rounded-full px-2 py-0.5 text-xs font-medium",
-        blocked ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success",
+        blocked ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success-foreground",
       )}
     >
       {blocked ? t("customers.blocked") : t("customers.active")}

@@ -70,7 +70,7 @@ export function BellActions() {
         {unread > 0 && (
           <span
             data-testid="notifications-count"
-            className="absolute -end-1 -top-1 min-w-4 rounded-full bg-destructive px-1 text-center text-[10px] font-semibold leading-4 text-white"
+            className="absolute -end-1 -top-1 min-w-4 rounded-full bg-destructive px-1 text-center text-[10px] font-semibold leading-4 text-primary-foreground"
           >
             {unread > 99 ? "99+" : formatNumber(unread, locale)}
           </span>

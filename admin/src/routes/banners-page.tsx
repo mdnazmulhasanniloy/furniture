@@ -83,7 +83,7 @@ function Preview({
         className="relative overflow-hidden rounded-lg border border-border bg-muted"
       >
         {src && <img src={src} alt="" className="h-40 w-full object-cover" />}
-        <div className="absolute inset-0 flex flex-col justify-center gap-1 bg-foreground/30 p-4 text-background">
+        <div className="absolute inset-0 flex flex-col justify-center gap-1 bg-foreground/70 p-4 text-background">
           <p className="font-display text-xl font-semibold" data-testid="banner-preview-title">
             {title}
           </p>
@@ -356,7 +356,7 @@ function DeleteDialog({ banner, onClose }: { banner: AdminBanner; onClose: () =>
 }
 
 const STATE_CLASS = {
-  active: "bg-success/15 text-success",
+  active: "bg-success/15 text-success-foreground",
   scheduled: "bg-primary/15 text-primary",
   expired: "bg-muted text-muted-foreground",
   inactive: "bg-muted text-muted-foreground",

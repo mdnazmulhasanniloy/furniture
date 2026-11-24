@@ -284,7 +284,7 @@ export function PagesPage() {
                 <span
                   className={cn(
                     "rounded-full px-2 py-0.5 text-xs",
-                    p.isPublished ? "bg-success/15 text-success" : "bg-muted text-muted-foreground",
+                    p.isPublished ? "bg-success/15 text-success-foreground" : "bg-muted text-muted-foreground",
                   )}
                   data-testid="page-state"
                 >

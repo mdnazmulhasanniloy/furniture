@@ -86,8 +86,8 @@ function StatusBadge({ admin }: { admin: AdminUser }) {
   const [key, cls] = admin.isBlocked
     ? (["blocked", "bg-destructive/15 text-destructive"] as const)
     : !admin.isVerified
-      ? (["pending", "bg-warning/15 text-warning"] as const)
-      : (["active", "bg-success/15 text-success"] as const);
+      ? (["pending", "bg-warning/15 text-warning-foreground"] as const)
+      : (["active", "bg-success/15 text-success-foreground"] as const);
   return (
     <span data-testid="admin-state" className={cn("inline-block rounded-full px-2 py-0.5 text-xs font-medium", cls)}>
       {t(`admins.state.${key}`)}
@@ -145,7 +145,7 @@ export function AdminsPage() {
         <p
           role={notice.kind === "error" ? "alert" : "status"}
           data-testid={`admins-notice-${notice.kind}`}
-          className={cn("mt-3 text-sm", notice.kind === "error" ? "text-destructive" : "text-success")}
+          className={cn("mt-3 text-sm", notice.kind === "error" ? "text-destructive" : "text-success-foreground")}
         >
           {notice.text}
         </p>

@@ -281,7 +281,7 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
       )}
       <div className="sticky bottom-0 mt-6 flex items-center justify-end gap-3 border-t border-border bg-card py-3">
         {saved && (
-          <p role="status" className="text-sm text-success" data-testid="settings-saved">
+          <p role="status" className="text-sm text-success-foreground" data-testid="settings-saved">
             {t("settings.form.saved")}
           </p>
         )}

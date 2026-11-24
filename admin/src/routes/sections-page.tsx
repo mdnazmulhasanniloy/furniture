@@ -252,7 +252,7 @@ function Row({
       <span
         className={cn(
           "rounded-full px-2 py-0.5 text-xs",
-          s.isVisible ? "bg-success/15 text-success" : "bg-muted text-muted-foreground",
+          s.isVisible ? "bg-success/15 text-success-foreground" : "bg-muted text-muted-foreground",
         )}
         data-testid="section-visibility"
       >

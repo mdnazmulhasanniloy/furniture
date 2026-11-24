@@ -21,8 +21,8 @@ const selectCls = "h-10 rounded-md border border-input bg-card px-3 text-sm text
 // Status colours: DRAFT muted, PUBLISHED success, ARCHIVED warning (tokens only).
 const STATUS_CLS: Record<string, string> = {
   DRAFT: "bg-muted text-muted-foreground",
-  PUBLISHED: "bg-success/15 text-success",
-  ARCHIVED: "bg-warning/15 text-warning",
+  PUBLISHED: "bg-success/15 text-success-foreground",
+  ARCHIVED: "bg-warning/15 text-warning-foreground",
 };
 
 function DeleteDialog({ product, onClose }: { product: AdminProduct; onClose: () => void }) {

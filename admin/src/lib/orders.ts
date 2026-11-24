@@ -82,11 +82,11 @@ export const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
 
 // Status colours per design-system §1 (tokens only).
 export const STATUS_CLASS: Record<OrderStatus, string> = {
-  PENDING: "bg-warning/15 text-warning",
+  PENDING: "bg-warning/15 text-warning-foreground",
   CONFIRMED: "bg-primary/15 text-primary",
   PROCESSING: "bg-gold/20 text-foreground",
-  OUT_FOR_DELIVERY: "bg-secondary/15 text-secondary",
-  DELIVERED: "bg-success/15 text-success",
+  OUT_FOR_DELIVERY: "bg-secondary text-secondary-foreground",
+  DELIVERED: "bg-success/15 text-success-foreground",
   CANCELLED: "bg-destructive/15 text-destructive",
 };
 

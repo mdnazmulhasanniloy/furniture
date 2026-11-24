@@ -6,7 +6,7 @@ import {
   normalizeSaudiContactPhone,
   SAUDI_CONTACT_PHONE_MAX_LENGTH,
 } from "@/lib/contact-phone";
-import { halalasToSar, parseSar } from "@/lib/delivery";
+import { halalasToSar, parseSar } from "@/lib/money";
 import type { LocalizedText, StoredImage } from "@/lib/products";
 import { bpToRate, isRegistrationNumber, parseRate, rateToText, readVat, type VatSetting } from "@/lib/vat";
 

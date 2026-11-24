@@ -12,6 +12,7 @@ import { ApiError } from "@/lib/api/errors";
 import { errorMessage } from "@/lib/api/messages";
 import { slugify, useCategories } from "@/lib/categories";
 import { formatPrice, toLocale } from "@/lib/format";
+import { parseSar } from "@/lib/money";
 import {
   MAX_IMAGES,
   productSchema,
@@ -82,7 +83,11 @@ function ProductEditor({ product, onReload }: { product: AdminProduct | null; on
   useEffect(() => {
     if (!slugTouched) setValue("slug", slugify(titleEn));
   }, [titleEn, slugTouched, setValue]);
-  const preview = (v: string) => (/^\d{1,9}$/.test(v) ? formatPrice(Number(v), locale) : "—");
+  // The typed SAR amount read back as the customer sees it (A3): invalid text has no preview.
+  const preview = (v: string) => {
+    const p = parseSar(v);
+    return p.ok ? formatPrice(p.halalas, locale) : "—";
+  };
   const conditions: Condition[] = type === "NEW" ? ["NEW"] : RESALE_CONDITIONS;
 
   const onValid = async (v: ProductFormValues) => {

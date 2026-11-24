@@ -2,9 +2,11 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { z } from "zod";
 import { api } from "@/lib/api/client";
 import type { Locale } from "@/lib/format";
+import { halalasToSar, MAX_PRICE_HALALAS, parseSar, sarHalalas } from "@/lib/money";
 
-// api-spec.yaml /admin/products (ADM-02, I18N-02). Money is integer halalas, stock an integer;
-// both are shown and sent exactly as the API defines them (B-031: no SAR conversion on input).
+// api-spec.yaml /admin/products (ADM-02, I18N-02). The API keeps taking integer halalas; the admin
+// types SAR with at most 2 decimals and the conversion is exact (owner 2026-11-24, closes B-031 -
+// typing halalas invited 100x pricing mistakes). Stock stays a plain integer.
 
 export type LocalizedText = { en: string; ar: string };
 export type ProductType = "NEW" | "RESALE";
@@ -117,9 +119,23 @@ export type ProductWrite = {
 };
 
 export const RESALE_CONDITIONS: Condition[] = ["LIKE_NEW", "GOOD", "FAIR"];
-const MAX_MONEY = 100_000_000;
 const MAX_STOCK = 100_000;
 const int = (max: number) => z.string().trim().regex(/^\d{1,9}$/, "products.form.intInvalid").refine((v) => Number(v) <= max, "products.form.tooBig");
+
+/**
+ * Money is typed in SAR with at most 2 decimals and converted to exact halalas (A3, closes B-031).
+ * `optional` allows "" (compare-at price left empty = null).
+ */
+const sar = (optional: boolean) =>
+  z.string().superRefine((v: string, ctx: z.RefinementCtx) => {
+    if (optional && v.trim() === "") return;
+    const p = parseSar(v);
+    if (!p.ok) {
+      ctx.addIssue({ code: "custom", message: p.reason === "negative" ? "products.form.amountNegative" : "products.form.amountInvalid" });
+      return;
+    }
+    if (p.halalas > MAX_PRICE_HALALAS) ctx.addIssue({ code: "custom", message: "products.form.tooBig" });
+  });
 const optDim = z
   .string()
   .trim()
@@ -143,8 +159,8 @@ export const productSchema = z
     sku: z.string().trim().max(40, "products.form.tooLong"),
     type: z.enum(["NEW", "RESALE"]),
     condition: z.enum(["NEW", "LIKE_NEW", "GOOD", "FAIR"]),
-    price: int(MAX_MONEY),
-    compareAtPrice: z.string().trim().refine((v) => v === "" || (/^\d{1,9}$/.test(v) && Number(v) <= MAX_MONEY), "products.form.intInvalid"),
+    price: sar(false),
+    compareAtPrice: sar(true),
     stock: int(MAX_STOCK),
     categoryId: z.string().min(1, "products.form.required"),
     widthCm: optDim,
@@ -171,7 +187,10 @@ export const productSchema = z
     };
     gate(v.titleEn, v.titleAr, "titleEn", "titleAr");
     gate(v.descEn, v.descAr, "descEn", "descAr");
-    if (v.compareAtPrice !== "" && /^\d+$/.test(v.price) && Number(v.compareAtPrice) <= Number(v.price)) {
+    // Compared in halalas, so "1,250.50" and "1250.5" behave the same.
+    const compare = parseSar(v.compareAtPrice);
+    const price = parseSar(v.price);
+    if (v.compareAtPrice.trim() !== "" && compare.ok && price.ok && compare.halalas <= price.halalas) {
       ctx.addIssue({ code: "custom", path: ["compareAtPrice"], message: "products.form.compareHigher" });
     }
     // type NEW <=> condition NEW; RESALE <=> LIKE_NEW | GOOD | FAIR (data-model, T-010).
@@ -194,8 +213,8 @@ export function toFormValues(p: AdminProduct | null): ProductFormValues {
     sku: p?.sku ?? "",
     type: p?.type ?? "NEW",
     condition: p?.condition ?? "NEW",
-    price: p ? String(p.price) : "0",
-    compareAtPrice: s(p?.compareAtPrice),
+    price: p ? halalasToSar(p.price) : "0",
+    compareAtPrice: p?.compareAtPrice == null ? "" : halalasToSar(p.compareAtPrice),
     stock: p ? String(p.stock) : "0",
     categoryId: p?.categoryId ?? "",
     widthCm: s(d.widthCm),
@@ -225,8 +244,8 @@ export function toWrite(v: ProductFormValues, images: ProductWrite["images"]): P
     type: v.type,
     condition: v.condition,
     conditionNotes: v.notesEn || v.notesAr ? { en: v.notesEn, ar: v.notesAr } : null,
-    price: Number(v.price),
-    compareAtPrice: v.compareAtPrice === "" ? null : Number(v.compareAtPrice),
+    price: sarHalalas(v.price),
+    compareAtPrice: v.compareAtPrice.trim() === "" ? null : sarHalalas(v.compareAtPrice),
     stock: Number(v.stock),
     categoryId: v.categoryId,
     images,

@@ -479,9 +479,9 @@
       "sku": "SKU",
       "type": "Type",
       "condition": "Condition",
-      "price": "Price (halalas)",
-      "compareAt": "Compare-at price (halalas)",
-      "moneyHint": "Whole halalas, exactly as stored. Shown to customers as {preview}.",
+      "price": "Price (SAR)",
+      "compareAt": "Compare-at price (SAR)",
+      "moneyHint": "Entered in SAR, up to 2 decimals; stored as halalas. Shown to customers as {preview}.",
       "stock": "Stock (units)",
       "category": "Category",
       "chooseCategory": "Choose a category",
@@ -507,7 +507,9 @@
       "compareHigher": "Must be greater than the price.",
       "conditionMismatch": "New products are condition New; resale products are Like new, Good or Fair.",
       "hasErrors": "has errors",
-      "altIncomplete": "Fix the image alt texts (both languages or none)."
+      "altIncomplete": "Fix the image alt texts (both languages or none).",
+      "amountInvalid": "Enter an amount in SAR with at most 2 decimals, for example 15 or 15.50.",
+      "amountNegative": "The amount cannot be negative."
     },
     "searchButton": "Search"
   },

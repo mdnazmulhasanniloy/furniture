@@ -68,7 +68,7 @@ Done = linked acceptance criteria covered by passing tests (Vitest + Testing Lib
 
 ### T-076 Admin follow-ups from owner answers (2026-11-24) · todo
 - Req: ADM-02, ADM-07, ADM-09 · Depends: T-075, backend T-030
-- B-031: SAR price entry with exact decimal parsing (tests: 0.01, 1250.50, "1,250.50", Arabic-Indic digits, 3 decimals rejected).
+- B-031: **done 2026-11-24 (QA A3)** - SAR price entry with exact decimal parsing. The rule lives in `src/lib/money.ts` and every admin money input shares it (product price and compare-at price, base delivery fee, free-delivery threshold, per-city fee override; there is no COD-limit field in the API). Tests: `money-qa-a3.test.ts` plus the ADM-02 form cases (150, 150.5, 150.50, 0.01, "1,250.50", Arabic-Indic digits, "abc", negative, 3 decimals).
 - B-030: uploader reads natural width/height and sends them.
 - B-032: create and delete home sections (delete needs a confirm dialog).
 - B-033/B-034: editable contact phone (Saudi mobile/landline/9200/800 to E.164) and social links (https, host allowlist, 200 chars); remove the read-only state.

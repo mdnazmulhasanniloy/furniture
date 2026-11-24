@@ -95,7 +95,11 @@ function stubApi() {
         const cur = products.find((p) => p.id === m[1]);
         if (!cur) return json({ code: "NOT_FOUND" }, 404);
         if (method === "GET") return json(cur);
-        if (method === "PATCH") return json({ ...cur, ...body, updatedAt: "2026-11-21T00:00:00.000Z" });
+        if (method === "PATCH") {
+          const next = { ...cur, ...body, updatedAt: "2026-11-21T00:00:00.000Z" };
+          products = products.map((x) => (x.id === cur.id ? next : x)); // like the API: the list sees the save
+          return json(next);
+        }
         if (method === "DELETE") return new Response(null, { status: 204 });
       }
       return json({ code: "NOT_FOUND" }, 404);
@@ -282,20 +286,50 @@ describe.each([
     expect(writes()[0].body.status).toBe("DRAFT");
   });
 
-  it("ADM-02 · create sends money and stock exactly as typed (halalas, integers) and nulls for empty optionals", async () => {
+  // QA 2026-11-24 (A3, closes B-031): money inputs take SAR with at most 2 decimals, not halalas.
+  it("ADM-02 · create converts the typed SAR amounts to exact halalas and sends nulls for empty optionals", async () => {
     mount("/products/new");
     await fillMinimal();
-    fill(p.form.price, "129900");
+    fill(p.form.price, "1299");
     expect(screen.getByLabelText(p.form.price).parentElement!.textContent).toContain(formatPrice(129900, L));
-    fill(p.form.compareAt, "159900");
+    fill(p.form.compareAt, "1599.50");
     fill(p.form.stock, "7");
     save();
     await waitFor(() => expect(writes()).toHaveLength(1));
     expect(writes()[0].body).toMatchObject({
-      price: 129900, compareAtPrice: 159900, stock: 7, type: "NEW", condition: "NEW", sku: null,
+      price: 129900, compareAtPrice: 159950, stock: 7, type: "NEW", condition: "NEW", sku: null,
       dimensions: null, material: null, color: null, conditionNotes: null, images: [], isFeatured: false, categoryId: "c1",
     });
     expect(writes()[0].body).not.toHaveProperty("expectedUpdatedAt");
+  });
+
+  it.each([
+    ["150", 15000],
+    ["150.5", 15050],
+    ["150.50", 15050],
+    ["0.01", 1],
+    ["1,250.50", 125050],
+  ])("ADM-02 · the price %s SAR is sent as %i halalas (A3)", async (typed, halalas) => {
+    mount("/products/new");
+    await fillMinimal();
+    fill(p.form.price, typed);
+    save();
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0].body.price).toBe(halalas);
+  });
+
+  it.each([
+    ["abc", "amountInvalid"],
+    ["150.005", "amountInvalid"],
+    ["-150", "amountNegative"],
+    ["", "amountInvalid"],
+  ] as const)("ADM-02 · the price %s is rejected before sending (A3)", async (typed, key) => {
+    mount("/products/new");
+    await fillMinimal();
+    fill(p.form.price, typed);
+    save();
+    expect((await screen.findAllByText(p.form[key])).length).toBeGreaterThanOrEqual(1);
+    expect(writes()).toHaveLength(0);
   });
 
   it("ADM-02 · invalid money, stock and compare-at are rejected before sending", async () => {
@@ -307,10 +341,27 @@ describe.each([
     save();
     expect(await screen.findByText(p.form.compareHigher)).toBeTruthy();
     expect(screen.getByText(p.form.tooBig)).toBeTruthy();
-    fill(p.form.price, "12.5");
+    fill(p.form.price, "12.345");
     save();
-    expect((await screen.findAllByText(p.form.intInvalid)).length).toBeGreaterThanOrEqual(1);
+    expect((await screen.findAllByText(p.form.amountInvalid)).length).toBeGreaterThanOrEqual(1);
     expect(writes()).toHaveLength(0);
+  });
+
+  it("ADM-02 · the editor shows SAR back after loading and after a save (A3)", async () => {
+    mount("/products/p1");
+    await screen.findByRole("heading", { level: 1, name: p.editor.titleEdit });
+    const price = () => screen.getByLabelText(p.form.price) as HTMLInputElement;
+    await waitFor(() => expect(price().value).toBe("1299")); // 129900 halalas
+    expect((screen.getByLabelText(p.form.compareAt) as HTMLInputElement).value).toBe("1599");
+    fill(p.form.price, "1250.50");
+    save();
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0].body.price).toBe(125050);
+    // back on the list the saved amount reads as SAR, not as halalas
+    await screen.findByTestId("products-table");
+    await waitFor(() =>
+      expect(within(screen.getAllByTestId("product-row")[0]).getByTestId("product-price").textContent).toBe(formatPrice(125050, L)),
+    );
   });
 
   it("ADM-02 · type and condition stay consistent (NEW only with NEW; RESALE with Like new, Good or Fair)", async () => {
@@ -330,7 +381,7 @@ describe.each([
     mount("/products/p1");
     await screen.findByRole("heading", { level: 1, name: p.editor.titleEdit });
     await waitFor(() => expect((screen.getByLabelText(p.form.stock) as HTMLInputElement).value).toBe("1"));
-    expect((screen.getByLabelText(p.form.price) as HTMLInputElement).value).toBe("129900");
+    expect((screen.getByLabelText(p.form.price) as HTMLInputElement).value).toBe("1299"); // SAR since A3
     expect((screen.getByLabelText(p.form.widthCm) as HTMLInputElement).value).toBe("120");
     fill(p.form.stock, "5");
     save();

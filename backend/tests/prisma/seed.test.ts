@@ -99,14 +99,15 @@ describe('seed (T-002)', () => {
     expect(logs.some((m) => m.includes('WARNING') && m.includes('admin dashboard'))).toBe(true);
   });
 
-  it('QA-8 · the policy pages are published with a placeholder body the owner can edit', async () => {
+  it('QA-8 · the policy pages are seeded as drafts with a placeholder body the owner can edit (owner 2026-11-24)', async () => {
     await runSeed(prisma, base);
     const pages = await prisma.page.findMany();
     const bySlug = new Map(pages.map((x) => [x.slug, x]));
     for (const slug of ['terms', 'privacy', 'returns']) {
       const page = bySlug.get(slug);
       expect(page, slug).toBeTruthy();
-      expect(page!.isPublished, slug).toBe(true); // the footer only links pages that exist
+      // a placeholder legal page is never published, so the footer links none of them (B-040)
+      expect(page!.isPublished, slug).toBe(false);
       expect(page!.title.en && page!.title.ar, slug).toBeTruthy();
       expect(page!.content.en, slug).toContain('Content coming soon');
       expect(page!.content.ar, slug).toContain('المحتوى قريبًا');
@@ -169,7 +170,7 @@ describe('seed (T-002)', () => {
     expect(n).toBeGreaterThanOrEqual(3);
   });
 
-  it('NFR-05 · seed creates the 6 pages with en and ar, all published (QA 2026-11-24 item 8)', async () => {
+  it('NFR-05 · seed creates the 6 pages with en and ar; the information pages are published, the policy drafts are not (owner 2026-11-24)', async () => {
     await runSeed(prisma, base);
     const pages = await prisma.page.findMany();
     expect(pages.map((p) => p.slug).sort()).toEqual([
@@ -182,10 +183,10 @@ describe('seed (T-002)', () => {
     ]);
     for (const p of pages)
       expect(p.content.en && p.content.ar && p.title.en && p.title.ar).toBeTruthy();
-    // the policy pages are published with a body to replace, so the footer can link them (owner 2026-11-24)
+    // the policy pages hold a body to replace and stay DRAFT, so no placeholder legal page is ever live
     for (const slug of ['terms', 'privacy', 'returns']) {
       const p = pages.find((x) => x.slug === slug)!;
-      expect(p.isPublished, slug).toBe(true);
+      expect(p.isPublished, slug).toBe(false);
       expect(p.content.en, slug).toContain('Content coming soon');
       expect(p.content.ar, slug).toContain('المحتوى قريبًا');
     }

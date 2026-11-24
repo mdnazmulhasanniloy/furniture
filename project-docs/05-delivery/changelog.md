@@ -617,6 +617,7 @@
 - Repos scaffolded with CLAUDE.md, slash commands, config only (no feature code — awaiting sign-off).
 
 ## 2026-11-24 (QA pass review fixes)
+- **The policy pages are seeded as DRAFTS (owner 2026-11-24)**: a placeholder legal page must never be published, so terms, privacy and the return-and-refund page keep their "Content coming soon" body but stay unpublished, and the storefront footer links none of them until the owner writes and publishes the real text in the admin. New launch blocker **B-040**: the owner must supply all three texts (en + ar) before launch, as Saudi e-commerce rules require them to be disclosed. This reverses the "published with a placeholder" decision in the QA item 8 entry below.
 - **Settings contact details are optional (owner 2026-11-24, implements B-033)**: `contactEmail` and `contactPhone` may be absent or `''` in the full-replace body, so saving VAT, the delivery fee or any other setting never requires them and the storefront footer simply shows no such line. A non-empty value must be valid: email format, or the store contact phone (mobile, landline and unified 9200/800 numbers, normalised to `+966XXXXXXXXX`) — a new `normalizeSaudiContactPhone` beside the customer mobile rule, with the pattern tied to api-spec `SaudiContactPhoneInput` by a test. Spec and PRD first. The admin no longer requires the email; its phone field stays read-only until the owner approves its hint and error copy.
 
 ## 2026-11-24 (QA pass: items 1-10)

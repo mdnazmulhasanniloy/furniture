@@ -75,25 +75,26 @@ export const PAGES: {
     },
     isPublished: true,
   },
-  // The policy pages are published so the footer can link them, with a placeholder body until the owner
-  // writes the real text (owner 2026-11-24, QA item 8). Their content is editable in the admin.
+  // The policy pages are seeded as DRAFTS (owner 2026-11-24): a placeholder legal page must never be
+  // published, so the storefront footer links none of them until the owner writes the real text in the
+  // admin and publishes it. Saudi e-commerce rules require all three before launch (launch blocker B-040).
   {
     slug: 'terms',
     title: { en: 'Terms and conditions', ar: 'الشروط والأحكام' },
     content: { en: `<p>${COMING_SOON.en}</p>`, ar: `<p>${COMING_SOON.ar}</p>` },
-    isPublished: true,
+    isPublished: false,
   },
   {
     slug: 'privacy',
     title: { en: 'Privacy policy', ar: 'سياسة الخصوصية' },
     content: { en: `<p>${COMING_SOON.en}</p>`, ar: `<p>${COMING_SOON.ar}</p>` },
-    isPublished: true,
+    isPublished: false,
   },
   {
     slug: 'returns',
     title: { en: 'Return and refund policy', ar: 'سياسة الإرجاع والاسترجاع' },
     content: { en: `<p>${COMING_SOON.en}</p>`, ar: `<p>${COMING_SOON.ar}</p>` },
-    isPublished: true,
+    isPublished: false,
   },
 ];
 

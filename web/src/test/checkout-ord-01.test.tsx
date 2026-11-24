@@ -130,6 +130,34 @@ async function ready(locale: L) {
 for (const locale of ["en", "ar"] as const) {
   const m = messages[locale];
   describe(`ORD-01 · checkout (${locale})`, () => {
+    /**
+     * QA B3 (2026-11-24): the page loads the addresses and the cart (twice: once per address choice),
+     * so an expired access token used to produce a CSRF fetch and a refresh per request. One refresh
+     * is shared by all of them, and the CSRF token is only fetched if the API asks for it.
+     */
+    it(`ORD-01 · an expired token is refreshed once for the whole checkout load (${locale})`, async () => {
+      login();
+      let refreshed = false;
+      mockApi(
+        baseHandler((c) => {
+          if (c.path === "/auth/csrf") return { body: { csrfToken: "csrf-1" } };
+          if (c.path === "/auth/refresh") {
+            refreshed = true;
+            return {
+              body: {
+                accessToken: "fresh",
+                user: { id: "u", firstName: "A", lastName: "B", email: "a@b.c", role: "CUSTOMER", isVerified: true, isBlocked: false, preferredLocale: "en" },
+              },
+            };
+          }
+          return refreshed ? null : { status: 401, body: { code: "UNAUTHORIZED" } };
+        }),
+      );
+      await ready(locale);
+      expect(calls.filter((c) => c.path === "/auth/refresh")).toHaveLength(1);
+      expect(calls.filter((c) => c.path === "/auth/csrf").length).toBeLessThanOrEqual(1);
+    });
+
     it(`ORD-01 · places a COD order with expectedTotal and an Idempotency-Key, then goes to success (${locale})`, async () => {
       login();
       mockApi(baseHandler((c) => (c.path === "/orders" ? { status: 201, body: orderBody } : null)));

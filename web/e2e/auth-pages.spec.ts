@@ -2,7 +2,8 @@ import { expect, test } from "@playwright/test";
 
 for (const locale of ["en", "ar"] as const) {
   test(`AUTH-01: ${locale} register then OTP screen (mocked API) with 60 s resend countdown`, async ({ page }) => {
-    await page.route("**/api/v1/auth/csrf", (r) =>
+    // QA B2: a guest page start calls /auth/refresh, not /auth/csrf.
+    await page.route("**/api/v1/auth/refresh", (r) =>
       r.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ code: "UNAUTHORIZED" }) }),
     );
     let registerBody: Record<string, unknown> | null = null;
@@ -10,7 +11,7 @@ for (const locale of ["en", "ar"] as const) {
       registerBody = r.request().postDataJSON();
       await r.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ message: "ok" }) });
     });
-    const hydrated = page.waitForRequest("**/api/v1/auth/csrf"); // sent from an effect: page is interactive
+    const hydrated = page.waitForRequest("**/api/v1/auth/refresh"); // sent from an effect: page is interactive
     await page.goto(`/${locale}/register`);
     await hydrated;
     await expect(page.locator("html")).toHaveAttribute("dir", locale === "ar" ? "rtl" : "ltr");
@@ -27,13 +28,14 @@ for (const locale of ["en", "ar"] as const) {
   });
 
   test(`AUTH-02: ${locale} login page renders and a wrong password shows a localized error`, async ({ page }) => {
-    await page.route("**/api/v1/auth/csrf", (r) =>
+    // QA B2: a guest page start calls /auth/refresh, not /auth/csrf.
+    await page.route("**/api/v1/auth/refresh", (r) =>
       r.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ code: "UNAUTHORIZED" }) }),
     );
     await page.route("**/api/v1/auth/login", (r) =>
       r.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ code: "INVALID_CREDENTIALS", message: "English API message" }) }),
     );
-    const hydrated = page.waitForRequest("**/api/v1/auth/csrf"); // sent from an effect: page is interactive
+    const hydrated = page.waitForRequest("**/api/v1/auth/refresh"); // sent from an effect: page is interactive
     await page.goto(`/${locale}/login`);
     await hydrated;
     const inputs = page.locator("main form input");

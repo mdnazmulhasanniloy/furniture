@@ -27,6 +27,12 @@ type AuthState = {
   accessToken: string | null;
   csrfToken: string | null;
   user: AuthUser | null;
+  /**
+   * Bumped whenever the session identity changes (sign-in, sign-out). A refresh that was already in
+   * flight compares it and drops its result instead of resurrecting a session that ended meanwhile
+   * (QA B3).
+   */
+  epoch: number;
   setSession: (session: AuthSession) => void;
   setUser: (user: AuthUser) => void;
   setCsrfToken: (token: string | null) => void;
@@ -38,9 +44,22 @@ export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   csrfToken: null,
   user: null,
+  epoch: 0,
   setSession: (session) =>
-    set({ status: "authenticated", accessToken: session.accessToken, user: session.user }),
+    set((s) => ({
+      status: "authenticated",
+      accessToken: session.accessToken,
+      user: session.user,
+      epoch: s.user?.id === session.user.id ? s.epoch : s.epoch + 1,
+    })),
   setUser: (user) => set({ user }),
   setCsrfToken: (csrfToken) => set({ csrfToken }),
-  clear: () => set({ status: "anonymous", accessToken: null, csrfToken: null, user: null }),
+  clear: () =>
+    set((s) => ({
+      status: "anonymous",
+      accessToken: null,
+      csrfToken: null,
+      user: null,
+      epoch: s.epoch + 1,
+    })),
 }));

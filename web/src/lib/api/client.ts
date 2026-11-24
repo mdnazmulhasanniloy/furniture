@@ -97,12 +97,22 @@ export async function rawRequest<T>(path: string, opts: RequestOptions = {}): Pr
 
 let inFlightRefresh: Promise<AuthSession> | null = null;
 
+let inFlightCsrf: Promise<string> | null = null;
+
+/** Single-flight like the refresh (QA B3): concurrent callers share one GET /auth/csrf. */
 async function fetchCsrf(force = false): Promise<string> {
   const cached = useAuthStore.getState().csrfToken;
   if (cached && !force) return cached;
-  const { csrfToken } = await rawRequest<{ csrfToken: string }>("/auth/csrf");
-  useAuthStore.getState().setCsrfToken(csrfToken);
-  return csrfToken;
+  if (!inFlightCsrf) {
+    inFlightCsrf = (async () => {
+      const { csrfToken } = await rawRequest<{ csrfToken: string }>("/auth/csrf");
+      useAuthStore.getState().setCsrfToken(csrfToken);
+      return csrfToken;
+    })().finally(() => {
+      inFlightCsrf = null;
+    });
+  }
+  return inFlightCsrf;
 }
 
 /** Fetch and cache the CSRF token (after login / verify-otp). Failure is non-fatal here. */
@@ -123,13 +133,20 @@ export async function primeCsrf(): Promise<void> {
 async function doRefresh(): Promise<AuthSession> {
   let csrfRetried = false;
   let raceRetried = false;
+  // A refresh that is overtaken by a sign-out (or another sign-in) must not write its result back
+  // (QA B3): it would resurrect a session that is already over.
+  const epoch = useAuthStore.getState().epoch;
+  const stale = () => useAuthStore.getState().epoch !== epoch;
   for (;;) {
+    // Stop before spending another request when the session this refresh belonged to is gone.
+    if (stale()) throw new ApiError({ status: 401, code: "UNAUTHORIZED" });
     try {
       const csrf = useAuthStore.getState().csrfToken;
       const session = await rawRequest<AuthSession>("/auth/refresh", {
         method: "POST",
         headers: csrf ? { "X-CSRF-Token": csrf } : {},
       });
+      if (stale()) throw new ApiError({ status: 401, code: "UNAUTHORIZED" });
       useAuthStore.getState().setSession(session);
       return session;
     } catch (e) {
@@ -154,7 +171,7 @@ async function doRefresh(): Promise<AuthSession> {
           throw e; // transient: keep the session state, caller decides
         }
       }
-      useAuthStore.getState().clear();
+      if (!stale()) useAuthStore.getState().clear();
       throw e;
     }
   }

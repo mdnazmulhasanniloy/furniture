@@ -20,8 +20,14 @@ type State = {
   csrfToken: string | null;
   user: AuthUser | null;
   status: AuthStatus;
+  /**
+   * Bumped whenever the session identity changes (sign-in, sign-out). A refresh that was already in
+   * flight compares it and drops its result instead of resurrecting a session that ended meanwhile
+   * (QA B3).
+   */
+  epoch: number;
 };
-let state: State = { accessToken: null, csrfToken: null, user: null, status: "unknown" };
+let state: State = { accessToken: null, csrfToken: null, user: null, status: "unknown", epoch: 0 };
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
@@ -32,7 +38,8 @@ export const authStore = {
     return () => listeners.delete(fn);
   },
   setSession(s: AuthSession) {
-    state = { ...state, accessToken: s.accessToken, user: s.user, status: "authenticated" };
+    const epoch = state.user?.id === s.user.id ? state.epoch : state.epoch + 1;
+    state = { ...state, accessToken: s.accessToken, user: s.user, status: "authenticated", epoch };
     emit();
   },
   setCsrfToken(t: string | null) {
@@ -40,7 +47,13 @@ export const authStore = {
     emit();
   },
   clear() {
-    state = { accessToken: null, csrfToken: null, user: null, status: "anonymous" };
+    state = {
+      accessToken: null,
+      csrfToken: null,
+      user: null,
+      status: "anonymous",
+      epoch: state.epoch + 1,
+    };
     emit();
   },
 };

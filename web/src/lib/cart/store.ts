@@ -110,42 +110,53 @@ function commitGuest(lines: GuestLine[]) {
   set({ guest: lines });
 }
 
+/** Products currently being resolved, so two mounted carts never fetch the same one twice (QA B3). */
+const resolving = new Map<string, Promise<void>>();
+
 /** Load display data (live price/stock) for guest lines; only ids/qty are stored locally. */
 export async function resolveGuestProducts(): Promise<void> {
   const { guest, guestProducts } = get();
   const missing = guest.filter((l) => !(l.productId in guestProducts));
   if (missing.length === 0) return;
   await Promise.all(
-    missing.map(async (l) => {
-      try {
-        const data = await apiRequest<{ product?: HomeProduct }>(
-          `/products/${encodeURIComponent(l.slug)}`,
-          { skipAuth: true },
-        );
-        const product = data.product ?? null;
-        set((s) => ({ guestProducts: { ...s.guestProducts, [l.productId]: product } }));
-        if (product && product.stock > 0 && l.qty > product.stock) {
-          // Quantity is capped at stock (CART-01).
-          commitGuest(
-            get().guest.map((g) => (g.productId === l.productId ? { ...g, qty: product.stock } : g)),
-          );
-        }
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 404) {
-          // QA B1: a guest line is local, stale data once its product is gone - drop it from storage
-          // and from the badge instead of showing a line nobody can act on.
-          commitGuest(get().guest.filter((g) => g.productId !== l.productId));
-          set((s) => {
-            const rest = { ...s.guestProducts };
-            delete rest[l.productId];
-            return { guestProducts: rest };
-          });
-        } else {
-          set({ error: codeOf(e) });
-        }
-      }
+    missing.map((l) => {
+      const running = resolving.get(l.productId);
+      if (running) return running;
+      const task = resolveOne(l).finally(() => resolving.delete(l.productId));
+      resolving.set(l.productId, task);
+      return task;
     }),
   );
+}
+
+async function resolveOne(l: GuestLine): Promise<void> {
+  try {
+    const data = await apiRequest<{ product?: HomeProduct }>(
+      `/products/${encodeURIComponent(l.slug)}`,
+      { skipAuth: true },
+    );
+    const product = data.product ?? null;
+    set((s) => ({ guestProducts: { ...s.guestProducts, [l.productId]: product } }));
+    if (product && product.stock > 0 && l.qty > product.stock) {
+      // Quantity is capped at stock (CART-01).
+      commitGuest(
+        get().guest.map((g) => (g.productId === l.productId ? { ...g, qty: product.stock } : g)),
+      );
+    }
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) {
+      // QA B1: a guest line is local, stale data once its product is gone - drop it from storage
+      // and from the badge instead of showing a line nobody can act on.
+      commitGuest(get().guest.filter((g) => g.productId !== l.productId));
+      set((s) => {
+        const rest = { ...s.guestProducts };
+        delete rest[l.productId];
+        return { guestProducts: rest };
+      });
+    } else {
+      set({ error: codeOf(e) });
+    }
+  }
 }
 
 function guestSet(product: CartProductLite, qty: number) {

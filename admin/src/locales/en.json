@@ -120,6 +120,7 @@
       "PAID": "Paid"
     },
     "back": "Back to orders",
+    "notFound": "This order no longer exists.",
     "backToOrder": "Back to the order",
     "detailTitle": "Order",
     "stepper": "Status",

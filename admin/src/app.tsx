@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Route, Routes } from "react-router";
+import { ApiError } from "@/lib/api/errors";
 import { recheckSession, restoreSession } from "@/lib/auth/flows";
 import { authStore } from "@/lib/auth/store";
 import { AdminsPage } from "@/routes/admins-page";
@@ -29,7 +30,17 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
     () =>
       queryClient ??
       new QueryClient({
-        defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
+        defaultOptions: {
+          queries: {
+            // QA B5 (2026-11-24): a 4xx is the server's answer, not a hiccup - retrying a 404 only
+            // doubles the request and delays the "not found" state. 5xx and network errors still get
+            // one retry.
+            retry: (failures, error) =>
+              !(error instanceof ApiError && error.status >= 400 && error.status < 500) &&
+              failures < 1,
+            refetchOnWindowFocus: false,
+          },
+        },
       }),
   );
   // The access token is memory-only: on every page load try the httpOnly refresh cookie once.

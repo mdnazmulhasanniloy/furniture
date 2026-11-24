@@ -9,6 +9,7 @@ import { Wordmark } from "@/components/brand";
 import { Input } from "@/components/ui/input";
 import { apiErrorMessage } from "@/lib/api/errors";
 import type { FieldError } from "@/lib/auth/validation";
+import { PASSWORD_MIN_LENGTH, passwordRuleStates } from "@/lib/password-policy";
 import { useCityCount } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
@@ -142,14 +143,17 @@ export function Field({
   );
 }
 
-/** Live password rules (UI-04). Exactly the rules `validateNewPassword` and the API enforce. */
+/**
+ * Live password rules (UI-04): the five rules of the one policy (src/lib/password-policy.ts), each ticking green
+ * as soon as it is met. The same policy the API enforces, so the two can never disagree (owner 2026-11-24).
+ */
 export function PasswordRules({ value }: { value: string }) {
   const t = useTranslations("auth.rules");
-  const items = [
-    { key: "length", met: value.length >= 8 && value.length <= 128, text: t("length", { n: 8 }) },
-    { key: "letter", met: /\p{L}/u.test(value), text: t("letter") },
-    { key: "digit", met: /\p{N}/u.test(value), text: t("digit") },
-  ];
+  const items = passwordRuleStates(value).map(({ rule, met }) => ({
+    key: rule,
+    met,
+    text: rule === "length" ? t("length", { n: PASSWORD_MIN_LENGTH }) : t(rule),
+  }));
   return (
     <div className="rounded-sm bg-blush p-3 text-xs text-blush-foreground" data-testid="password-rules">
       <p className="font-medium">{t("title")}</p>

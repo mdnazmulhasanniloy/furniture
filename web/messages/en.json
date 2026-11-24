@@ -250,7 +250,7 @@
     "validation": {
       "required": "This field is required.",
       "emailInvalid": "Enter a valid email address.",
-      "passwordWeak": "Use 8 to 128 characters with at least one letter and one number.",
+      "passwordWeak": "Your password needs: At least 8 characters, One uppercase letter, One lowercase letter, One number, One special character (e.g. ! @ # $)",
       "codeIncomplete": "Enter all 6 digits."
     },
     "brand": {
@@ -263,8 +263,10 @@
     "rules": {
       "title": "Your password needs",
       "length": "At least {n} characters",
-      "letter": "A letter",
-      "digit": "A number"
+      "digit": "One number",
+      "upper": "One uppercase letter",
+      "lower": "One lowercase letter",
+      "symbol": "One special character (e.g. ! @ # $)"
     },
     "errors": {
       "summary": "Please fix the highlighted fields."
@@ -300,7 +302,8 @@
     "ADDRESS_LIMIT_REACHED": "You have reached the maximum of 10 saved addresses.",
     "INVALID_TRANSITION": "This order can no longer be cancelled because it is already being processed.",
     "WISHLIST_LIMIT_REACHED": "Your favourites are full (100 products). Remove one to add another.",
-    "WISHLIST_CONFLICT": "Your favourites changed on another device. Please try again."
+    "WISHLIST_CONFLICT": "Your favourites changed on another device. Please try again.",
+    "PASSWORD_TOO_WEAK": "Your password needs: At least 8 characters, One uppercase letter, One lowercase letter, One number, One special character (e.g. ! @ # $)"
   },
   "orderStatus": {
     "PENDING": "Pending",

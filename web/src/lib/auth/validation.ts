@@ -1,5 +1,7 @@
 // Client-side mirrors of the API rules (api-spec.yaml). The server stays the authority.
 
+import { isStrongPassword } from "@/lib/password-policy";
+
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type FieldError = "required" | "emailInvalid" | "passwordWeak" | "codeIncomplete";
@@ -15,12 +17,10 @@ export function validateEmail(v: string): FieldError | null {
   return EMAIL_RE.test(t) ? null : "emailInvalid";
 }
 
-/** 8-128 characters, at least one letter and one number. */
+/** The one password policy (src/lib/password-policy.ts, owner 2026-11-24); the live checklist shows which rule is unmet. */
 export function validateNewPassword(v: string): FieldError | null {
   if (!v) return "required";
-  return v.length >= 8 && v.length <= 128 && /\p{L}/u.test(v) && /\p{N}/u.test(v)
-    ? null
-    : "passwordWeak";
+  return isStrongPassword(v) ? null : "passwordWeak";
 }
 
 const ARABIC_INDIC = "٠١٢٣٤٥٦٧٨٩";

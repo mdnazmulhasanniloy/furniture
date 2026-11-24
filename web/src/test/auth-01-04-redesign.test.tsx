@@ -105,19 +105,24 @@ describe.each(["en", "ar"] as const)("AUTH-01 · redesigned auth screens (%s)", 
     expect(input.type).toBe("password");
   });
 
-  it(`UI-04 · register shows live password rules that match the API: 8 or more, a letter, a number (${locale})`, () => {
+  it(`UI-04 · register shows the five live password rules of the API policy (${locale})`, () => {
     wrap(locale, <RegisterForm />);
     const rules = screen.getByTestId("password-rules");
+    // the list order is length, uppercase, lowercase, digit, special character
     const met = () => [...rules.querySelectorAll("li")].map((li) => li.getAttribute("data-met"));
     expect(rules.textContent).toContain(m.auth.rules.title);
-    expect(met()).toEqual(["false", "false", "false"]);
+    expect(met()).toEqual(["false", "false", "false", "false", "false"]);
     const input = screen.getByLabelText(m.auth.password);
     fireEvent.change(input, { target: { value: "abcdefgh" } });
-    expect(met()).toEqual(["true", "true", "false"]);
-    fireEvent.change(input, { target: { value: "abc1" } });
-    expect(met()).toEqual(["false", "true", "true"]);
-    fireEvent.change(input, { target: { value: "abcdefg1" } });
-    expect(met()).toEqual(["true", "true", "true"]);
+    expect(met()).toEqual(["true", "false", "true", "false", "false"]);
+    fireEvent.change(input, { target: { value: "Abcdefgh" } });
+    expect(met()).toEqual(["true", "true", "true", "false", "false"]);
+    fireEvent.change(input, { target: { value: "Abcdefg1" } });
+    expect(met()).toEqual(["true", "true", "true", "true", "false"]);
+    fireEvent.change(input, { target: { value: "Abcdefg1!" } });
+    expect(met()).toEqual(["true", "true", "true", "true", "true"]);
+    fireEvent.change(input, { target: { value: "Ab1!" } });
+    expect(met()).toEqual(["false", "true", "true", "true", "true"]); // only the length is missing
     expect(input.getAttribute("aria-describedby")).toContain(rules.parentElement!.id);
   });
 

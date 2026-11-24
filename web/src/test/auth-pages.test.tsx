@@ -96,12 +96,12 @@ describe.each(["en", "ar"] as const)("AUTH-01 · register and verify (%s)", (loc
     type(m.auth.firstName, "Sara");
     type(m.auth.lastName, "Ali");
     type(m.auth.email, " Sara@Example.com ");
-    type(m.auth.password, "abc12345");
+    type(m.auth.password, "Abc12345!");
     submit(m.auth.register);
     await waitFor(() => expect(push).toHaveBeenCalledWith("/verify"));
     expect(apiCalls()[0]).toMatchObject({
       path: "/auth/register",
-      body: { firstName: "Sara", lastName: "Ali", email: "sara@example.com", password: "abc12345", preferredLocale: loc },
+      body: { firstName: "Sara", lastName: "Ali", email: "sara@example.com", password: "Abc12345!", preferredLocale: loc },
     });
     expect(usePendingAuth.getState().pending?.email).toBe("sara@example.com");
   });
@@ -123,14 +123,14 @@ describe.each(["en", "ar"] as const)("AUTH-01 · register and verify (%s)", (loc
     type(m.auth.firstName, "Sara");
     type(m.auth.lastName, "Ali");
     type(m.auth.email, "s@e.co");
-    type(m.auth.password, "abc12345");
+    type(m.auth.password, "Abc12345!");
     submit(m.auth.register);
     expect((await screen.findByRole("alert")).textContent).toBe(m.errors.EMAIL_IN_USE);
     expect(push).not.toHaveBeenCalled();
   });
 
   it(`AUTH-01 · pasting a code fills the six boxes and verifying logs the user in (${loc})`, async () => {
-    usePendingAuth.getState().setPending({ email: "s@e.co", password: "abc12345" });
+    usePendingAuth.getState().setPending({ email: "s@e.co", password: "Abc12345!" });
     responder = (path) => (path === "/auth/verify-otp" ? json(200, session) : json(200, { message: "ok" }));
     wrap(loc, <VerifyForm />);
     expect(screen.getAllByRole("textbox")).toHaveLength(6);
@@ -145,7 +145,7 @@ describe.each(["en", "ar"] as const)("AUTH-01 · register and verify (%s)", (loc
   });
 
   it(`AUTH-01 · a wrong code shows the localized error and keeps the screen (${loc})`, async () => {
-    usePendingAuth.getState().setPending({ email: "s@e.co", password: "abc12345" });
+    usePendingAuth.getState().setPending({ email: "s@e.co", password: "Abc12345!" });
     responder = () => err(400, "OTP_INVALID");
     wrap(loc, <VerifyForm />);
     paste("111111");
@@ -155,7 +155,7 @@ describe.each(["en", "ar"] as const)("AUTH-01 · register and verify (%s)", (loc
   });
 
   it(`AUTH-01 · incomplete code is not sent (${loc})`, () => {
-    usePendingAuth.getState().setPending({ email: "s@e.co", password: "abc12345" });
+    usePendingAuth.getState().setPending({ email: "s@e.co", password: "Abc12345!" });
     wrap(loc, <VerifyForm />);
     paste("123");
     submit(m.auth.verifySubmit);
@@ -166,7 +166,7 @@ describe.each(["en", "ar"] as const)("AUTH-01 · register and verify (%s)", (loc
   it(`AUTH-01 · OTP_EXPIRED re-submits the register request from memory, says a new code was sent and resets the countdown (${loc})`, async () => {
     vi.useFakeTimers();
     usePendingAuth.getState().setPending({
-      email: "s@e.co", password: "abc12345", firstName: "Sara", lastName: "Ali",
+      email: "s@e.co", password: "Abc12345!", firstName: "Sara", lastName: "Ali",
     });
     responder = (path) => (path === "/auth/verify-otp" ? err(400, "OTP_EXPIRED") : json(201, { message: "ok" }));
     wrap(loc, <VerifyForm />);
@@ -178,17 +178,17 @@ describe.each(["en", "ar"] as const)("AUTH-01 · register and verify (%s)", (loc
     const paths = apiCalls().map((c) => c.path);
     expect(paths).toEqual(["/auth/verify-otp", "/auth/register"]);
     expect(apiCalls()[1].body).toMatchObject({
-      firstName: "Sara", lastName: "Ali", email: "s@e.co", password: "abc12345", preferredLocale: loc,
+      firstName: "Sara", lastName: "Ali", email: "s@e.co", password: "Abc12345!", preferredLocale: loc,
     });
     expect(screen.getByText(m.auth.newCodeSent)).toBeTruthy();
     expect(screen.getByTestId("resend-countdown").textContent).toContain("60");
     // never persisted in the browser
-    expect(JSON.stringify({ ...localStorage })).not.toContain("abc12345");
-    expect(JSON.stringify({ ...sessionStorage })).not.toContain("abc12345");
+    expect(JSON.stringify({ ...localStorage })).not.toContain("Abc12345!");
+    expect(JSON.stringify({ ...sessionStorage })).not.toContain("Abc12345!");
   });
 
   it(`AUTH-01 · OTP_EXPIRED without register data asks to start again (${loc})`, async () => {
-    usePendingAuth.getState().setPending({ email: "s@e.co", password: "abc12345" });
+    usePendingAuth.getState().setPending({ email: "s@e.co", password: "Abc12345!" });
     responder = () => err(400, "OTP_EXPIRED");
     wrap(loc, <VerifyForm />);
     paste("123456");
@@ -207,10 +207,10 @@ describe.each(["en", "ar"] as const)("AUTH-02 · login (%s)", (loc) => {
     responder = () => json(200, session);
     wrap(loc, <LoginForm />);
     type(m.auth.email, "A@B.co");
-    type(m.auth.password, "secret123");
+    type(m.auth.password, "Secret123!");
     submit(m.auth.login);
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
-    expect(apiCalls()[0]).toMatchObject({ path: "/auth/login", body: { email: "a@b.co", password: "secret123" } });
+    expect(apiCalls()[0]).toMatchObject({ path: "/auth/login", body: { email: "a@b.co", password: "Secret123!" } });
     expect(useAuthStore.getState().status).toBe("authenticated");
   });
 
@@ -218,10 +218,10 @@ describe.each(["en", "ar"] as const)("AUTH-02 · login (%s)", (loc) => {
     responder = () => err(403, "EMAIL_NOT_VERIFIED");
     wrap(loc, <LoginForm />);
     type(m.auth.email, "a@b.co");
-    type(m.auth.password, "secret123");
+    type(m.auth.password, "Secret123!");
     submit(m.auth.login);
     await waitFor(() => expect(push).toHaveBeenCalledWith("/verify"));
-    expect(usePendingAuth.getState().pending).toEqual({ email: "a@b.co", password: "secret123" });
+    expect(usePendingAuth.getState().pending).toEqual({ email: "a@b.co", password: "Secret123!" });
     expect(useAuthStore.getState().status).not.toBe("authenticated");
   });
 
@@ -274,12 +274,12 @@ describe.each(["en", "ar"] as const)("AUTH-03 · forgot and reset (%s)", (loc) =
     usePendingAuth.getState().setResetEmail("a@b.co");
     wrap(loc, <ResetForm />);
     paste("654321");
-    type(m.auth.newPassword, "newpass123");
+    type(m.auth.newPassword, "Newpass123!");
     submit(m.auth.resetSubmit);
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/login?reset=1"));
     expect(apiCalls()[0]).toMatchObject({
       path: "/auth/reset-password",
-      body: { email: "a@b.co", code: "654321", newPassword: "newpass123" },
+      body: { email: "a@b.co", code: "654321", newPassword: "Newpass123!" },
     });
     expect(useAuthStore.getState().status).not.toBe("authenticated");
     expect(useAuthStore.getState().accessToken).toBeNull();
@@ -290,7 +290,7 @@ describe.each(["en", "ar"] as const)("AUTH-03 · forgot and reset (%s)", (loc) =
     responder = () => err(400, "OTP_INVALID");
     wrap(loc, <ResetForm />);
     paste("000000");
-    type(m.auth.newPassword, "newpass123");
+    type(m.auth.newPassword, "Newpass123!");
     submit(m.auth.resetSubmit);
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain(m.auth.codeInvalidReset);
@@ -303,7 +303,7 @@ describe.each(["en", "ar"] as const)("AUTH-03 · forgot and reset (%s)", (loc) =
     responder = () => err(429, "RATE_LIMITED", { "Retry-After": "30" });
     wrap(loc, <ResetForm />);
     paste("000000");
-    type(m.auth.newPassword, "newpass123");
+    type(m.auth.newPassword, "Newpass123!");
     submit(m.auth.resetSubmit);
     const alert = await screen.findByRole("alert");
     expect(alert.textContent?.startsWith(m.errors.RATE_LIMITED)).toBe(true);
@@ -327,7 +327,7 @@ describe.each(["en", "ar"] as const)("AUTH-04 · resend countdown (%s)", (loc) =
 
   it(`AUTH-04 · resend is disabled for 60 s with a countdown, then sends {email, purpose, password} (${loc})`, async () => {
     vi.useFakeTimers();
-    usePendingAuth.getState().setPending({ email: "s@e.co", password: "abc12345" });
+    usePendingAuth.getState().setPending({ email: "s@e.co", password: "Abc12345!" });
     wrap(loc, <VerifyForm />);
     expect(screen.getByTestId("resend-countdown").textContent).toContain("60");
     expect(screen.queryByRole("button", { name: m.auth.resend })).toBeNull();
@@ -338,7 +338,7 @@ describe.each(["en", "ar"] as const)("AUTH-04 · resend countdown (%s)", (loc) =
     await flush();
     expect(apiCalls()[0]).toMatchObject({
       path: "/auth/resend-otp",
-      body: { email: "s@e.co", purpose: "VERIFY_EMAIL", password: "abc12345" },
+      body: { email: "s@e.co", purpose: "VERIFY_EMAIL", password: "Abc12345!" },
     });
     expect(screen.getByText(m.auth.codeSentAgain)).toBeTruthy();
     expect(screen.getByTestId("resend-countdown").textContent).toContain("60");
@@ -347,7 +347,7 @@ describe.each(["en", "ar"] as const)("AUTH-04 · resend countdown (%s)", (loc) =
 
   it(`AUTH-04 · a 429 on resend shows the wait and restarts the countdown from Retry-After (${loc})`, async () => {
     vi.useFakeTimers();
-    usePendingAuth.getState().setPending({ email: "s@e.co", password: "abc12345" });
+    usePendingAuth.getState().setPending({ email: "s@e.co", password: "Abc12345!" });
     responder = () => err(429, "RATE_LIMITED", { "Retry-After": "25" });
     wrap(loc, <VerifyForm />);
     tick(60);
@@ -364,12 +364,17 @@ describe.each(["en", "ar"] as const)("AUTH-04 · resend countdown (%s)", (loc) =
 });
 
 describe("AUTH-01 · validation helpers", () => {
-  it("AUTH-01 · password rule matches the API (8-128, a letter and a number)", () => {
-    expect(validateNewPassword("abc12345")).toBeNull();
-    expect(validateNewPassword("abcdefgh")).toBe("passwordWeak");
-    expect(validateNewPassword("12345678")).toBe("passwordWeak");
-    expect(validateNewPassword("a1")).toBe("passwordWeak");
-    expect(validateNewPassword("a1" + "x".repeat(127))).toBe("passwordWeak");
+  it("AUTH-03 · password rule matches the API: 8+ with an uppercase, a lowercase, a digit and a special character", () => {
+    expect(validateNewPassword("Abc12345!")).toBeNull();
+    expect(validateNewPassword("Aa1!" + "x".repeat(124))).toBeNull(); // exactly 128
+    expect(validateNewPassword("abcdefgh")).toBe("passwordWeak"); // no upper, digit or symbol
+    expect(validateNewPassword("12345678")).toBe("passwordWeak"); // no letters or symbol
+    expect(validateNewPassword("Abc1234")).toBe("passwordWeak"); // 7 characters, no symbol
+    expect(validateNewPassword("abc12345!")).toBe("passwordWeak"); // no uppercase
+    expect(validateNewPassword("ABC12345!")).toBe("passwordWeak"); // no lowercase
+    expect(validateNewPassword("Abcdefgh!")).toBe("passwordWeak"); // no digit
+    expect(validateNewPassword("Abc123456")).toBe("passwordWeak"); // no special character
+    expect(validateNewPassword("Aa1!" + "x".repeat(125))).toBe("passwordWeak"); // 129
   });
   it("AUTH-04 · digitsOnly maps Arabic-Indic digits and drops the rest", () => {
     expect(digitsOnly("١٢٣-۴۵۶ x")).toBe("123456");

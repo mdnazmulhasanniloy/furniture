@@ -615,3 +615,6 @@
   - Not yet done: tasks, traceability, `backend/prisma/schema.prisma` alignment (currency, `defaultLocale`, `deliveryCities`, `cityCode`).
 - Docs v0.1 drafted from client brief SRC-001: PRD, journeys, roles, design system, screen flow/specs, architecture, data model, OpenAPI spec, ADR-001…006, tasks T-001…T-072, blockers B-001…B-010.
 - Repos scaffolded with CLAUDE.md, slash commands, config only (no feature code — awaiting sign-off).
+
+## 2026-11-24 (dev-origin note)
+- Cause of the "header never turns solid" report on the IP site: `next dev` blocked cross-origin dev resources, so the page never hydrated. `allowedDevOrigins` is env-driven (`ALLOWED_DEV_ORIGINS`, default empty); `infra-deployment.md` now says to use production builds for remote review and documents `next start` / `vite preview` (the admin has no `/api` proxy in dev or preview: it calls `VITE_API_URL` cross-origin).

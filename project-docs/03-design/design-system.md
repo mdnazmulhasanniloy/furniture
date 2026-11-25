@@ -14,7 +14,7 @@ Where this section and the sections below disagree, **this section wins** on the
 - **Layout:** `.container-wide` max 1440 px, gutters 20 / 32 / 48 px; `.band` vertical rhythm 48 px mobile, 72 px desktop; photos may be full-bleed.
 - **Shape:** radius sm 4 px, md and lg 8 px, tiles 8 px. No arch.
 - **Rails:** `.rail-scroll` hides the native scrollbar and keeps snap; every rail has arrow buttons and keyboard support.
-- **Motion:** hero crossfade 700 ms, slow 6 s zoom, tile hover/focus zoom (`.zoom-on-hover`, scale 1.04, 400 ms). Nothing on scroll; GSAP leaves the home page. Reduced motion: no autoplay, no zoom.
+- **Motion:** hero crossfade 700 ms, slow 6 s zoom, tile hover/focus zoom (`.zoom-on-hover`, scale 1.04, 400 ms). Home sections reveal once on scroll (Framer Motion, opacity + 24 px rise, 450 ms, CR-012 / ADR-019); GSAP stays off the home page. Reduced motion: no autoplay, no zoom, no reveal.
 
 ## 1. Colour
 
@@ -229,8 +229,9 @@ Checkout: one column, address then review, COD is the only payment, summary stic
 | **Page load, home only (the one orchestrated moment)** | GSAP | The hero arch reveals (clip grows from the base, 700 ms), then the gold arch outline draws, then the headline settles (weight 300, rises 16 px, 500 ms). One timeline, once. The hero image is already painted (LCP); the timeline only animates the clip and transform. |
 | Heart, add to cart (fly dot + toast), cart drawer, OTP boxes, segmented switch, mega-menu | Framer Motion | Answers a user action, 200–350 ms. |
 | Hero rotation | CSS/React | Crossfade between banners every 7 s, paused on hover/focus; under reduced motion no auto-rotation, manual dots only. No zoom, no parallax. |
+| **Home sections on scroll (home page only)** · CR-012, ADR-019 | Framer Motion | Each block reveals the first time it is seen: opacity 0→1 with a 24 px rise, 450 ms ease-out, children staggered 60–80 ms (70 ms by default, compressed towards a 60 ms floor once the stagger window would pass 350 ms, so an eight-card rail settles within about 900 ms instead of trickling in), trigger margin −10 %, `once` (no replay when scrolling back up). `y` only, never `x`, so nothing mirrors in RTL. The champagne hairlines draw `scaleX` 0→1 from the inline start. The hero is excluded (LCP). One shared primitive (`web/src/components/motion/reveal.tsx`); GSAP, ScrollTrigger and AOS stay out. |
 
-Removed from v1: scroll reveals on every section, AOS, the page enter transition, the testimonials marquee, the hero zoom and parallax, the shimmer CTA. Under `prefers-reduced-motion` the hero is shown complete and nothing moves except what the user triggers, without the flourish. Only `transform`, `clip-path` and `opacity` animate; the LCP image is never hidden.
+Removed from v1: AOS, the page enter transition, the testimonials marquee, the hero parallax, the shimmer CTA. Scroll reveals on *every* section were removed with them in v2 and return in CR-012 in a narrower form — home page only, one Framer primitive, plays once (ADR-019); a reveal is never added to the hero or to a page outside the home page. Under `prefers-reduced-motion` the hero is shown complete and nothing moves except what the user triggers, without the flourish, and reveals render in their final state. Only `transform`, `clip-path` and `opacity` animate; the LCP image is never hidden.
 
 ## 8. Copy rules
 

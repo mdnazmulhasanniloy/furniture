@@ -480,7 +480,7 @@ describe.each(["en", "ar"] as const)("UI-01 · home v2 category row and shelf (%
 });
 
 describe("UI-01 · removed v1 motion and blocks (ADR-015)", () => {
-  it("UI-01 · no AOS, scroll reveals, page transition, marquee, shimmer, contact strip or ScrollTrigger remain in the source", async () => {
+  it("UI-01 · no AOS, GSAP ScrollTrigger, page transition, marquee, shimmer or contact strip remains in the source", async () => {
     const { existsSync, readFileSync, readdirSync } = await import("node:fs");
     const path = await import("node:path");
     const src = path.resolve(import.meta.dirname, "..");
@@ -497,9 +497,33 @@ describe("UI-01 · removed v1 motion and blocks (ADR-015)", () => {
         e.isDirectory() ? (e.name === "test" ? [] : files(path.join(d, e.name))) : /\.(tsx?|css)$/.test(e.name) ? [path.join(d, e.name)] : [],
       );
     const offenders = files(src).filter((f) =>
-      /from "aos"|data-aos|data-reveal|animate-marquee|\.shimmer|pattern-emerald|gsap\/ScrollTrigger|ContactStrip/.test(readFileSync(f, "utf8")),
+      /from "aos"|data-aos|animate-marquee|\.shimmer|pattern-emerald|gsap\/ScrollTrigger|ContactStrip/.test(readFileSync(f, "utf8")),
     );
     expect(offenders).toEqual([]);
+  });
+
+  // UI-05 (CR-012, ADR-019): scroll reveals came back, so `data-reveal` left the list above. These assertions take
+  // its place - the reveal exists in exactly one file, it respects reduced motion, and it never touches the hero.
+  it("UI-05 · scroll motion lives only in components/motion/reveal.tsx, respects reduced motion, and spares the hero", async () => {
+    const { readFileSync, readdirSync } = await import("node:fs");
+    const path = await import("node:path");
+    const src = path.resolve(import.meta.dirname, "..");
+    const files = (d: string): string[] =>
+      readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? (e.name === "test" ? [] : files(path.join(d, e.name))) : /\.(tsx?|css)$/.test(e.name) ? [path.join(d, e.name)] : [],
+      );
+    const primitive = path.join(src, "components/motion/reveal.tsx");
+    const scrollMotion = files(src).filter((f) => /whileInView|useInView|useScroll|ScrollTrigger/.test(readFileSync(f, "utf8")));
+    expect(scrollMotion).toEqual([primitive]);
+
+    const source = readFileSync(primitive, "utf8");
+    expect(source).toMatch(/useMotionPrefs|useReducedMotion/); // reads the shared hook; a branch, not a shorter animation
+    expect(source).toMatch(/IntersectionObserver/); // no observer means the final state, never a blank block
+    expect(source).toMatch(/noscript/i); // the content is complete with JavaScript off
+    expect(source).not.toMatch(/display:\s*none|visibility:\s*hidden/); // children stay in the DOM
+
+    // The hero holds the LCP image, so it is never revealed (ADR-019 decision 2).
+    expect(readFileSync(path.join(src, "components/home/hero.tsx"), "utf8")).not.toMatch(/motion\/reveal/);
   });
 });
 

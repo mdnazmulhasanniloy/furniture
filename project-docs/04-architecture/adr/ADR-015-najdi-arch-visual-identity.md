@@ -2,6 +2,8 @@
 
 Status: **Accepted 2026-11-24** (CR-008, SRC-009; owner approved the plan and answered Q-1 to Q-7, see "Owner answers") · Source: UI-01, UI-02, PROD-01, PROD-02, CART-01, AUTH-01..04 · **Supersedes the visual parts of ADR-014** (palette values, display type, motion split, home composition). **Unchanged from ADR-014:** the token contract (colour only from CSS variables, no hex in components), the AA contrast gate (4.5:1 text, 3:1 graphics, light and admin dark), reduced-motion and RTL rules, LCP < 2.5 s (PRD G4), sonner, `--gold-strong` for meaningful gold graphics.
 
+> **Amended by ADR-019 (2026-11-25) on home-page scroll motion:** "no generic reveals" no longer holds for the home page — its sections reveal once on scroll with Framer Motion (ADR-019). The GSAP load moment and the arch are already gone (ADR-018 §7, §8; the component was deleted in T-094).
+
 ## Context
 
 The owner rejected the v1 look as templated. Looking at what v1 actually shipped, the criticism is fair: a cream-tinted secondary, a serif display face, identical bordered cards with the same soft shadow, a "shimmer" CTA, scroll reveals on every section, a marquee, a page transition, a contact strip with a gold bar above its heading, and a "Step n" label above each step. The brief for v2 is one signature (the Najdi arch), a disciplined palette, a new type system and motion only where it means something.

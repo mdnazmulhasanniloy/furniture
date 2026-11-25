@@ -14,7 +14,7 @@ The owner reviewed the running site and rejected the direction again: the hero p
 4. **Home hero:** a full-bleed carousel (85vh desktop, 70vh mobile, min 480 px) fed by the admin banners, with three static fallback slides. Crossfade, slow zoom, autoplay with a visible pause button (WCAG 2.2.2), progress bars, arrows, swipe, keyboard, carousel ARIA, reduced motion respected. Only slide 1 has priority.
 5. **Categories:** an editorial bento grid (1 large + 4 small on desktop, 2 columns on tablet and mobile) with hover zoom; no horizontal scroll.
 6. **Auth pages:** split screen with a lifestyle photo and one true brand line, floating labels, live password rules, a six-box OTP.
-7. **Motion:** only carousel crossfade, slow image zoom and hover zoom. The GSAP load moment and any scroll animation are removed. Reduced motion disables autoplay and zoom.
+7. **Motion:** only carousel crossfade, slow image zoom and hover zoom. The GSAP load moment and any scroll animation are removed. Reduced motion disables autoplay and zoom. — **Amended by ADR-019 (2026-11-25):** home-page sections reveal once on scroll with Framer Motion (opacity + 24 px, 450 ms, plays once, hero excluded). The rest of this decision stands: no GSAP, no ScrollTrigger, no AOS, and no scroll motion on any page other than the home page.
 8. **The arch is removed from the whole storefront** (the `Arch` component is deleted in T-094). ADR-015 and ADR-016 carry notes.
 9. **Admin banners and customer management** are part of the same change (checkpoint 3) but do not depend on the storefront design.
 

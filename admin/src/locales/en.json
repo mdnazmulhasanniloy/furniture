@@ -731,7 +731,33 @@
       "delivery": "Delivery",
       "vat": "VAT",
       "social": "Social",
-      "seo": "SEO"
+      "seo": "SEO",
+      "appearance": "Appearance"
+    },
+    "appearance": {
+      "title": "Colour theme",
+      "intro": "Choose one of five ready themes. Each one is tested for readability before it ships.",
+      "note": "The dashboard keeps its own colours; only the website changes.",
+      "active": "Applied",
+      "selected": "Selected",
+      "apply": "Apply theme",
+      "applied": "Theme applied. Visitors see it within a minute.",
+      "unchanged": "This theme is already applied.",
+      "stale": "Settings were changed by someone else. Reload and try again.",
+      "reload": "Reload",
+      "swatch": {
+        "primary": "Main",
+        "accent": "Accent",
+        "surface": "Surface",
+        "text": "Text",
+        "price": "Price"
+      },
+      "preview": {
+        "label": "Preview",
+        "product": "Riviera sofa",
+        "condition": "New",
+        "cta": "Add to cart"
+      }
     },
     "social": {
       "facebook": "Facebook",

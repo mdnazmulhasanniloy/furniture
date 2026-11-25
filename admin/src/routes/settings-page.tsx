@@ -20,11 +20,12 @@ import {
   type SiteSettings,
 } from "@/lib/settings";
 import { activeCount, cityErrors, rowsToCities, toRows, type CityRow } from "@/lib/delivery";
+import { AppearancePanel } from "@/routes/settings-appearance";
 import { DeliveryPanel } from "@/routes/settings-delivery";
 import { VatPanel } from "@/routes/settings-vat";
 import { cn } from "@/lib/utils";
 
-type Section = "general" | "delivery" | "vat" | "social" | "seo";
+type Section = "general" | "delivery" | "vat" | "social" | "seo" | "appearance";
 type Lang = "ar" | "en";
 const SOCIALS = ["facebook", "instagram", "whatsapp", "tiktok"] as const;
 
@@ -207,6 +208,7 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
         {sectionBtn("vat", VAT_FIELDS)}
         {sectionBtn("social", [])}
         {sectionBtn("seo", SEO_FIELDS)}
+        {sectionBtn("appearance", [])}
       </div>
 
       <div role="tabpanel" id="set-panel-general" aria-labelledby="set-tab-general" hidden={section !== "general"}>
@@ -283,6 +285,17 @@ function SettingsForm({ settings, onReload }: { settings: SiteSettings; onReload
           { base: "seoTitle", label: "seoTitle" },
           { base: "seoDesc", label: "seoDesc", textarea: true },
         ])}
+      </div>
+
+      {/* ADM-16: the theme has its own endpoint and its own Apply, so this panel saves on its own and the
+          form's Save button below does not touch it (CR-010, ADR-017). */}
+      <div
+        role="tabpanel"
+        id="set-panel-appearance"
+        aria-labelledby="set-tab-appearance"
+        hidden={section !== "appearance"}
+      >
+        {section === "appearance" && <AppearancePanel />}
       </div>
 
       {formError && (

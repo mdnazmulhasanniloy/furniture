@@ -1,5 +1,44 @@
 # Changelog
 
+## 2026-11-25 (T-112 the motion foundation, on `feat/home-motion`)
+- **The groundwork for the home page's movement is in (UI-05).** Nothing moves yet - no section has been wired up -
+but the piece that will make them move exists, and it is deliberately one piece: the fade, the 24 px rise, the
+timing and the rhythm between items live in a single file as fixed values. No section can give itself a different
+animation, which is precisely what went wrong the first time.
+- **Written so nobody is left out.** With "reduce motion" switched on, sections are simply shown finished. With
+JavaScript switched off, the page sends an instruction that shows everything - that is now on the home page, so the
+guarantee holds before a single section is animated. On an old browser that cannot watch for things scrolling into
+view, content appears normally rather than staying blank. In Arabic nothing slides sideways, and the fine champagne
+lines will draw from the right.
+- **Nothing was added to the page's weight.** No new library, not one new word of text, and the sections stay
+server-rendered, so the only thing the browser downloads is the small wrapper itself.
+- **Checked:** the whole website test suite passes (729 tests), types and linting are clean, and both languages are
+still in step (409 keys, none added). Two mistakes were found and fixed on the way: the rhythm between items had been
+written down as something arithmetically impossible, and the no-JavaScript instruction had to be tested against what
+the server actually sends, because a browser throws that instruction away when JavaScript is on.
+- Next: T-113 animates the category tiles, the product shelf and shop-the-look. Nothing merged, nothing deployed.
+
+## 2026-11-25 (CR-012 home page motion: decision and documents, on `feat/home-motion`)
+- **The home page will move again as you scroll (new requirement UI-05, ADR-019).** The site looked static below the
+hero because every animation left in it answers a click or a hover - nothing happened to someone who only scrolls. That
+was not an oversight: scroll animation was removed on purpose in the v2 redesign and you approved the removal, so it
+takes a change request to bring it back. This entry is that decision; **no component has been changed yet.**
+- **What was wrong in v1 was the uniform reveal on everything, with three animation libraries.** So what returns is
+narrower: the home page only, one shared piece of code, one grammar - a fade with a 24 px rise, 450 ms, items in a row
+following each other 60-80 ms apart. A block animates **the first time you see it and never again**, so scrolling back
+up is quiet. The hero is left alone, because it holds the page's main image and must never sit behind an animation.
+- **Two extras beyond scrolling:** the thin champagne lines over the pre-owned steps and the trust facts draw
+themselves in, and the New / Pre-owned switch on the product shelf crossfades. No marquee, no counters, no parallax.
+- **Nothing is lost for anyone.** With "reduce motion" turned on, every section is simply shown finished - not a faster
+animation, no animation. With JavaScript switched off the whole page is still there. In Arabic nothing slides sideways,
+and the champagne lines draw from the right.
+- **No new library and no new text.** Framer Motion already ships on this page, so no dependency is added, and not one
+new word means both languages stay in step. The website's prices, pages, data and admin are untouched.
+- Documents: `01-discovery/client-notes-2026-11-25.md` (your brief, and the history of the three earlier motion
+decisions this one amends), `adr/ADR-019-home-scroll-reveals.md`, `05-delivery/cr-012-plan.md`, plus the rule changes in
+the PRD, the design system and the website's own build rules. Tasks T-112 to T-115 are open; traceability is green (51
+requirements, none without a task). Nothing is merged into `main` and nothing is deployed.
+
 ## 2026-11-25 (T-088 Settings > Appearance, on `feat/theme-presets`)
 - **The colour theme is now yours to choose (ADM-16).** Settings has a sixth tab, **Appearance**: five cards, one per
 preset, each showing its name in your language, five labelled swatches and a small preview of a product tile, a price and

@@ -2,6 +2,8 @@
 
 Status: **Accepted 2026-11-24** (CR-007, SRC-008; owner confirmed the proposal and all open questions) · Source: UI-01, UI-02, NFR-03 · Supersedes the colour part of `design-system.md` "Warm Walnut" (ADR-004 is unchanged: shadcn/ui stays the base, daisyUI stays out)
 
+> **Amended by ADR-019 (2026-11-25) on home-page scroll motion:** this ADR's motion split (GSAP + ScrollTrigger reveals, AOS on content pages, a Framer page transition) is no longer current. Home-page scroll motion is Framer Motion only, once-only, through one shared primitive; GSAP, ScrollTrigger and AOS are out.
+
 ## Context
 
 The owner replaced the walnut palette with "Emerald and gold" on white (SRC-008.1–4) and fixed the motion split between GSAP, Framer Motion and AOS (SRC-008.6). Checking the given values against WCAG 2.1 AA (computed relative luminance, see `cr-007-proposal.md` §3) shows the palette works for text **except** where it is used as text colour in places the brief did not cover: `warning` text (3.64:1 on white), dark-mode `destructive` / `success` text (2.54:1 / 3.14:1 on the dark card), and the gold progress fill on white or muted (2.41:1 / 2.22:1, needs 3:1 as a graphic). Colour usage in the code (`text-warning`, `text-success`, `bg-accent`, about 15 + 6 call sites) therefore cannot be handled by changing token values alone.

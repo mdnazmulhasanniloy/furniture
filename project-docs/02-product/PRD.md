@@ -140,7 +140,7 @@ Order status flow (owner 2026-11-22, T-014): `PENDING → CONFIRMED → PROCESSI
 
 ### 5.7 UI quality (UI) — SRC-001.5, .7, .8, .12
 
-**UI-01 Look & motion** · draft — "Emerald and gold" on white (`03-design/design-system.md`, ADR-014). Motion is restrained (CR-011, UI-04): hero carousel crossfade, slow image zoom and hover zoom only, nothing on scroll; the cart drawer and add-to-cart toast keep their short transitions. `prefers-reduced-motion` disables autoplay, zoom and non-essential animation, and every animation mirrors in RTL. Headings in Bodoni Moda / El Messiri (UI-04; Fraunces and Noto Kufi Arabic were the earlier choice); radius and shadow tokens only; no hex values in components.
+**UI-01 Look & motion** · draft — "Emerald and gold" on white (`03-design/design-system.md`, ADR-014). Motion is restrained (CR-011, UI-04; CR-012, UI-05): hero carousel crossfade, slow image zoom, hover zoom, and a once-only reveal of the home sections on scroll; the cart drawer and add-to-cart toast keep their short transitions. `prefers-reduced-motion` disables autoplay, zoom and non-essential animation, and every animation mirrors in RTL. Headings in Bodoni Moda / El Messiri (UI-04; Fraunces and Noto Kufi Arabic were the earlier choice); radius and shadow tokens only; no hex values in components.
 **UI-02 Responsive & accessible** · draft — 360 px to 1920 px; WCAG 2.1 AA colour contrast, enforced by an automated test on the design tokens (body, muted text, price, every button and badge text, light and dark; ≥ 4.5:1, graphics ≥ 3:1); keyboard navigable; images have localized alt text.
 
 **UI-03 Selectable theme (storefront)** · draft (SRC-011, CR-010, ADR-017) — The storefront applies the theme chosen in Settings → Appearance as CSS variables on `<html>`, on the server (no flash of the default theme).
@@ -158,6 +158,16 @@ Order status flow (owner 2026-11-22, T-014): `PENDING → CONFIRMED → PROCESSI
 - Given any auth page, Then desktop shows a photo side and a form side (mirrored in RTL) and mobile a 28vh banner; floating labels, show/hide password, live password rules (only rules the API enforces), six-box OTP with paste and a resend timer, field-level errors.
 - LCP and CLS stay within the CR-009 budget (mobile LCP <= 1505 ms en / 1580 ms ar, desktop <= 400 ms, CLS <= 0.042 mobile / 0.01 desktop, transfer <= +15%).
 - Photos are placeholders until final photography is owner-supplied or commercially licensed (blocker B-038).
+
+**UI-05 Home motion on scroll** · draft (SRC-013, CR-012, ADR-019) — The home page reveals its sections as they first come into view, with Framer Motion only.
+- Given a visitor scrolls the home page, When a section first enters the viewport, Then it fades in and rises 24 px once, in 450 ms, and does not animate again on that page view.
+- Given a group (category tiles, rail cards, steps, facts), Then its children stagger 60–80 ms — 70 ms by default, compressed towards a 60 ms floor for a long row — so even an eight-card rail settles within about 900 ms.
+- Given the hero, Then it is never hidden or revealed on scroll (the LCP image is never behind an animation).
+- Given `prefers-reduced-motion: reduce`, Then every section renders in its final state with no transform, no fade and no transition.
+- Given JavaScript is disabled, Then the full page content is visible.
+- Given Arabic (RTL), Then no reveal moves content horizontally, and the champagne hairlines draw from the inline start edge.
+- LCP is unchanged and CLS stays within the CR-009 budget (mobile LCP <= 1505 ms en / 1580 ms ar, desktop <= 400 ms, CLS <= 0.042 mobile / 0.01 desktop).
+- Scope is the home page; other pages keep UI-04 motion.
 
 ### 5.8 Resale (RESALE)
 

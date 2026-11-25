@@ -307,16 +307,23 @@ describe('T-078 · demo catalogue counts and invariants', () => {
         type: s.type,
         title: s.title,
         subtitle: s.subtitle,
-        // the stored look photo is a full ImageAsset; the request shape is {key, alt}
+        // the stored look photo is a full ImageAsset; the request shape is {key, alt, width, height}
+        // (T-110: the photo's own size is required, and the seeded asset carries it)
         config:
           s.type === 'SHOP_THE_LOOK'
             ? {
                 look: {
-                  ...(s.config as { look: { image: { key: string; alt: unknown } } }).look,
-                  image: {
-                    key: (s.config as { look: { image: { key: string } } }).look.image.key,
-                    alt: (s.config as { look: { image: { alt: unknown } } }).look.image.alt,
-                  },
+                  ...(s.config as { look: { image: unknown } }).look,
+                  image: (() => {
+                    const { key, alt, width, height } = (
+                      s.config as {
+                        look: {
+                          image: { key: string; alt: unknown; width: number; height: number };
+                        };
+                      }
+                    ).look.image;
+                    return { key, alt, width, height };
+                  })(),
                 },
               }
             : s.config,

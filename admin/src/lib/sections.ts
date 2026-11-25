@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { api } from "@/lib/api/client";
-import type { LocalizedText } from "@/lib/products";
+import type { LocalizedText, ProductStatus, StoredImage } from "@/lib/products";
 
 // api-spec.yaml /admin/home-sections (ADM-07). PATCH always carries `expectedUpdatedAt` (409 STALE_UPDATE,
 // backend T-011); `PUT /admin/home-sections/reorder` takes exactly the full list of existing ids.
 
-/** Types an admin can create here. SHOP_THE_LOOK is missing on purpose: its photo and hotspots need
- *  the look editor (admin T-085), so it cannot be configured yet - but it can already exist. */
+/** Types an admin can create here. SHOP_THE_LOOK is missing on purpose: this form cannot build a photo
+ *  with its points, so a look is created in its own editor instead (T-085, /sections/looks). */
 export const SECTION_TYPES = [
   "FEATURED_PRODUCTS",
   "NEW_ARRIVALS",
@@ -26,12 +26,43 @@ export type SectionType = (typeof ALL_SECTION_TYPES)[number];
 /** The subset an admin may create. */
 export type CreatableSectionType = (typeof SECTION_TYPES)[number];
 
+/**
+ * SHOP_THE_LOOK config (api-spec `HomeSectionConfig.look`, backend T-110). `width`/`height` are the photo's
+ * own pixel size and are required: the storefront renders the photo uncropped at that ratio, which is what
+ * keeps a point on the same spot of the photo at every screen width. `product` is filled in by the admin API
+ * only (never sent back) so the list and the editor can show what a point links to, and `null` when that
+ * product has been deleted.
+ */
+export type LookImage = {
+  key: string;
+  url: string;
+  alt: LocalizedText;
+  width: number;
+  height: number;
+};
+export type LookHotspotProduct = {
+  id: string;
+  title: LocalizedText;
+  slug: string;
+  price: number;
+  status: ProductStatus;
+  image: StoredImage | null;
+};
+export type LookHotspot = {
+  x: number;
+  y: number;
+  productId: string;
+  product?: LookHotspotProduct | null;
+};
+export type LookValue = { image: LookImage; hotspots: LookHotspot[] };
+
 export type SectionConfig = {
   productIds?: string[];
   categoryIds?: string[];
   limit?: number;
   bannerId?: string;
   testimonials?: { name: string; quote: LocalizedText }[];
+  look?: LookValue;
 };
 
 export type AdminSection = {
@@ -48,9 +79,23 @@ export type AdminSection = {
 export type SectionPatch = {
   title?: LocalizedText;
   subtitle?: LocalizedText | null;
-  config?: SectionConfig;
+  config?: SectionWrite["config"];
   isVisible?: boolean;
   expectedUpdatedAt: string;
+};
+
+/** What a write sends: the photo is the R2 key plus its alt text and size, never a url (the server builds it). */
+export type LookWrite = {
+  image: { key: string; alt: LocalizedText; width: number; height: number };
+  hotspots: { x: number; y: number; productId: string }[];
+};
+export type SectionWrite = {
+  type: SectionType;
+  title: LocalizedText;
+  subtitle?: LocalizedText | null;
+  config?: Omit<SectionConfig, "look"> & { look?: LookWrite };
+  sortOrder?: number;
+  isVisible?: boolean;
 };
 
 /** Section types whose config.limit (resolved product count, default 8) applies. */
@@ -82,6 +127,23 @@ export function useSaveSection() {
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: SectionPatch }) =>
       api.patch<AdminSection>(`/admin/home-sections/${encodeURIComponent(id)}`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+/** Create a section (used by the look editor, T-085; the generic form cannot build a look config). */
+export function useCreateSection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: SectionWrite) => api.post<AdminSection>("/admin/home-sections", body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  });
+}
+
+export function useDeleteSection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete<void>(`/admin/home-sections/${encodeURIComponent(id)}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   });
 }

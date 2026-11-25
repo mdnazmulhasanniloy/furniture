@@ -1541,6 +1541,10 @@ paths:
     get:
       tags: [Admin]
       summary: All sections ordered (ADM-07)
+      description: >-
+        A SHOP_THE_LOOK section carries each hotspot's current product in `config.look.hotspots[].product`
+        (T-110), so the looks list and editor can show it and warn about one that is no longer PUBLISHED
+        without a request per hotspot.
       responses:
         '200':
           description: OK
@@ -1556,7 +1560,7 @@ paths:
         '201':
           description: Created
           content: { application/json: { schema: { $ref: '#/components/schemas/HomeSection' } } }
-        '422': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR`, `UPLOAD_NOT_ALLOWED`, or for a look `DUPLICATE_PRODUCT` / `PRODUCT_NOT_PUBLISHED` (ids in `details.productIds`)" }
   /admin/home-sections/reorder:
     put:
       tags: [Admin]
@@ -1589,7 +1593,7 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/HomeSection' } } }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error', description: "`STALE_UPDATE` (current section in `details.current`)" }
-        '422': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error', description: "`VALIDATION_ERROR`, `UPLOAD_NOT_ALLOWED`, or for a look `DUPLICATE_PRODUCT` / `PRODUCT_NOT_PUBLISHED` (ids in `details.productIds`)" }
     delete:
       tags: [Admin]
       summary: Delete section
@@ -1885,7 +1889,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, WISHLIST_LIMIT_REACHED, WISHLIST_CONFLICT, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, VAT_NUMBER_REQUIRED, EMAIL_SEND_FAILED, SAME_PASSWORD, ALREADY_VERIFIED, CUSTOMER_HAS_OPEN_ORDERS, FORBIDDEN_TARGET, CUSTOMER_DELETED, CONFIRM_EMAIL_MISMATCH] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, WISHLIST_LIMIT_REACHED, WISHLIST_CONFLICT, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, VAT_NUMBER_REQUIRED, EMAIL_SEND_FAILED, SAME_PASSWORD, DUPLICATE_PRODUCT, PRODUCT_NOT_PUBLISHED, ALREADY_VERIFIED, CUSTOMER_HAS_OPEN_ORDERS, FORBIDDEN_TARGET, CUSTOMER_DELETED, CONFIRM_EMAIL_MISMATCH] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }
@@ -1931,12 +1935,16 @@ components:
       additionalProperties: false
       required: [key]
       description: >-
-        Image in a request body: only the R2 `key` (from the presign route) plus optional `alt`. The server
-        recomputes `url` from `key`; a sent `url` is rejected (unknown field). Keys outside `furnixa/{env}/` or
-        without a matching unattached `Upload` row -> 422 `UPLOAD_NOT_ALLOWED`.
+        Image in a request body: only the R2 `key` (from the presign route) plus optional `alt`, `width` and
+        `height`. The server recomputes `url` from `key`; a sent `url` is rejected (unknown field). Keys outside
+        `furnixa/{env}/` or without a matching unattached `Upload` row -> 422 `UPLOAD_NOT_ALLOWED`.
+        `width`/`height` are the photo's own pixel size, measured by the uploading client (T-110). They are
+        optional here and **required** for the SHOP_THE_LOOK photo, which the storefront must render uncropped.
       properties:
         key: { type: string, description: R2 object key, examples: ['furnixa/production/2026/11/3f2b8c1e-0c4d-4a52-9d7e-1b2a3c4d5e6f.webp'] }
         alt: { $ref: '#/components/schemas/LocalizedText' }
+        width: { type: integer, minimum: 1, maximum: 20000 }
+        height: { type: integer, minimum: 1, maximum: 20000 }
     User:
       type: object
       properties:
@@ -2416,33 +2424,72 @@ components:
           required: [image, hotspots]
           description: >-
             SHOP_THE_LOOK only (ADM-15): required for that type, rejected (422) for every other type. In a
-            request `image` is an `ImageAssetInput` (R2 key from the upload flow plus alt text in both locales,
-            UI-02); in a response it is the stored `ImageAsset`. The photo is attached to the section like a banner
-            image and released when the section is deleted or the photo replaced.
+            request `image` is an `ImageAssetInput` (R2 key from the upload flow, alt text in both locales
+            (UI-02) and the photo's own `width`/`height`, all required); in a response it is the stored
+            `ImageAsset`. The photo is attached to the section like a banner image and released when the section
+            is deleted or the photo replaced.
+
+
+            T-110 rules, all checked on create and on update, before anything is written:
+
+            - 1 to **6** hotspots (was 4; the admin editor places up to six).
+
+            - `width` and `height` are **required** on the photo. The storefront renders the look uncropped at
+            that ratio, so a hotspot percentage means the same point of the photo at every breakpoint; without
+            them it must fall back to a fixed, cropped box and the points drift.
+
+            - A product may appear **once per look** -> 422 `DUPLICATE_PRODUCT` with the repeated ids in
+            `details.productIds`. The same product in another look is fine.
+
+            - Every `productId` must exist and be `PUBLISHED` **at save time**, checked inside the write
+            transaction -> 422 `PRODUCT_NOT_PUBLISHED` with the offending ids in `details.productIds`. (A
+            product unpublished *later* is not an error: `GET /cms/home` simply drops that hotspot, and the
+            admin response flags it.)
           properties:
             image: { oneOf: [{ $ref: '#/components/schemas/ImageAssetInput' }, { $ref: '#/components/schemas/ImageAsset' }] }
             hotspots:
               type: array
               minItems: 1
-              maxItems: 4
+              maxItems: 6
               items:
                 type: object
                 additionalProperties: false
                 required: [x, y, productId]
                 properties:
-                  x: { type: number, minimum: 0, maximum: 100, description: Percent from the inline start of the photo }
+                  x: { type: number, minimum: 0, maximum: 100, description: Percent from the left edge of the photo (physical, never mirrored in RTL) }
                   y: { type: number, minimum: 0, maximum: 100, description: Percent from the top of the photo }
                   productId: { $ref: '#/components/schemas/ObjectId' }
+                  product:
+                    description: >-
+                      Response only, admin routes only (T-110): the linked product as it is now, so the admin
+                      list and editor can show it and warn when it is no longer `PUBLISHED` without one request
+                      per hotspot. Never stored and rejected in a request body (unknown field).
+                    allOf: [{ $ref: '#/components/schemas/LookHotspotProduct' }]
+    LookHotspotProduct:
+      type: object
+      required: [id, title, slug, price, status]
+      description: Slim product on an admin hotspot (T-110). `image` is the product's first image or null.
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        title: { $ref: '#/components/schemas/LocalizedText' }
+        slug: { type: string }
+        price: { type: integer, description: Halalas }
+        status: { type: string, enum: [DRAFT, PUBLISHED, ARCHIVED] }
+        image: { oneOf: [{ $ref: '#/components/schemas/ImageAsset' }, { type: 'null' }] }
     ResolvedLook:
       type: object
       required: [image, hotspots]
-      description: Resolved SHOP_THE_LOOK payload on `GET /cms/home` (ADM-15). Hotspots keep the admin's order.
+      description: >-
+        Resolved SHOP_THE_LOOK payload on `GET /cms/home` (ADM-15). Hotspots keep the admin's order; one whose
+        product is no longer PUBLISHED is dropped, and with none left the whole `look` is omitted. `image.width`
+        and `image.height` are present for every look saved from T-110 on; when they are missing (saved earlier)
+        the storefront falls back to its old cropped box.
       properties:
         image: { $ref: '#/components/schemas/ImageAsset' }
         hotspots:
           type: array
           minItems: 1
-          maxItems: 4
+          maxItems: 6
           items:
             type: object
             required: [x, y, product]

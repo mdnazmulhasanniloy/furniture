@@ -241,4 +241,12 @@ Order: backend T-080 first (seed), then the owner runs `demo:reset`, then T-081 
 ### T-100 Account, orders, wishlist, notifications · done
 ### T-101 Static pages, 404, empty states · done (404 copy pages.notFound.* is NEW: pending owner approval)
 ### T-102 Home sections: shop the look, pre-owned band, trust strip, pre-owned picks (Q-2) · done (pre-owned picks = the shelf's Pre-owned tab, no duplicate rail: owner to confirm)
+- **Corrected 2026-11-25 under T-085 (`feat/look-editor`).** The look photo sat in a fixed box (`aspect-[4/5]`,
+  `sm:aspect-[16/9]`) with `object-cover` while the hotspots are percentages of that box, so the crop - and therefore every
+  dot - moved with the breakpoint. The box now takes the photo's own ratio from the stored `width`/`height` (backend T-110)
+  and nothing is cropped; a look saved before those were stored keeps the old box until its photo is saved again in the
+  admin editor. New `e2e/look-alignment.spec.ts` measures the dot against the photo at 390, 768 and 1440 in both locales
+  (on target each time, spread under 0.6%) and pins that Arabic does not mirror x. It needs data the server renders, so
+  `e2e/support/api-stub.mjs` adds one known look to this machine's own `GET /cms/home` payload and passes every other
+  request through to the real API.
 ### T-103 Checkpoint 2 screenshots (screens-v6) · done

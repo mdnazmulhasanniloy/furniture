@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-11-25 (T-085 the Shop the look editor, on `feat/look-editor`)
+- **"Shop the look" is now the admin's to manage (ADM-15).** A looks list under Home sections shows each look's photo,
+title, how many points it has and whether it is on the website, with the order changed by dragging or by buttons, and
+delete behind a confirmation. The editor uploads or replaces the room photo with alt text in both languages, places up to
+six points by clicking the photo, moves them by dragging (mouse, pen or touch) or with the arrow keys (1%, or 5% with
+Shift), removes them with Delete, and links each one to a published product through a searchable picker. A live preview
+beside it shows the section as the website will render it, on a desktop width and in a 390px phone frame.
+- **A point now stays where it was put.** The website used to crop the photo into a fixed box - one shape on phones,
+another above - while the points are percentages of that box, so a dot placed on the lamp drifted off it at another
+width. The photo is now shown at its own ratio and never cropped, and an e2e measures a dot against the photo at 390, 768
+and 1440 in both locales. Arabic does not mirror a dot: a photograph is not a layout.
+- **A product that falls out of the catalogue is visible in the admin**, in the list and on the point, with the sentence
+that the website hides it - rather than the dot simply vanishing from the home page with no explanation anywhere.
+
+## 2026-11-25 (T-110 shop-the-look API, on `feat/look-editor`)
+- **The look API is ready for an editor (ADM-15).** A look may now hold **six** points instead of four; its photo must carry its own
+  `width`/`height`, which is what lets the storefront render it uncropped so a point stays on the same spot of the photo at every
+  screen width; a product may be used **once per look** (422 `DUPLICATE_PRODUCT`); and every linked product must exist and be
+  published **at the moment of saving** (422 `PRODUCT_NOT_PUBLISHED`), checked inside the write transaction so nothing slips in
+  between. A product unpublished later is still not an error - the website drops that dot, and the admin response now carries each
+  point's current product so the coming editor can say why it vanished and offer a replacement. One audit line per look save or
+  delete. The public `GET /cms/home` payload is unchanged. Spec first; 24 tests, 15 shown failing first.
+
 ## 2026-11-25 (T-109 admin account menu, on `feat/admin-account`)
 - **The account menu has Profile and Change password (ADM-11, PROF-01; QA C5, copy approved).** Both are dialogs opened from the avatar
 menu above Sign out, and the confirmation appears above the page, cleared on navigation. Change password reuses the live password

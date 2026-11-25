@@ -113,7 +113,33 @@ Backend, for completeness (same commands): `npm audit --omit=dev` is **4 high**,
 - Screenshots (`03-design/screens-v2/t079-admin-*.png`: login, banners list and banner editor with the crop preview; /ar and /en, light and dark, 1440 px). The API was stubbed in the browser with placeholder images, so nothing was read from or written to the database. Not done: 390 px admin screenshots (the admin is a desktop tool; the existing layout was not changed).
 - Critique: the admin now reads as the same house as the shop, quietly: sand table heads and panels, Readex headings, no arch except inside the one place it explains a crop. Dark mode keeps its ADR-014 teal, which is warmer-neutral than the light sand; acceptable, flagged only. Weak: the editor dialog is long, so the crop preview is below the fold; it stays visible next to the Save button, and moving it beside the uploader would need a layout change that was not asked for.
 
-### T-085 Shop the look: admin editor (ADM-15) · plan written 2026-11-25, awaiting approval of the copy
+### T-085 Shop the look: admin editor (ADM-15) · done 2026-11-25
+
+#### What shipped (branch `feat/look-editor`, one commit per step)
+- **Backend T-110** - 6 points, the photo's own size required, no duplicate product, every product published at save time,
+  the product resolved onto each point for the admin, audit lines. See `tasks/backend.md`.
+- **The looks list** at `/sections/looks` (linked from `/sections`): photo, title, point count, visible toggle, order by
+  drag or buttons, edit, delete behind the confirm dialog, and the unpublished-product warning. Ordering had to respect the
+  reorder endpoint's "all ids" rule, so `moveAmongLooks`/`dragLooks` compute the new full list and are unit-tested on their own.
+- **The editor** at `/sections/looks/new|:id` - photo, points, products - as **one** commit, because none of steps 3, 4 and 5
+  is usable alone: a look cannot be saved without a photo, a point and a product.
+- **The canvas**: the measured element is exactly the photo (the border lives on an outer box), so a click lands where the
+  storefront draws the dot. Pointer Events give mouse, pen and touch one path; arrows move 1%, Shift 5%, Delete removes;
+  every point is also a row with its coordinates, product and Remove button.
+- **The picker** over published products only, with a product already used in this look disabled.
+- **The preview** with Desktop/Mobile toggles. The shared-component plan did not survive contact: the two apps have
+  different React stacks and no shared package, so the planned fallback applies - a copy plus a drift guard that pins the
+  geometry facts in both files (physical left/top percentages, dot size and centring, the photo at its stored ratio).
+- **Step 7 (warnings) has no commit of its own**: the data arrives with T-110, so the warning shipped inside the list and the
+  editor commits, with tests in both.
+- **The storefront fix and its e2e** (step 8) are recorded under web T-102.
+- Corrections to the plan as written: `SECTION_TYPES` was not touched (the generic form cannot build a look config, so
+  "New look" belongs to the editor); jsdom has no PointerEvent and no layout, so dragging is proved in a real browser by
+  `admin/e2e/t085-look-canvas.spec.ts` (mouse, touch at 390px, keyboard, and the canvas box = the photo box).
+- Checks at the end: backend 1012 tests, admin 628 + 12 e2e, web 706 + 125 e2e, all typechecks, lint, i18n 734 keys, builds,
+  traceability `requirements=50 missing=0`. Nothing pushed, no data command run.
+
+#### The plan this followed
 - Req: ADM-15 · Depends: backend T-080 (storage) and backend **T-110** (the API changes this needs) · Branch `feat/look-editor`
 - Done when: an admin can manage a look end to end - list, photo, 1 to 6 points each linked to a published product, live desktop and
   mobile preview, warnings for products that fall out of the catalogue - and a point lands on the same spot of the photo at every
@@ -176,7 +202,7 @@ Backend, for completeness (same commands): `npm audit --omit=dev` is **4 high**,
    asserts **x is not mirrored in RTL** (it is a photograph, not a layout).
 9. **Docs**: changelog, task statuses, `node scripts/traceability.mjs`.
 
-#### New copy, printed for the owner on 2026-11-25, **not yet approved**
+#### The copy (37 new keys), as built
 Reused unchanged, no new copy: `sections.type.SHOP_THE_LOOK`, `sections.{hint,loading,retry,empty,edit,editNamed,dragHandle,moveUp,moveDown,toggleVisible,visible,hidden,moved}`,
 `sections.form.{languages,titleEn,titleAr,subtitleEn,subtitleAr,visible,required,tooLong,bothLocales,hasErrors,stale,reload}`, `uploader.*`
 (including the alt-text fields and the type and size errors), `common.{save,cancel,delete,search}`, `products.col.price`, `products.status.*`,

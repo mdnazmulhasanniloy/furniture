@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { normalizeSaudiContactPhone, SAUDI_CONTACT_PHONE_MAX_LENGTH } from '../../lib/phone.js';
 import { isSafeHref } from '../../lib/safeHtml.js';
+import { THEME_IDS } from '../../lib/themes.js';
 
 const MAX_MONEY = 100_000_000; // halalas (owner 2026-11-22, same cap as products)
 
@@ -312,6 +313,15 @@ export const putSettingsBody = z
   })
   .strict();
 
+/**
+ * ADM-16 (CR-010): PATCH /admin/settings/appearance. Only the preset id travels - the colour values are a
+ * code registry (src/lib/themes.ts), so `strict()` also refuses a client that tries to send its own
+ * `tokens`. The enum is built from the same tuple the registry uses, so the two can never disagree.
+ */
+export const appearancePatchBody = z
+  .object({ themeId: z.enum(THEME_IDS), expectedUpdatedAt: z.coerce.date() })
+  .strict();
+
 export type CreateBannerBody = z.infer<typeof createBannerBody>;
 export type UpdateBannerBody = z.infer<typeof updateBannerBody>;
 export type CreateSectionBody = z.infer<typeof createSectionBody>;
@@ -320,3 +330,4 @@ export type ReorderBody = z.infer<typeof reorderBody>;
 export type CreatePageBody = z.infer<typeof createPageBody>;
 export type UpdatePageBody = z.infer<typeof updatePageBody>;
 export type PutSettingsBody = z.infer<typeof putSettingsBody>;
+export type AppearancePatchBody = z.infer<typeof appearancePatchBody>;

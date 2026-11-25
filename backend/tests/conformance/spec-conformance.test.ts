@@ -486,6 +486,20 @@ it('NFR-01 · CMS routes conform (banners, sections, pages, settings, home)', as
       defaultLocale: 'ar',
     },
   });
+
+  // ADM-16 (CR-010): the colour theme has its own read and PATCH next to the full-replace PUT.
+  const appearance = await call('get', '/admin/settings/appearance', {
+    status: 200,
+    token: adminToken,
+  });
+  await call('patch', '/admin/settings/appearance', {
+    status: 200,
+    token: adminToken,
+    body: {
+      themeId: 'walnut',
+      expectedUpdatedAt: (appearance.body as { updatedAt: string }).updatedAt,
+    },
+  });
 });
 
 it('NFR-01 · wishlist routes conform', async () => {

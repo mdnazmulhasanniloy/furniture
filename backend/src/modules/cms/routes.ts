@@ -3,6 +3,7 @@ import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
 import * as controller from './controller.js';
 import {
+  appearancePatchBody,
   createBannerBody,
   createPageBody,
   createSectionBody,
@@ -59,3 +60,10 @@ export const adminSettingsRouter = Router();
 adminSettingsRouter.use(requireAuth, requireRole('ADMIN'));
 adminSettingsRouter.get('/', controller.getAdminSettings);
 adminSettingsRouter.put('/', validate({ body: putSettingsBody }), controller.putSettings);
+// ADM-16 (CR-010): the colour theme has its own PATCH so the full-replace PUT above keeps its contract.
+adminSettingsRouter.get('/appearance', controller.getAppearance);
+adminSettingsRouter.patch(
+  '/appearance',
+  validate({ body: appearancePatchBody }),
+  controller.patchAppearance,
+);

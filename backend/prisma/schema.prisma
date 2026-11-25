@@ -441,6 +441,12 @@ model SiteSetting {
   currency              String         @default("SAR") // fixed, ADR-008
   defaultLocale         Locale         @default(ar)
   seo                   Json?
+  // CR-010 / T-086: the applied colour preset. Optional on purpose - documents written before CR-010 have
+  // no such field, and null, missing or a retired id all read as `emerald` (src/lib/themes.ts). Only the id
+  // is stored: the colour values are code, never data.
+  themeId               String?
+  themeUpdatedById      String?        @db.ObjectId
+  themeUpdatedAt        DateTime?
   updatedAt             DateTime       @updatedAt
 }
 

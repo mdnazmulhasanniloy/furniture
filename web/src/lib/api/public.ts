@@ -42,6 +42,11 @@ export type SiteSettings = {
     | null;
   seo?: { title?: LocalizedText | null; description?: LocalizedText | null } | null;
   vat?: { vatRate: number; applyToDelivery?: boolean; pricesIncludeVat: boolean } | null;
+  /**
+   * UI-03: the colour preset the admin applied, as `#rrggbb` per token. Values are validated by
+   * `themeStyle()` before they reach markup, so the type stays as loose as the wire.
+   */
+  theme?: { id?: string; tokens?: Record<string, string> } | null;
 };
 
 /** A hung API must never hold the whole page (the layout awaits settings and categories): give up after this. */

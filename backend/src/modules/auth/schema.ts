@@ -49,5 +49,14 @@ export const acceptInviteBody = z.object({
   password,
 });
 
+/**
+ * T-108: the current password is shape-only (any non-empty string up to 128); the new one carries the
+ * policy, asserted in the service so a weak password is 400 `PASSWORD_TOO_WEAK` with its unmet rules.
+ */
+export const changePasswordBody = z
+  .object({ currentPassword: z.string().min(1).max(128), newPassword: password })
+  .strict();
+
+export type ChangePasswordBody = z.infer<typeof changePasswordBody>;
 export type ResendOtpBody = z.infer<typeof resendOtpBody>;
 export type RegisterBody = z.infer<typeof registerBody>;

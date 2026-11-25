@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-11-25 (T-109 admin account menu, on `feat/admin-account`)
+- **The account menu has Profile and Change password (ADM-11, PROF-01; QA C5, copy approved).** Both are dialogs opened from the avatar
+menu above Sign out, and the confirmation appears above the page, cleared on navigation. Change password reuses the live password
+checklist and refuses locally what it can - empty fields, a new password that breaks the shared policy, a mismatched confirmation, and a
+new password equal to the current one - so a lockout attempt is never spent on a typo; the API's answers land where they belong (401 on
+the current-password field with its own message, `SAME_PASSWORD` on the new-password field, `ACCOUNT_LOCKED` with its retry wait as the
+form error), and a success stores the fresh session from T-108 and re-primes the CSRF token for the new family. Profile saves the name
+with `PATCH /me` - no admin endpoint needed, it is behind `requireAuth` with no role check - and the avatar initials follow at once; the
+email is read-only with the owner's note. 20 tests (10 x en + ar); the behaviours they assert were verified by disabling them.
+
+## 2026-11-25 (T-108 change own password, on `feat/admin-account`)
+- **`POST /auth/change-password` (ADM-11, PROF-01; QA C5).** Spec first. A signed-in user changes their own password: the one password
+policy on the new one first (400 `PASSWORD_TOO_WEAK` with the unmet rules, so a typo there spends no attempt), then the **shared sign-in
+lockout** (429 `ACCOUNT_LOCKED` before the password is looked at), then the current password (a miss is 401 `INVALID_CREDENTIALS` through
+the same `failLogin` as sign-in, so five wrong attempts also pause sign-in for that email - the owner's decision), then 422
+`SAME_PASSWORD` for a no-op. On success: one transaction writes the hash, `passwordChangedAt` and a cleared counter and **revokes every
+refresh family**, the other devices' sockets are closed, and the caller keeps working with the fresh access token and cookie in the
+response. **The subtle part:** `authenticateBearer` rejects `iat <= passwordChangedAt` at 1 s granularity, so the new token is stamped one
+second ahead - otherwise the request would sign the caller out. New email `admin-password-changed` (en + ar, the owner's approved copy)
+with the change time in Riyadh and no secrets, sent in the background so a transport failure cannot fail the change; customers keep the
+existing `password-changed`. 10 new endpoint tests, all shown failing with 404 first, plus two email tests and the conformance call.
+
+
 ## 2026-11-24 (QA batch B on `fix/qa-2026-11-24`)
 - **B1 an unavailable cart line can be removed, and nothing counts a product that is gone (CART-01, FAV-01; closes B-035).** Root cause, two halves: the cart response carried no `productId` for a line whose product had gone, and `PUT /cart/items` answered 404 for such a product even with `qty: 0`, so the line was unremovable. Spec first: `CartLine.productId` is required on every line, and a `qty: 0` remove always succeeds (idempotent, even for a product that is not in the cart). The web cart now shows the line with a remove button (no undo offer - putting it back would fail), leaves it out of the item count and the totals, and blocks checkout with the checkout page's approved wording instead of letting the customer walk into a blocked checkout. The guest cart and the guest favourites drop a product that answers 404 from localStorage and from their badges by themselves, so a stale local entry cannot be counted; any other error leaves the entry alone. No new copy. Fail-first: 3 backend and 6 web assertions.
 

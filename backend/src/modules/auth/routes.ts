@@ -5,6 +5,7 @@ import { validate } from '../../middleware/validate.js';
 import * as controller from './controller.js';
 import {
   acceptInviteBody,
+  changePasswordBody,
   forgotPasswordBody,
   loginBody,
   registerBody,
@@ -115,3 +116,13 @@ authRouter.get('/csrf', controller.csrf);
 authRouter.post('/refresh', refreshIpLimiter, controller.refresh);
 authRouter.post('/logout', controller.logout);
 authRouter.get('/me', requireAuth, controller.me);
+/**
+ * T-108 (QA C5): changing your own password. No IP limiter here on purpose - the caller is already
+ * authenticated and the attempts are capped by the shared per-email sign-in lockout in the service.
+ */
+authRouter.post(
+  '/change-password',
+  requireAuth,
+  validate({ body: changePasswordBody }),
+  controller.changePassword,
+);

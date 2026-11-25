@@ -44,6 +44,13 @@ export interface PasswordChangedEmailData {
   firstName: string;
 }
 
+/** T-108: the security email after a password change. Never carries a secret of any kind. */
+export interface AdminPasswordChangedEmailData {
+  firstName: string;
+  /** When the change happened; rendered in Asia/Riyadh. */
+  at: Date | string;
+}
+
 export interface AdminInviteEmailData {
   firstName: string;
   code: string;
@@ -56,6 +63,7 @@ export interface TemplateDataMap {
   'otp-verify': OtpEmailData;
   'otp-reset': OtpEmailData;
   'password-changed': PasswordChangedEmailData;
+  'admin-password-changed': AdminPasswordChangedEmailData;
   'order-placed': OrderPlacedEmailData;
   'order-status': OrderStatusEmailData;
   'admin-invite': AdminInviteEmailData;
@@ -66,6 +74,7 @@ export const TEMPLATE_NAMES: TemplateName[] = [
   'otp-verify',
   'otp-reset',
   'password-changed',
+  'admin-password-changed',
   'order-placed',
   'order-status',
   'admin-invite',

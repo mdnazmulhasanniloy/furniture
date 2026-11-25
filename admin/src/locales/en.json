@@ -68,6 +68,7 @@
     "SELF_BLOCK": "You cannot block yourself.",
     "LAST_ADMIN": "The last active admin cannot be blocked.",
     "VAT_NUMBER_REQUIRED": "Add your VAT registration number before charging VAT.",
+    "SAME_PASSWORD": "Choose a password different from your current one.",
     "ALREADY_VERIFIED": "This invite was already accepted. The list was refreshed.",
     "CUSTOMER_HAS_OPEN_ORDERS": "This customer has pending or confirmed orders. Finish or cancel them first.",
     "FORBIDDEN_TARGET": "Admins cannot be changed here.",
@@ -197,6 +198,18 @@
       "symbol": "One special character (e.g. ! @ # $)"
     },
     "passwordWeak": "Your password needs: At least 8 characters, One uppercase letter, One lowercase letter, One number, One special character (e.g. ! @ # $)"
+  },
+  "account": {
+    "changePassword": "Change password",
+    "profile": "Profile",
+    "current": "Current password",
+    "confirm": "Confirm new password",
+    "mismatch": "The two passwords do not match.",
+    "currentWrong": "That is not your current password.",
+    "sameAsCurrent": "Choose a password different from your current one.",
+    "passwordSaved": "Password changed. Other devices were signed out, and we sent you a confirmation email.",
+    "profileSaved": "Profile saved.",
+    "emailFixed": "Your email cannot be changed here. Ask another admin."
   },
   "shell": {
     "collapseSidebar": "Collapse sidebar",

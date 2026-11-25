@@ -241,6 +241,49 @@ paths:
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (OTP cooldown, hourly cap, or the per-IP cap)" }
         '503': { $ref: '#/components/responses/Error', description: "`EMAIL_SEND_FAILED` - the code could not be mailed; no cooldown is spent, retry immediately" }
+  /auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change your own password while signed in (T-108, QA C5)
+      description: |
+        Bearer-authenticated (any role), for a user who knows their current password - the OTP
+        `forgot-password` / `reset-password` pair stays the way in when they do not.
+        Order (owner 2026-11-25), the same no-oracle order as `POST /auth/login`:
+        1. `newPassword` goes through the one password policy first, so a typo there spends no attempt:
+           400 `PASSWORD_TOO_WEAK`, `details.rules` naming every unmet rule.
+        2. **The account lockout is shared with sign-in.** While the caller's email is locked
+           (`LOGIN_MAX_FAILURES` failures within `LOGIN_LOCKOUT_SECONDS`) the answer is 429
+           `ACCOUNT_LOCKED` with `Retry-After`, **before** the current password is checked.
+        3. `currentPassword` is verified with argon2. A miss is 401 `INVALID_CREDENTIALS` and **counts
+           toward that same lockout**, so five wrong attempts here also pause sign-in for that email.
+        4. A new password equal to the current one is 422 `SAME_PASSWORD`; nothing is written and no
+           attempt is spent (the current password was right).
+        On success, in one write: the new hash, `passwordChangedAt` = now, the failure counter cleared,
+        and **every refresh-token family of the user revoked** - their live sockets are disconnected too.
+        The caller is kept signed in: the response carries a **fresh access token** and sets a **new
+        `fx_rt` cookie**. The access token that made the request is dead, like every other one issued
+        before the change (`iat <= passwordChangedAt`, 1 s granularity), so the new one is issued with
+        `iat` one second ahead; clients must use the token from this response.
+        A security email is sent in the background (`admin-password-changed` for an ADMIN,
+        `password-changed` for a customer) with the change time and no secrets; a mail that cannot be
+        sent is logged without its data and **never fails the change**.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              additionalProperties: false
+              properties:
+                currentPassword: { type: string, minLength: 1, maxLength: 128 }
+                newPassword: { type: string, minLength: 8, maxLength: 128, description: "Same policy as register and reset (owner 2026-11-24): at least 8 characters with one uppercase letter, one lowercase letter, one digit and one special character. A password that breaks it is 400 `PASSWORD_TOO_WEAK` with `details.rules`." }
+      responses:
+        '200': { $ref: '#/components/responses/AuthSession' }
+        '400': { $ref: '#/components/responses/Error', description: "`PASSWORD_TOO_WEAK` - nothing changed; `details.rules` names every unmet rule" }
+        '401': { $ref: '#/components/responses/Error', description: "`UNAUTHORIZED` (no or stale access token), or `INVALID_CREDENTIALS` - the current password is wrong, counted toward the sign-in lockout" }
+        '422': { $ref: '#/components/responses/Error', description: "`SAME_PASSWORD` - the new password is the current one; or `VALIDATION_ERROR`" }
+        '429': { $ref: '#/components/responses/RateLimited', description: "`ACCOUNT_LOCKED` - the shared sign-in lockout for this email; `Retry-After` is set" }
   /auth/reset-password:
     post:
       tags: [Auth]
@@ -1842,7 +1885,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, WISHLIST_LIMIT_REACHED, WISHLIST_CONFLICT, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, VAT_NUMBER_REQUIRED, EMAIL_SEND_FAILED, ALREADY_VERIFIED, CUSTOMER_HAS_OPEN_ORDERS, FORBIDDEN_TARGET, CUSTOMER_DELETED, CONFIRM_EMAIL_MISMATCH] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, WISHLIST_LIMIT_REACHED, WISHLIST_CONFLICT, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, VAT_NUMBER_REQUIRED, EMAIL_SEND_FAILED, SAME_PASSWORD, ALREADY_VERIFIED, CUSTOMER_HAS_OPEN_ORDERS, FORBIDDEN_TARGET, CUSTOMER_DELETED, CONFIRM_EMAIL_MISMATCH] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }

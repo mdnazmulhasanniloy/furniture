@@ -23,9 +23,19 @@ export function hmac(namespace: string, value: string): string {
 
 export const hashRefreshToken = (token: string) => hmac('refresh', token);
 
-export function signAccessToken(user: { id: string; role: string }): string {
+/**
+ * `issuedAt` overrides the `iat` claim (T-108). Needed exactly once: a password change sets
+ * `passwordChangedAt = now` and `authenticateBearer` rejects `iat <= passwordChangedAt` (1 s
+ * granularity, AUTH-03), so the token handed back must be stamped one second ahead or the caller
+ * would be signed out by their own request. `iat` in the near future is not validated anywhere.
+ */
+export function signAccessToken(
+  user: { id: string; role: string },
+  opts: { issuedAt?: Date } = {},
+): string {
   const env = getEnv();
-  return jwt.sign({ role: user.role }, env.ACCESS_TOKEN_SECRET, {
+  const iat = opts.issuedAt ? { iat: Math.floor(opts.issuedAt.getTime() / 1000) } : {};
+  return jwt.sign({ role: user.role, ...iat }, env.ACCESS_TOKEN_SECRET, {
     algorithm: 'HS256',
     subject: user.id,
     issuer: JWT_ISSUER,

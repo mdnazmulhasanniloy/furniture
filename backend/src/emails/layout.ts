@@ -64,6 +64,20 @@ export function formatDuration(ttlSeconds: number, locale: Locale): string {
   }
 }
 
+/**
+ * An instant as "25 Nov 2026, 14:32" in Asia/Riyadh, Western digits and a Gregorian date (B-015 /
+ * ADR-008, the same convention the apps use). Used by the password-change security email (T-108).
+ */
+export function formatRiyadhDateTime(at: Date | string, locale: Locale): string {
+  const date = at instanceof Date ? at : new Date(at);
+  return new Intl.DateTimeFormat(`${locale}-SA-u-ca-gregory-nu-latn`, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Riyadh',
+    hourCycle: 'h23',
+  }).format(date);
+}
+
 export function otpBox(code: string): string {
   return `<p style="font-size:32px;letter-spacing:8px;font-weight:bold;margin:24px 0;direction:ltr;text-align:center">${escapeHtml(code)}</p>`;
 }

@@ -94,6 +94,7 @@ const en = (s: string) => ({ en: s, ar: `${s} ع` });
 const CUSTOMER_EMAIL = 'conf-customer@example.com';
 const PASSWORD_1 = 'Passw0rdOne!';
 const PASSWORD_2 = 'Passw0rdTwo!';
+const PASSWORD_3 = 'Passw0rdThree!'; // T-108 change-password
 let adminToken = '';
 let customer2Id = '';
 let customerToken = '';
@@ -201,6 +202,16 @@ it('NFR-01 · auth lifecycle routes conform', async () => {
   });
   customerCookie = refreshCookieOf(refreshed);
   customerToken = (refreshed.body as { accessToken: string }).accessToken;
+  await call('get', '/auth/me', { status: 200, token: customerToken });
+  // T-108: changing the password keeps this session alive, with a new token and a new cookie, and
+  // revokes every other one - so both are taken from the response before going on.
+  const changed = await call('post', '/auth/change-password', {
+    status: 200,
+    token: customerToken,
+    body: { currentPassword: PASSWORD_1, newPassword: PASSWORD_3 },
+  });
+  customerCookie = refreshCookieOf(changed);
+  customerToken = (changed.body as { accessToken: string }).accessToken;
   await call('get', '/auth/me', { status: 200, token: customerToken });
   await call('post', '/auth/forgot-password', { status: 200, body: { email: CUSTOMER_EMAIL } });
   await call('post', '/auth/reset-password', {

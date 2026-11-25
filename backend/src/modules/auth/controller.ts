@@ -3,7 +3,7 @@ import { parseAcceptLanguage } from '../../lib/locale.js';
 import { clearRefreshCookie, setRefreshCookie } from '../../lib/tokens.js';
 import * as auth from './auth.service.js';
 import * as session from './session.service.js';
-import type { RegisterBody, ResendOtpBody } from './schema.js';
+import type { ChangePasswordBody, RegisterBody, ResendOtpBody } from './schema.js';
 
 const locale = (req: Request) => parseAcceptLanguage(req.get('accept-language'));
 const MESSAGES = {
@@ -87,6 +87,17 @@ export const acceptInvite: RequestHandler = async (req, res) => {
     code,
     password,
     req.get('user-agent'),
+  );
+  setRefreshCookie(res, refreshToken);
+  res.status(200).json({ accessToken, user: auth.toPublicUser(user) });
+};
+
+/** T-108: keeps this session alive - a new access token and a new refresh cookie come back. */
+export const changePassword: RequestHandler = async (req, res) => {
+  const { user, accessToken, refreshToken } = await session.changePassword(
+    req.user!,
+    req.body as ChangePasswordBody,
+    { userAgent: req.get('user-agent'), requestId: req.id, locale: locale(req) },
   );
   setRefreshCookie(res, refreshToken);
   res.status(200).json({ accessToken, user: auth.toPublicUser(user) });

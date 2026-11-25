@@ -39,6 +39,8 @@ const samples: TemplateDataMap = {
   'otp-verify': otp,
   'otp-reset': otp,
   'password-changed': { firstName: 'Sara' },
+  // T-108: the security email after a password change (the time is rendered in Riyadh).
+  'admin-password-changed': { firstName: 'Sara', at: '2026-11-25T11:32:00.000Z' },
   'order-placed': placed,
   'order-status': { firstName: 'Sara', orderNo: 'FX-1001', status: 'CONFIRMED' },
   'admin-invite': adminInvite,
@@ -191,6 +193,22 @@ describe('email templates', () => {
       expect(out.html).toContain('https://admin.example.com');
       expect(out.text).toContain('https://admin.example.com');
       expect(out.html).not.toMatch(/token=|magic/i);
+    },
+  );
+
+  it.each(locales)(
+    'AUTH-03 · admin-password-changed (%s) shows the Riyadh time and carries no secret',
+    (locale) => {
+      const out = renderEmail('admin-password-changed', locale, {
+        firstName: 'Sara',
+        at: '2026-11-25T11:32:00.000Z',
+      });
+      // 11:32 UTC is 14:32 in Riyadh, with Western digits (B-015).
+      expect(out.text).toContain('14:32');
+      expect(out.html).toContain('14:32');
+      expect(out.text).toContain(locale === 'en' ? 'Riyadh' : 'الرياض');
+      expect(out.subject).toContain('Furnixa');
+      expect(out.text).not.toMatch(/password[:=]|token|code|http/i);
     },
   );
 

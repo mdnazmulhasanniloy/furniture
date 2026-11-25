@@ -4,7 +4,13 @@ import { getEnv } from '../../config/env.js';
 import { assertAllowedOrigin, csrfTokenFor, isValidCsrf } from '../../lib/csrf.js';
 import { socketEmitter } from '../../lib/emitter.js';
 import { AppError } from '../../lib/errors.js';
-import { dummyVerify, verifyPassword } from '../../lib/password.js';
+import { mailer } from '../../emails/mailer.js';
+import {
+  assertStrongPassword,
+  dummyVerify,
+  hashPassword,
+  verifyPassword,
+} from '../../lib/password.js';
 import { prisma } from '../../lib/prisma.js';
 import { extendWindow, hit, limitKey, peek, resetKey } from '../../lib/rateLimit.js';
 import {
@@ -12,6 +18,7 @@ import {
   issueRefreshToken,
   REFRESH_COOKIE,
   REFRESH_GRACE_SECONDS,
+  revokeAllForUser,
   revokeFamily,
   rotateRefreshToken,
   signAccessToken,
@@ -20,6 +27,7 @@ import {
 import { authenticateBearer } from '../../middleware/auth.js';
 import { issueAndSendOtp } from './auth.service.js';
 import { assertCanIssue, findPendingByPassword, type PendingRegistration } from './otp.service.js';
+import type { ChangePasswordBody } from './schema.js';
 
 interface Ctx {
   userAgent?: string;
@@ -184,6 +192,87 @@ export async function refresh(req: Request) {
     throw new AppError(401, 'REFRESH_RACE', 'Token was just rotated; retry with the new cookie');
   }
   return { user, accessToken: signAccessToken(user), refreshToken };
+}
+
+/**
+ * T-108 (QA C5, owner 2026-11-25). A signed-in user changes their own password.
+ *
+ * Order is the same no-oracle order as `login`, and the lockout is the SAME counter as sign-in
+ * (`login:email:<hmac>`), by the owner's decision: five wrong current passwords lock this endpoint
+ * *and* sign-in for that email until the window passes.
+ *  1. the policy on the new password first, so a typo there spends no attempt;
+ *  2. the lockout, before the current password is looked at;
+ *  3. the current password, a miss counting toward that lockout;
+ *  4. a new password equal to the current one -> 422, nothing written, no attempt spent.
+ *
+ * On success every refresh family is revoked and the other devices' sockets are closed, while this
+ * caller stays signed in: `passwordChangedAt` kills every access token issued up to now (1 s
+ * granularity), so the fresh one is stamped a second ahead - see `signAccessToken`. The security
+ * email goes out in the background, so a transport failure can never fail the change.
+ */
+export async function changePassword(user: User, body: ChangePasswordBody, ctx: Ctx) {
+  const env = getEnv();
+  assertStrongPassword(body.newPassword);
+
+  const key = limitKey('login', 'email', user.email);
+  const lock = await peek(key, env.LOGIN_MAX_FAILURES, { requestId: ctx.requestId });
+  if (lock.locked) {
+    throw new AppError(
+      429,
+      'ACCOUNT_LOCKED',
+      'Too many failed attempts; account temporarily locked',
+      {
+        retryAfterSeconds: lock.retryAfterSeconds,
+      },
+    );
+  }
+
+  if (!(await verifyPassword(user.passwordHash, body.currentPassword))) {
+    return failLogin(user, key, ctx);
+  }
+  if (await verifyPassword(user.passwordHash, body.newPassword)) {
+    throw new AppError(422, 'SAME_PASSWORD', 'The new password is the current one');
+  }
+
+  const passwordHash = await hashPassword(body.newPassword);
+  const now = new Date();
+  const updated = await prisma.$transaction(async (tx) => {
+    const row = await tx.user.update({
+      where: { id: user.id },
+      data: { passwordHash, passwordChangedAt: now, failedLoginCount: 0, lockedUntil: null },
+    });
+    await revokeAllForUser(user.id, tx);
+    return row;
+  });
+  await resetKey(key, { requestId: ctx.requestId });
+
+  // The revoked sessions' live sockets go too (T-023). Best effort: a failed emit is logged, never thrown.
+  socketEmitter.disconnectUser(user.id);
+
+  // Owner 2026-11-25: the admin who changed it is told; the other admins are not notified.
+  void mailer.sendInBackground(
+    updated.role === 'ADMIN'
+      ? {
+          to: updated.email,
+          template: 'admin-password-changed',
+          locale: updated.preferredLocale,
+          data: { firstName: updated.firstName, at: now },
+        }
+      : {
+          to: updated.email,
+          template: 'password-changed',
+          locale: updated.preferredLocale,
+          data: { firstName: updated.firstName },
+        },
+  );
+
+  const refreshToken = await issueRefreshToken(updated.id, ctx.userAgent);
+  return {
+    user: updated,
+    // One second ahead of `passwordChangedAt`, or this very response would be rejected.
+    accessToken: signAccessToken(updated, { issuedAt: new Date(now.getTime() + 1000) }),
+    refreshToken,
+  };
 }
 
 /** AUTH-05. With the refresh cookie: CSRF-checked, revokes the whole session. Bearer-only: nothing to revoke. */

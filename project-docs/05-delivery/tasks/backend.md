@@ -254,8 +254,17 @@ Done = every listed acceptance criterion of the linked requirement has a passing
 ### T-105 Banner reorder endpoint `PUT /admin/banners/order` · done (CR-011 checkpoint 3A; includes the banner focal point focalX/focalY, Q-5)
 - Req: ADM-06
 
-### T-108 Change own password while signed in (`POST /auth/change-password`) · plan only, awaiting approval
+### T-108 Change own password while signed in (`POST /auth/change-password`) · done 2026-11-25
 - Req: AUTH-03, ADM-11 · Depends: owner approval of `05-delivery/admin-account-menu-plan.md` (QA C5)
 - The signed-in path does not exist today (only the OTP forgot/reset flow). Plan: current password verified with argon2, the shared policy module on the new one (400 `PASSWORD_TOO_WEAK` with the unmet rules), 422 `SAME_PASSWORD` for a no-op, every other session revoked plus their sockets disconnected, `passwordChangedAt` set - so the response must carry a fresh access token and refresh cookie or the caller would log themselves out - the existing `password-changed` email, and a new `changePassword:user:<id>` rate limit (5 / 15 min). Deliberately under `/auth`, not `/admin`, so the storefront can reuse it (PROF-01). Full detail, including the tests, in section 2 of the plan. **No code written.**
+- **Done 2026-11-25 on `feat/admin-account`.** Spec first. `changePassword` lives in `session.service.ts`, where the lockout, the token
+rotation and the cookie already live. Order, as documented: policy on the new password -> the shared lockout (`peek`) -> the current
+password (a miss goes through the same `failLogin` as sign-in) -> `SAME_PASSWORD` -> one transaction (new hash, `passwordChangedAt`,
+counter cleared, **all refresh families revoked**) -> `resetKey` -> sockets disconnected -> background email -> a new refresh token and a
+fresh access token. **The one subtle part, now in code and in the spec:** `authenticateBearer` rejects `iat <= passwordChangedAt` with 1 s
+granularity, so the fresh token is signed with `iat` one second ahead (`signAccessToken(user, { issuedAt })`) - without that the caller's
+own request would sign them out. New email template `admin-password-changed` (en + ar, owner's copy) with the Riyadh time, rendered by a
+new `formatRiyadhDateTime` helper; customers keep `password-changed`. Tests: `tests/auth/change-password.test.ts` (10, all shown failing
+with 404 first) plus the two email-template tests and the conformance call.
 - **Owner decisions 2026-11-25:** a wrong current password counts toward the **existing login lockout** (the one `login:email:<hmac>` counter, so five wrong attempts also pause sign-in for that admin - stated in the plan); the new password must differ from the current one; all other sessions are revoked and this one gets a fresh access token and refresh cookie; **no notification to the other admins**; a **security email to the admin whose password changed** (new `admin-password-changed` template, en + ar, with the Riyadh time and no secrets) sent in the background, so a transport failure leaves the change in place and is logged without details. The new `changePassword:user:<id>` limiter I had proposed is dropped in favour of the login lockout. Blocked on the owner approving the copy in section 4 of the plan.
 

@@ -268,7 +268,7 @@ new `formatRiyadhDateTime` helper; customers keep `password-changed`. Tests: `te
 with 404 first) plus the two email-template tests and the conformance call.
 - **Owner decisions 2026-11-25:** a wrong current password counts toward the **existing login lockout** (the one `login:email:<hmac>` counter, so five wrong attempts also pause sign-in for that admin - stated in the plan); the new password must differ from the current one; all other sessions are revoked and this one gets a fresh access token and refresh cookie; **no notification to the other admins**; a **security email to the admin whose password changed** (new `admin-password-changed` template, en + ar, with the Riyadh time and no secrets) sent in the background, so a transport failure leaves the change in place and is logged without details. The new `changePassword:user:<id>` limiter I had proposed is dropped in favour of the login lockout. Blocked on the owner approving the copy in section 4 of the plan.
 
-### T-110 Shop the look: the API the editor needs (ADM-15) · plan written 2026-11-25, awaiting approval
+### T-110 Shop the look: the API the editor needs (ADM-15) · done 2026-11-25
 - Req: ADM-15 · Depends: T-080 (storage) · Pairs with admin **T-085**, which holds the full plan and the copy list · Branch `feat/look-editor`
 - No new entity and no new route: a look is a `SHOP_THE_LOOK` home section, so this is a change to the existing `/admin/home-sections`
   create, update and delete, all already admin-only (`requireAuth` + `requireRole('ADMIN')`) with `expectedUpdatedAt` concurrency and the
@@ -293,4 +293,19 @@ with 404 first) plus the two email-template tests and the conformance call.
 - Tests: the 6-point boundary (6 ok, 7 -> 422), width/height required and bounded, duplicates, a product that is DRAFT or deleted at save
   time, the resolved product shape, the photo attach/release across a replace (already covered - extended), concurrency via a stale
   `expectedUpdatedAt`, and **authz**: anonymous -> 401, customer token -> 403, on create, update, delete and reorder.
+- **Done 2026-11-25 on `feat/look-editor`.** Spec first, then `schema.ts`, then the service; 24 tests in
+  `tests/cms/shop-the-look.test.ts` (15 of them shown failing first, the two audit ones proved by disabling `auditLook`).
+  Everything landed as planned, with these notes:
+  - The look photo now has its **own** schema (`lookImage`), not the banner one: alt text in both locales plus `width`/`height` as
+    integers 1..20000. Banners keep their focal point and do not gain required dimensions.
+  - Both new rules live in `assertLookProducts(tx, config)`, called **inside** the write transaction and, on create, **before** the photo
+    is attached - so a refused save leaves the upload unattached and releases nothing. Duplicates are reported first (they are a client
+    mistake), then the published check, each with the offending ids in `details.productIds`.
+  - `withLookProducts()` enriches **admin responses only** (list, create, update). `GET /cms/home` keeps its own published-only
+    resolution, so the public payload is byte-identical to before. A deleted product becomes `product: null`, which is the editor's cue
+    to offer a replacement; a DRAFT one keeps its row with `status: 'DRAFT'` so the admin sees *why* the dot vanished from the website.
+  - `auditLook` writes one line per look save or delete (`actorId`, `targetId`, `points`, `productIds`, `at`, `requestId`) and stays
+    silent for every other section type. No photo key and no copy in the line.
+  - **The seed already stored the photo's size**, so no demo data changed; only the seed *test* had to carry `width`/`height` into the
+    request shape it validates. `hotspot()` spacing in the look test moved to 10% steps so seven distinct points still fit under 100.
 

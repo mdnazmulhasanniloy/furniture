@@ -91,10 +91,24 @@ const testimonial = z
   .object({ name: z.string().trim().min(1).max(80), quote: localizedRequired(500) })
   .strict();
 
-/** SHOP_THE_LOOK (ADM-15): the photo needs localized alt text (UI-02); 1 to 4 hotspots, x and y in percent. */
+/**
+ * SHOP_THE_LOOK (ADM-15, T-110): the photo needs localized alt text (UI-02) **and its own pixel size** - the
+ * storefront renders the look uncropped at that ratio, so a hotspot percentage means the same point of the
+ * photo at every breakpoint. 1 to 6 hotspots, x and y in percent of the photo.
+ */
+const pixels = z.number().int().min(1).max(20000);
+const lookImage = z
+  .object({
+    key: z.string().min(1).max(300),
+    alt: localizedRequired(200),
+    width: pixels,
+    height: pixels,
+  })
+  .strict();
+
 const look = z
   .object({
-    image: bannerImage,
+    image: lookImage,
     hotspots: z
       .array(
         z
@@ -106,7 +120,7 @@ const look = z
           .strict(),
       )
       .min(1)
-      .max(4),
+      .max(6),
   })
   .strict();
 

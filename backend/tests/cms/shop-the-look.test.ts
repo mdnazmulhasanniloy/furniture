@@ -22,6 +22,7 @@ import { hashPassword } from '../../src/lib/password.js';
 import { prisma } from '../../src/lib/prisma.js';
 import { revalidateTags } from '../../src/lib/revalidate.js';
 import { signAccessToken } from '../../src/lib/tokens.js';
+import * as service from '../../src/modules/cms/sections.service.js';
 import { callsOf, resetS3, s3State } from '../helpers/s3Mock.js';
 
 const app = createApp();
@@ -53,7 +54,16 @@ async function presignedKey(): Promise<string> {
   return key;
 }
 
-const hotspot = (i: number, x = 20 + i * 20, y = 50) => ({ x, y, productId: productIds[i]! });
+const hotspot = (i: number, x = 10 + i * 10, y = 50) => ({ x, y, productId: productIds[i]! });
+
+/** The photo's own pixel size is required from T-110 on, so every fixture carries it. */
+const img = (key: string, extra: Record<string, unknown> = {}) => ({
+  key,
+  alt,
+  width: 1600,
+  height: 1200,
+  ...extra,
+});
 
 async function lookBody(overrides: Record<string, unknown> = {}) {
   return {
@@ -61,7 +71,7 @@ async function lookBody(overrides: Record<string, unknown> = {}) {
     title: { en: 'Shop the look', ar: 'تسوّق هذا التنسيق' },
     config: {
       look: {
-        image: { key: await presignedKey(), alt },
+        image: img(await presignedKey()),
         hotspots: [hotspot(0), hotspot(1), hotspot(2)],
       },
     },
@@ -119,7 +129,8 @@ beforeEach(async () => {
     })
   ).id;
   productIds.length = 0;
-  for (let i = 0; i < 4; i++) productIds.push((await mkProduct(i)).id);
+  // Seven, so the 6-point boundary can be tested with distinct products (T-110).
+  for (let i = 0; i < 7; i++) productIds.push((await mkProduct(i)).id);
 });
 
 afterAll(async () => {
@@ -170,13 +181,12 @@ describe('ADM-15 · shop the look: admin API', () => {
     expect(wrongType.status).toBe(422);
   });
 
-  it('ADM-15 · 1 to 4 hotspots, x and y within 0 to 100, valid product ids, localized alt text', async () => {
+  it('ADM-15 · 1 to 6 hotspots, x and y within 0 to 100, valid product ids, localized alt text', async () => {
     const base = await lookBody();
     const bad = async (look: Record<string, unknown>) =>
       (await sections('post').send({ ...base, config: { look: { ...base.config.look, ...look } } }))
         .status;
     expect(await bad({ hotspots: [] })).toBe(422);
-    expect(await bad({ hotspots: [0, 1, 2, 3, 4].map((i) => hotspot(i % 4)) })).toBe(422);
     expect(await bad({ hotspots: [{ x: -1, y: 10, productId: productIds[0] }] })).toBe(422);
     expect(await bad({ hotspots: [{ x: 10, y: 101, productId: productIds[0] }] })).toBe(422);
     expect(await bad({ hotspots: [{ x: 10, y: 10, productId: 'nope' }] })).toBe(422);
@@ -184,9 +194,230 @@ describe('ADM-15 · shop the look: admin API', () => {
       422,
     );
     expect(
-      await bad({ image: { key: base.config.look.image.key, alt: { en: 'only english' } } }),
+      await bad({ image: img(base.config.look.image.key, { alt: { en: 'only english' } }) }),
     ).toBe(422);
     expect(await bad({ hotspots: [hotspot(0)] })).toBe(201);
+  });
+
+  it('T-110 · up to six points are allowed, a seventh is refused', async () => {
+    const base = await lookBody();
+    const withPoints = async (n: number) =>
+      (
+        await sections('post').send({
+          ...base,
+          config: {
+            look: {
+              ...base.config.look,
+              image: img(await presignedKey()),
+              hotspots: Array.from({ length: n }, (_, i) => hotspot(i)),
+            },
+          },
+        })
+      ).status;
+    expect(await withPoints(6)).toBe(201);
+    expect(await withPoints(7)).toBe(422);
+    expect(await prisma.homeSection.count()).toBe(1);
+  });
+
+  it('T-110 · the photo carries its own pixel size: required, bounded, and returned on the asset', async () => {
+    const base = await lookBody();
+    const withImage = async (image: Record<string, unknown>) =>
+      sections('post').send({ ...base, config: { look: { ...base.config.look, image } } });
+    const key = base.config.look.image.key;
+    expect((await withImage({ key, alt })).status).toBe(422); // no width/height at all
+    expect((await withImage(img(key, { height: undefined }))).status).toBe(422);
+    expect((await withImage(img(key, { width: 0 }))).status).toBe(422);
+    expect((await withImage(img(key, { width: 20001 }))).status).toBe(422);
+    expect((await withImage(img(key, { width: 1600.5 }))).status).toBe(422);
+
+    const ok = await withImage(img(key, { width: 2400, height: 1600 }));
+    expect(ok.status).toBe(201);
+    expect(ok.body.config.look.image).toMatchObject({ width: 2400, height: 1600 });
+    // The stored asset keeps them, so the storefront can render the photo uncropped.
+    const stored = (await prisma.homeSection.findFirstOrThrow()).config as {
+      look: { image: { width: number; height: number } };
+    };
+    expect(stored.look.image).toMatchObject({ width: 2400, height: 1600 });
+  });
+
+  it('T-110 · the same product twice in one look is refused; in another look it is fine', async () => {
+    const base = await lookBody();
+    const dup = await sections('post').send({
+      ...base,
+      config: {
+        look: { ...base.config.look, hotspots: [hotspot(0), hotspot(1), hotspot(0, 80)] },
+      },
+    });
+    expect(dup.status).toBe(422);
+    expect(dup.body.code).toBe('DUPLICATE_PRODUCT');
+    expect(dup.body.details.productIds).toEqual([productIds[0]]);
+    expect(await prisma.homeSection.count()).toBe(0);
+
+    // Two different looks may both point at that product.
+    const first = await sections('post').send({
+      ...(await lookBody()),
+      config: { look: { image: img(await presignedKey()), hotspots: [hotspot(0)] } },
+    });
+    const second = await sections('post').send({
+      ...(await lookBody()),
+      config: { look: { image: img(await presignedKey()), hotspots: [hotspot(0)] } },
+    });
+    expect([first.status, second.status]).toEqual([201, 201]);
+  });
+
+  it('T-110 · a product that is not published at save time is refused, on create and on update', async () => {
+    await prisma.product.update({ where: { id: productIds[1]! }, data: { status: 'DRAFT' } });
+    const base = await lookBody();
+    const res = await sections('post').send(base);
+    expect(res.status).toBe(422);
+    expect(res.body.code).toBe('PRODUCT_NOT_PUBLISHED');
+    expect(res.body.details.productIds).toEqual([productIds[1]]);
+    expect(await prisma.homeSection.count()).toBe(0);
+    // The photo of a refused save is never attached.
+    expect(
+      (await prisma.upload.findUniqueOrThrow({ where: { key: base.config.look.image.key } }))
+        .attachedAt,
+    ).toBeNull();
+
+    // A deleted product is refused the same way.
+    await prisma.product.delete({ where: { id: productIds[2]! } });
+    const gone = await sections('post').send({
+      ...(await lookBody()),
+      config: { look: { image: img(await presignedKey()), hotspots: [hotspot(2)] } },
+    });
+    expect(gone.status).toBe(422);
+    expect(gone.body.code).toBe('PRODUCT_NOT_PUBLISHED');
+
+    // On update: a point added for a product unpublished a moment ago is refused and nothing changes.
+    const created = await sections('post').send({
+      ...(await lookBody()),
+      config: { look: { image: img(await presignedKey()), hotspots: [hotspot(0)] } },
+    });
+    expect(created.status).toBe(201);
+    const patched = await sections('patch', `/${created.body.id}`).send({
+      expectedUpdatedAt: created.body.updatedAt,
+      config: {
+        look: {
+          image: img(created.body.config.look.image.key),
+          hotspots: [hotspot(0), hotspot(1)],
+        },
+      },
+    });
+    expect(patched.status).toBe(422);
+    expect(patched.body.code).toBe('PRODUCT_NOT_PUBLISHED');
+    const row = await prisma.homeSection.findUniqueOrThrow({ where: { id: created.body.id } });
+    expect((row.config as { look: { hotspots: unknown[] } }).look.hotspots).toHaveLength(1);
+    expect(s3State.deleted).toEqual([]);
+  });
+
+  it('T-110 · the admin response carries each point’s current product, and flags one that fell out', async () => {
+    const created = await sections('post').send(await lookBody());
+    expect(created.status).toBe(201);
+    const onCreate = created.body.config.look.hotspots;
+    expect(onCreate.map((h: { product: { id: string } }) => h.product.id)).toEqual([
+      productIds[0],
+      productIds[1],
+      productIds[2],
+    ]);
+    expect(onCreate[0].product).toMatchObject({
+      id: productIds[0],
+      slug: 'look-chair-0',
+      price: 10_000,
+      status: 'PUBLISHED',
+      title: { en: 'Chair 0', ar: 'كرسي 0' },
+    });
+    expect(onCreate[0].product.image).toBeDefined(); // null when the product has no photo
+    expect(onCreate[0].product.passwordHash).toBeUndefined();
+
+    // The list says so too, and a product that is unpublished or deleted later is visible as such.
+    await prisma.product.update({ where: { id: productIds[1]! }, data: { status: 'DRAFT' } });
+    await prisma.product.delete({ where: { id: productIds[2]! } });
+    const list = await sections('get');
+    const spots = list.body[0].config.look.hotspots;
+    expect(spots).toHaveLength(3); // the admin still sees every point they placed
+    expect(spots[1].product.status).toBe('DRAFT');
+    expect(spots[2].product).toBeNull(); // deleted: the editor offers to replace it
+  });
+
+  it('T-110 · a client-sent product on a hotspot is rejected, the server is the only source', async () => {
+    const base = await lookBody();
+    const res = await sections('post').send({
+      ...base,
+      config: {
+        look: {
+          ...base.config.look,
+          hotspots: [{ ...hotspot(0), product: { id: productIds[0], price: 1 } }],
+        },
+      },
+    });
+    expect(res.status).toBe(422);
+  });
+
+  it('T-110 · saving and deleting a look each log one audit line: who, which section, how many points', async () => {
+    const info = vi.fn();
+    const log = { info, error: vi.fn() } as unknown as Parameters<typeof service.create>[1]['log'];
+    const ctx = { log, requestId: 'req-look', uploadedById: 'actor-1' };
+    const body = await lookBody();
+    const created = await service.create(
+      { ...body, config: body.config } as unknown as Parameters<typeof service.create>[0],
+      ctx,
+    );
+    const { release } = await service.remove(created.id, ctx);
+    await release();
+
+    expect(info).toHaveBeenCalledTimes(2);
+    const calls = info.mock.calls as [Record<string, unknown>, string][];
+    expect(calls.map(([o]) => o.event)).toEqual(['section.look.save', 'section.look.delete']);
+    for (const [obj, msg] of calls) {
+      expect(obj).toMatchObject({
+        actorId: 'actor-1',
+        targetId: created.id,
+        points: 3,
+        requestId: 'req-look',
+      });
+      expect(obj.productIds).toEqual([productIds[0], productIds[1], productIds[2]]);
+      expect(typeof obj.at).toBe('string');
+      expect(msg).toBe(obj.event);
+      // The line is about the change, not its content: no photo key, no copy.
+      expect(JSON.stringify([obj, msg])).not.toContain(body.config.look.image.key);
+    }
+  });
+
+  it('T-110 · a section that is not a look writes no look audit line', async () => {
+    const info = vi.fn();
+    const log = { info, error: vi.fn() } as unknown as Parameters<typeof service.create>[1]['log'];
+    const ctx = { log, requestId: 'req-plain', uploadedById: 'actor-1' };
+    const plain = await service.create(
+      { type: 'NEW_ARRIVALS', title: { en: 'New', ar: 'جديد' } } as unknown as Parameters<
+        typeof service.create
+      >[0],
+      ctx,
+    );
+    const { release } = await service.remove(plain.id, ctx);
+    await release();
+    expect(info).not.toHaveBeenCalled();
+  });
+
+  it('T-110 · admin only on every write: 401 without a token, 403 for a customer', async () => {
+    const created = await sections('post').send(await lookBody());
+    const id = created.body.id as string;
+    const patch = { expectedUpdatedAt: created.body.updatedAt, isVisible: false };
+    const paths: ['patch' | 'delete' | 'put', string, object | undefined][] = [
+      ['patch', `/${id}`, patch],
+      ['delete', `/${id}`, undefined],
+      ['put', '/reorder', { ids: [id] }],
+    ];
+    for (const [method, path, body] of paths) {
+      const url = `/api/v1/admin/home-sections${path}`;
+      const anon = await request(app)[method](url).send(body);
+      expect([method, anon.status]).toEqual([method, 401]);
+      const agent = request(app);
+      const cust = await agent[method](url)
+        .set('Authorization', `Bearer ${customerToken}`)
+        .send(body);
+      expect([method, cust.status]).toEqual([method, 403]);
+    }
+    expect(await prisma.homeSection.count()).toBe(1); // nothing of the above went through
   });
 
   it('ADM-15 · admin only: 401 without a token, 403 for a customer', async () => {
@@ -205,7 +436,7 @@ describe('ADM-15 · shop the look: admin API', () => {
     const newKey = await presignedKey();
     const patched = await sections('patch', `/${created.body.id}`).send({
       expectedUpdatedAt: created.body.updatedAt,
-      config: { look: { image: { key: newKey, alt }, hotspots: [hotspot(0)] } },
+      config: { look: { image: img(newKey), hotspots: [hotspot(0)] } },
     });
     expect(patched.status).toBe(200);
     expect(patched.body.config.look.image.key).toBe(newKey);
@@ -226,7 +457,7 @@ describe('ADM-15 · shop the look: admin API', () => {
     const headBefore = callsOf('HeadObjectCommand').length;
     const patched = await sections('patch', `/${created.body.id}`).send({
       expectedUpdatedAt: created.body.updatedAt,
-      config: { look: { image: { key, alt }, hotspots: [hotspot(1), hotspot(2)] } },
+      config: { look: { image: img(key), hotspots: [hotspot(1), hotspot(2)] } },
     });
     expect(patched.status).toBe(200);
     expect(patched.body.config.look.hotspots).toHaveLength(2);
@@ -247,7 +478,7 @@ describe('ADM-15 · shop the look: admin API', () => {
     const created = await sections('post').send(await lookBody());
     const res = await sections('patch', `/${created.body.id}`).send({
       expectedUpdatedAt: '2020-01-01T00:00:00.000Z',
-      config: { look: { image: { key: await presignedKey(), alt }, hotspots: [hotspot(0)] } },
+      config: { look: { image: img(await presignedKey()), hotspots: [hotspot(0)] } },
     });
     expect(res.status).toBe(409);
     expect(s3State.deleted).toEqual([]);
@@ -275,9 +506,9 @@ describe('ADM-15 · shop the look: public GET /cms/home', () => {
       productIds[2],
     ]);
     expect(look.hotspots.map((h) => [h.x, h.y])).toEqual([
+      [10, 50],
       [20, 50],
-      [40, 50],
-      [60, 50],
+      [30, 50],
     ]);
     expect(look.hotspots[0]!.product.title.en).toBe('Chair 0');
     expect(look.image.url).toMatch(/^https?:\/\//);

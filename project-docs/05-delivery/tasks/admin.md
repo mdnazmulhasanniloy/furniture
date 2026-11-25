@@ -152,7 +152,9 @@ Backend, for completeness (same commands): `npm audit --omit=dev` is **4 high**,
 1. **Backend T-110** (spec first; see `tasks/backend.md`): 1 to **6** points; the look image accepts and requires `width`/`height`;
    duplicates refused; every product checked PUBLISHED at save time (422 `PRODUCT_NOT_PUBLISHED`, `details.productIds`); the admin
    response resolves each point's product (slim: id, title, slug, price, status, first image) so the admin needs no N+1 calls; audit
-   lines `section.look.save` and `section.look.delete`; authz tests (anonymous 401, customer 403).
+   lines `section.look.save` and `section.look.delete`; authz tests (anonymous 401, customer 403). **Done 2026-11-25.**
+   Correction to this plan: `SECTION_TYPES` does **not** change here. The generic sections form cannot build a `config.look`, so letting
+   it create a SHOP_THE_LOOK row would only produce an invalid draft; "New look" belongs to the editor (step 3) and is added there.
 2. **Looks list** at `/sections/looks`, reached from a button on `/sections`: thumbnail, title, point count, visible toggle, order (drag
    handle and move buttons, reusing the sections-page interactions), edit, delete behind the confirm dialog. Order note:
    `PUT /admin/home-sections/reorder` takes **every** section id, so moving a look swaps it with the neighbouring look inside the full

@@ -1,4 +1,6 @@
 import { Prisma, type HomeSection } from '@prisma/client';
+import { getEnv } from '../../config/env.js';
+import { createLogger, type Logger } from '../../lib/logger.js';
 import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
 import { buildImageAsset, syncImages, type R2Context } from '../../lib/r2.js';
@@ -46,12 +48,150 @@ const lookKey = (config: unknown): string | null => {
  */
 function storedConfig(config: CreateSectionBody['config']): CreateSectionBody['config'] {
   if (!config?.look) return config;
-  const { key, alt } = config.look.image;
+  const { key, alt, width, height } = config.look.image;
   return {
     ...config,
-    look: { ...config.look, image: buildImageAsset(key, { alt }) },
+    look: { ...config.look, image: buildImageAsset(key, { alt, width, height }) },
   } as CreateSectionBody['config'];
 }
+
+/**
+ * T-110, checked inside the write transaction so nothing can slip in between the check and the write:
+ * a product may be used once per look, and every product must exist and be PUBLISHED when the look is saved.
+ * A product unpublished *later* is not an error - `GET /cms/home` drops that hotspot and the admin response
+ * flags it - but an admin must never be able to publish a look that is already broken.
+ */
+async function assertLookProducts(
+  tx: Prisma.TransactionClient,
+  config: CreateSectionBody['config'],
+): Promise<void> {
+  const spots = config?.look?.hotspots ?? [];
+  if (spots.length === 0) return;
+  const ids = spots.map((h) => h.productId);
+  const unique = [...new Set(ids)];
+  if (unique.length !== ids.length) {
+    const repeated = unique.filter((id) => ids.filter((x) => x === id).length > 1);
+    throw new AppError(422, 'DUPLICATE_PRODUCT', 'A product can be used once per look', {
+      productIds: repeated,
+    });
+  }
+  const rows = await tx.product.findMany({
+    where: { id: { in: unique }, status: 'PUBLISHED' },
+    select: { id: true },
+  });
+  const published = new Set(rows.map((p) => p.id));
+  const missing = unique.filter((id) => !published.has(id));
+  if (missing.length > 0) {
+    throw new AppError(422, 'PRODUCT_NOT_PUBLISHED', 'Every hotspot needs a published product', {
+      productIds: missing,
+    });
+  }
+}
+
+/**
+ * One audit line per look write (T-110), in the shape T-104 established: who, which section, how many points
+ * and which products - no photo key, no copy, nothing personal.
+ */
+let auditFallback: Logger | undefined;
+function auditLook(
+  ctx: SaveContext,
+  action: 'section.look.save' | 'section.look.delete',
+  sectionId: string,
+  config: unknown,
+): void {
+  const spots = hotspotsOf(config);
+  if (spots.length === 0 && action === 'section.look.save') return;
+  const log: Pick<Logger, 'info'> = (ctx.log as Partial<Logger> | undefined)?.info
+    ? (ctx.log as Logger)
+    : (auditFallback ??= createLogger(getEnv()));
+  log.info(
+    {
+      event: action,
+      actorId: ctx.uploadedById,
+      targetId: sectionId,
+      points: spots.length,
+      productIds: spots.map((h) => h.productId).filter((id) => typeof id === 'string'),
+      at: new Date().toISOString(),
+      requestId: ctx.requestId,
+    },
+    action,
+  );
+}
+
+/** The slim product an admin hotspot carries (spec `LookHotspotProduct`); never stored. */
+type HotspotProduct = {
+  id: string;
+  title: Prisma.JsonValue;
+  slug: string;
+  price: number;
+  status: string;
+  image: Prisma.JsonValue;
+};
+
+const hotspotsOf = (config: unknown): Prisma.JsonObject[] => {
+  const spots = (config as { look?: { hotspots?: unknown } } | null)?.look?.hotspots;
+  // A malformed stored config must never throw here (the admin list has to stay readable).
+  return Array.isArray(spots)
+    ? (spots.filter((h) => typeof h === 'object' && h !== null) as Prisma.JsonObject[])
+    : [];
+};
+
+/**
+ * Admin responses only (T-110): each hotspot gets the product as it is **now**, so the looks list and the
+ * editor can show it and warn about one that is no longer published without a request per hotspot. A deleted
+ * product becomes `null`, which is what tells the editor to offer a replacement. `GET /cms/home` does not use
+ * this: it resolves its own published-only products.
+ */
+export async function withLookProducts(list: SectionResponse[]): Promise<SectionResponse[]> {
+  const ids = [
+    ...new Set(
+      list.flatMap((s) =>
+        hotspotsOf(s.config)
+          .map((h) => h.productId)
+          .filter((id): id is string => typeof id === 'string'),
+      ),
+    ),
+  ];
+  if (ids.length === 0) return list;
+  const rows = await prisma.product.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, title: true, slug: true, price: true, status: true, images: true },
+  });
+  const byId = new Map<string, HotspotProduct>(
+    rows.map((p) => [
+      p.id,
+      {
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        price: p.price,
+        status: p.status,
+        image: Array.isArray(p.images) ? (p.images[0] ?? null) : null,
+      },
+    ]),
+  );
+  return list.map((s) => {
+    const spots = hotspotsOf(s.config);
+    if (spots.length === 0) return s;
+    const config = s.config as { look: { hotspots: unknown[] } };
+    return {
+      ...s,
+      config: {
+        ...config,
+        look: {
+          ...config.look,
+          hotspots: spots.map((h) => ({
+            ...h,
+            product: typeof h.productId === 'string' ? (byId.get(h.productId) ?? null) : null,
+          })),
+        },
+      },
+    };
+  });
+}
+
+const withProducts = async (section: SectionResponse): Promise<SectionResponse> =>
+  (await withLookProducts([section]))[0]!;
 
 /** config.look belongs to SHOP_THE_LOOK and to nothing else (ADM-15). */
 function assertTypeMatchesConfig(type: string, config: unknown): void {
@@ -66,7 +206,7 @@ export async function list(): Promise<SectionResponse[]> {
   const rows = await prisma.homeSection.findMany({
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
   });
-  return rows.map(toSection);
+  return withLookProducts(rows.map(toSection));
 }
 
 export async function create(body: CreateSectionBody, ctx: SaveContext): Promise<SectionResponse> {
@@ -74,6 +214,7 @@ export async function create(body: CreateSectionBody, ctx: SaveContext): Promise
   const config = storedConfig(body.config);
   const key = lookKey(config);
   const row = await prisma.$transaction(async (tx) => {
+    await assertLookProducts(tx, config); // before the photo is attached, so a refused save attaches nothing
     if (key) await syncImages(tx, [], [key], 'admin', ctx); // the photo is an R2 upload attached to the section
     return tx.homeSection.create({
       data: {
@@ -86,7 +227,8 @@ export async function create(body: CreateSectionBody, ctx: SaveContext): Promise
       },
     });
   });
-  return toSection(row);
+  auditLook(ctx, 'section.look.save', row.id, row.config);
+  return withProducts(toSection(row));
 }
 
 export async function update(
@@ -109,6 +251,7 @@ export async function update(
           ? storedConfig(body.config)
           : (current.config as CreateSectionBody['config']);
       assertTypeMatchesConfig(finalType, finalConfig);
+      if ('config' in body) await assertLookProducts(tx, finalConfig);
       const data: Prisma.HomeSectionUncheckedUpdateInput = {};
       if (body.type !== undefined) data.type = body.type;
       if (body.title !== undefined) data.title = body.title;
@@ -136,7 +279,8 @@ export async function update(
       }
       return tx.homeSection.findUniqueOrThrow({ where: { id } });
     });
-    return { section: toSection(row), release };
+    auditLook(ctx, 'section.look.save', row.id, row.config);
+    return { section: await withProducts(toSection(row)), release };
   } catch (err) {
     if (isWriteConflict(err)) {
       const current = await prisma.homeSection.findUnique({ where: { id } });
@@ -157,6 +301,7 @@ export async function remove(
     await tx.homeSection.delete({ where: { id } });
     const key = lookKey(current.config);
     const sync = await syncImages(tx, key ? [key] : [], [], 'admin', ctx);
+    if (key) auditLook(ctx, 'section.look.delete', id, current.config); // only a look is audited
     return { release: sync.release }; // the photo's R2 object is released after the commit
   });
 }

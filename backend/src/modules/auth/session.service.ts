@@ -18,13 +18,8 @@ import {
   UNREVOKED,
 } from '../../lib/tokens.js';
 import { authenticateBearer } from '../../middleware/auth.js';
-import { sendOtpEmail } from './auth.service.js';
-import {
-  assertCanIssue,
-  createOtp,
-  findPendingByPassword,
-  type PendingRegistration,
-} from './otp.service.js';
+import { issueAndSendOtp } from './auth.service.js';
+import { assertCanIssue, findPendingByPassword, type PendingRegistration } from './otp.service.js';
 
 interface Ctx {
   userAgent?: string;
@@ -106,21 +101,19 @@ export async function login(email: string, password: string, ctx: Ctx) {
   if (!user.isVerified) {
     try {
       await assertCanIssue(email, 'VERIFY_EMAIL');
-      const code = await createOtp({
+      await issueAndSendOtp({
         email,
         purpose: 'VERIFY_EMAIL',
-        pendingRegistration: pending,
-      });
-      await sendOtpEmail({
-        email,
         template: 'otp-verify',
-        code,
         firstName: pending!.firstName,
         locale: ctx.locale ?? pending!.preferredLocale,
+        pendingRegistration: pending,
       });
     } catch (err) {
-      // Cooldown / hourly cap: do not send, and do not turn the response into a password oracle.
-      if (!(err instanceof AppError && err.status === 429)) throw err;
+      // Cooldown / hourly cap (429), or a mail that could not be sent at all (503, owner 2026-11-24):
+      // no code goes out, and the answer stays the same so it cannot become a password oracle.
+      const expected = err instanceof AppError && (err.status === 429 || err.status === 503);
+      if (!expected) throw err;
     }
     throw new AppError(403, 'EMAIL_NOT_VERIFIED', 'Email not verified; a new code was sent');
   }

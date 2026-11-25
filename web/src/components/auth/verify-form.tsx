@@ -49,8 +49,9 @@ export function VerifyForm() {
     setNotice(null);
     try {
       await verifyOtp(pending.email, code);
+      const to = pending.next ?? "/"; // sanitised when the register form stored it (QA B2)
       clearPending();
-      router.replace("/");
+      router.replace(to);
     } catch (err) {
       if (err instanceof ApiError && err.code === "OTP_EXPIRED") {
         await recoverExpired(pending);

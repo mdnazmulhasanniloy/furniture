@@ -55,7 +55,7 @@ const chair: HomeProduct = { ...sofa, id: ID2, slug: "chair", title: { en: "Chai
 
 const vat0 = { vatRate: 0, vatAmount: 0, applyToDelivery: true, pricesIncludeVat: true };
 const cartOf = (over: Partial<ServerCart> = {}): ServerCart => ({
-  items: [{ product: sofa, qty: 2, lineTotal: 259900, issue: null }],
+  items: [{ productId: ID1, product: sofa, qty: 2, lineTotal: 259900, issue: null }],
   subtotal: 259900, deliveryFee: 0, vat: vat0, total: 259900, ...over,
 });
 
@@ -220,8 +220,8 @@ for (const locale of ["en", "ar"] as const) {
       useCartStore.setState({
         cart: cartOf({
           items: [
-            { product: sofa, qty: 1, lineTotal: 129950, issue: "PRICE_CHANGED", details: { oldPrice: 100000, newPrice: 129950 } },
-            { product: chair, qty: 0, lineTotal: 0, issue: "OUT_OF_STOCK" },
+            { productId: ID1, product: sofa, qty: 1, lineTotal: 129950, issue: "PRICE_CHANGED", details: { oldPrice: 100000, newPrice: 129950 } },
+            { productId: ID2, product: chair, qty: 0, lineTotal: 0, issue: "OUT_OF_STOCK" },
           ],
         }),
       });

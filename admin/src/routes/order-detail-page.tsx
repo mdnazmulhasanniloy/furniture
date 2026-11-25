@@ -154,6 +154,19 @@ export function OrderDetailPage() {
       </p>
     );
   }
+  // QA B5: an id that does not exist is not a failure to retry - say so and offer the way back.
+  if (q.error instanceof ApiError && q.error.code === "NOT_FOUND") {
+    return (
+      <div className="space-y-2" data-testid="order-not-found">
+        <p role="alert" className="text-destructive">
+          {t("orders.notFound")}
+        </p>
+        <Link to="/orders" className="text-sm text-primary hover:underline">
+          {t("orders.back")}
+        </Link>
+      </div>
+    );
+  }
   if (q.isError || !order) {
     return (
       <div className="flex items-center gap-3" data-testid="order-error">

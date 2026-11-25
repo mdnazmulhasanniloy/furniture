@@ -3,6 +3,7 @@ import { getEnv } from '../../config/env.js';
 import { mailer } from '../../emails/mailer.js';
 import { socketEmitter } from '../../lib/emitter.js';
 import { AppError } from '../../lib/errors.js';
+import { createLogger } from '../../lib/logger.js';
 import { assertStrongPassword, dummyVerify, hashPassword } from '../../lib/password.js';
 import { prisma } from '../../lib/prisma.js';
 import { limitKey, resetKeyInTx } from '../../lib/rateLimit.js';
@@ -11,6 +12,7 @@ import {
   assertCanIssue,
   createDecoyOtp,
   createOtp,
+  discardOtp,
   findPendingByPassword,
   matchOtp,
   matchVerifyOtp,
@@ -18,6 +20,9 @@ import {
   type PendingRegistration,
 } from './otp.service.js';
 import type { RegisterBody } from './schema.js';
+
+let logger: ReturnType<typeof createLogger> | undefined;
+const log = () => (logger ??= createLogger(getEnv()));
 
 export function toPublicUser(u: User) {
   const baseUrl = (getEnv().R2_PUBLIC_BASE_URL ?? '').replace(/\/+$/, '');
@@ -54,6 +59,39 @@ export async function sendOtpEmail(args: {
 }
 
 /**
+ * Issues an OTP and mails it as one step (owner 2026-11-24, QA A1).
+ *
+ * A send that fails used to leave the caller with a 500 while the OTP row had already started the 60 s
+ * cooldown, so the retry was answered 429. Now the row of the code nobody received is deleted again and
+ * the caller gets 503 `EMAIL_SEND_FAILED`: nothing is spent and the next attempt may follow immediately.
+ * Nothing else is rolled back - an unverified user row is a valid pending registration the retry reuses.
+ *
+ * The code never reaches a log line; the transport error goes through the redacting logger (NFR-04), so
+ * no credential can appear either. A 503 instead of a 500 adds no account oracle to the anti-enumeration
+ * flows: both statuses are reached only where a mail was actually attempted.
+ */
+export async function issueAndSendOtp(args: {
+  email: string;
+  purpose: 'VERIFY_EMAIL' | 'RESET_PASSWORD';
+  template: 'otp-verify' | 'otp-reset';
+  firstName: string;
+  locale: Locale | undefined;
+  pendingRegistration?: PendingRegistration;
+}): Promise<void> {
+  const { email, purpose, template } = args;
+  const code = await createOtp({ email, purpose, pendingRegistration: args.pendingRegistration });
+  try {
+    await sendOtpEmail({ email, template, code, firstName: args.firstName, locale: args.locale });
+  } catch (err) {
+    log().error({ err, template }, 'otp email could not be sent');
+    await discardOtp(email, purpose, code).catch((cleanupErr: unknown) => {
+      log().error({ err: cleanupErr }, 'otp cleanup after a failed send failed');
+    });
+    throw new AppError(503, 'EMAIL_SEND_FAILED', 'Could not send the email; please try again');
+  }
+}
+
+/**
  * AUTH-01. An existing unverified account is never modified: the submitted data travels on the new
  * OTP row and is applied only when that OTP is verified (no pre-account takeover).
  */
@@ -85,13 +123,13 @@ export async function register(
     }
   }
 
-  const code = await createOtp({ email, purpose: 'VERIFY_EMAIL', pendingRegistration: pending });
-  await sendOtpEmail({
+  await issueAndSendOtp({
     email,
+    purpose: 'VERIFY_EMAIL',
     template: 'otp-verify',
-    code,
     firstName: body.firstName,
     locale: headerLocale ?? body.preferredLocale,
+    pendingRegistration: pending,
   });
 }
 
@@ -151,22 +189,21 @@ export async function resendOtp(
       await createDecoyOtp(email, purpose);
       return;
     }
-    const code = await createOtp({ email, purpose, pendingRegistration: pending });
-    await sendOtpEmail({
+    await issueAndSendOtp({
       email,
+      purpose,
       template: 'otp-verify',
-      code,
       firstName: pending.firstName,
       locale: headerLocale ?? pending.preferredLocale,
+      pendingRegistration: pending,
     });
     return;
   }
 
-  const code = await createOtp({ email, purpose });
-  await sendOtpEmail({
+  await issueAndSendOtp({
     email,
+    purpose,
     template: 'otp-reset',
-    code,
     firstName: user.firstName,
     locale: headerLocale ?? user.preferredLocale,
   });

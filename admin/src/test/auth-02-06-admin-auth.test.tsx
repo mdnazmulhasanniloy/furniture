@@ -298,7 +298,10 @@ describe.each([
     await useLocale(locale);
   });
 
+  // The accept-invite page is loaded on demand since QA C4, so wait for its first field.
+  const ready = () => screen.findByLabelText(msgs.auth.code);
   const fill = async (code: string, password: string) => {
+    await ready();
     await act(async () => {
       fireEvent.change(screen.getByLabelText(msgs.auth.code), { target: { value: code } });
       fireEvent.change(screen.getByLabelText(msgs.auth.newPassword), { target: { value: password } });
@@ -311,7 +314,7 @@ describe.each([
   it("AUTH-02 · email is prefilled from ?email=, the code is never in the URL, 200 stores the session", async () => {
     stubApi((c) => (c.path === "/auth/accept-invite" ? json({ accessToken: "at-i", user: adminUser }) : undefined));
     mount("/accept-invite?email=new%40furnixa.test");
-    expect((screen.getByLabelText(msgs.auth.email) as HTMLInputElement).value).toBe("new@furnixa.test");
+    expect(((await screen.findByLabelText(msgs.auth.email)) as HTMLInputElement).value).toBe("new@furnixa.test");
     await fill("123456", "Passw0rdOK!");
     expect(await screen.findByTestId("sidebar")).toBeTruthy();
     const call = calls.find((c) => c.path === "/auth/accept-invite")!;

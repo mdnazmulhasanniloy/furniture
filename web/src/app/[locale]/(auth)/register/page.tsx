@@ -15,8 +15,16 @@ import { setRequestLocale } from "next-intl/server";
 
 import { RegisterForm } from "@/components/auth/register-form";
 
-export default async function Page({ params }: Readonly<{ params: Promise<{ locale: string }> }>) {
+export default async function Page({
+  params,
+  searchParams,
+}: Readonly<{
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ next?: string }>;
+}>) {
   const { locale } = await params;
+  const { next } = await searchParams;
   setRequestLocale(locale);
-  return <RegisterForm />;
+  // `next` is sanitised in the form (same-origin paths only, QA B2).
+  return <RegisterForm next={next} />;
 }

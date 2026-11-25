@@ -13,7 +13,7 @@ import {
   UserCog,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import { BellActions, NotificationToaster, NotificationsSync } from "@/components/notifications/live";
@@ -52,10 +52,14 @@ function readCollapsed(): boolean {
  * role on every /admin/* call (403 for CUSTOMER); this never replaces that.
  */
 export function RequireAdmin() {
-  const { status, user } = useAuth();
+  const { status, user, restoring } = useAuth();
   const { t } = useTranslation();
   const location = useLocation();
-  if (status === "unknown") {
+  // QA C1: wait while auth is being resolved. "unknown" covers the first load; `restoring` covers a
+  // restore that is still running although an earlier attempt already left the status "anonymous" -
+  // redirecting on that flashed the sign-in form before the page appeared. A session that is already
+  // known keeps its page: re-checking it (back/forward restore, A5) must not flicker to the loader.
+  if (status === "unknown" || (restoring && status !== "authenticated")) {
     return (
       <PublicFrame>
         <p role="status" className="text-center text-muted-foreground">
@@ -156,7 +160,17 @@ export function Shell() {
         )}
       >
         <div className="flex h-14 items-center justify-between gap-2 border-b border-border px-3">
-          {!collapsed && <span className="font-display text-lg font-semibold">{t("app.title")}</span>}
+          {/* QA C3: one line. The Arabic name is long enough to wrap in the 240px sidebar at text-lg,
+              so it sits at text-base, may not wrap, and keeps the full name as a tooltip. */}
+          {!collapsed && (
+            <span
+              data-testid="sidebar-title"
+              title={t("app.title")}
+              className="min-w-0 truncate whitespace-nowrap font-display text-base font-semibold"
+            >
+              {t("app.title")}
+            </span>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -205,7 +219,11 @@ export function Shell() {
           </div>
         </header>
         <main className="p-4">
-          <Outlet />
+          {/* QA C4: the pages are loaded on demand. The boundary sits here, inside the shell, so the
+              sidebar and the top bar stay put while a page's chunk arrives. */}
+          <Suspense fallback={null}>
+            <Outlet />
+          </Suspense>
         </main>
         <NotificationToaster />
       </div>

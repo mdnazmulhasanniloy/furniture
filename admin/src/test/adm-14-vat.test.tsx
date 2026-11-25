@@ -227,6 +227,41 @@ describe.each([
     expect(puts().length).toBe(0);
   });
 
+  /**
+   * Owner 2026-11-24 (QA batch A review): in Saudi Arabia only a VAT-registered seller may charge VAT.
+   * The tab refuses a rate above 0 without a registration number before anything is sent, and the API
+   * guard (422 VAT_NUMBER_REQUIRED) is shown localized if it ever answers first.
+   */
+  it("ADM-14 · a rate above 0 needs a registration number; rate 0 does not", async () => {
+    await openVat();
+    fill(v.rate, "15");
+    fireEvent.click(screen.getByTestId("settings-save"));
+    expect(await screen.findByText(v.numberRequired)).toBeTruthy();
+    expect(puts().length).toBe(0); // nothing is sent
+
+    fill(v.number, "300000000000003");
+    fireEvent.click(screen.getByTestId("settings-save"));
+    await waitFor(() => expect(puts().length).toBe(1));
+    expect(puts()[0].body.vat).toMatchObject({ vatRate: 15, registrationNumber: "300000000000003" });
+
+    // Back to no VAT: the number may be cleared again.
+    fill(v.rate, "0");
+    fill(v.number, "");
+    fireEvent.click(screen.getByTestId("settings-save"));
+    await waitFor(() => expect(puts().length).toBe(2));
+    expect(puts()[1].body.vat).toMatchObject({ vatRate: 0, registrationNumber: null });
+  });
+
+  it("ADM-14 · the API's VAT_NUMBER_REQUIRED is shown localized, never the API text", async () => {
+    await openVat();
+    fill(v.rate, "15");
+    fill(v.number, "300000000000003");
+    failNext = { status: 422, code: "VAT_NUMBER_REQUIRED" };
+    fireEvent.click(screen.getByTestId("settings-save"));
+    expect((await screen.findByTestId("settings-form-error")).textContent).toBe(msgs.errors.VAT_NUMBER_REQUIRED);
+    expect(document.body.textContent).not.toContain("Raw English API text");
+  });
+
   it("ADM-14 · an error on the VAT tab opens that tab from another tab", async () => {
     await openVat();
     fill(v.rate, "99");
@@ -252,6 +287,7 @@ describe.each([
   it("ADM-14 · saving VAT keeps General, Delivery, SEO, the contact details and socials untouched and sends no currency", async () => {
     await openVat();
     fill(v.rate, "7.5");
+    fill(v.number, "300000000000003"); // a rate above 0 needs one (owner 2026-11-24)
     fireEvent.click(screen.getByTestId("settings-save"));
     await waitFor(() => expect(puts().length).toBe(1));
     const b = puts()[0].body;
@@ -274,6 +310,7 @@ describe.each([
   it("ADM-14 · STALE_UPDATE is localised, keeps the edits and never shows the API text", async () => {
     await openVat();
     fill(v.rate, "12");
+    fill(v.number, "300000000000003"); // a rate above 0 needs one (owner 2026-11-24)
     failNext = { status: 409, code: "STALE_UPDATE" };
     fireEvent.click(screen.getByTestId("settings-save"));
     expect((await screen.findByTestId("settings-stale")).textContent).toContain(m.form.stale);
@@ -284,6 +321,7 @@ describe.each([
   it("ADM-14 · a VALIDATION_ERROR from the API is shown localised", async () => {
     await openVat();
     fill(v.rate, "12");
+    fill(v.number, "300000000000003"); // a rate above 0 needs one (owner 2026-11-24)
     failNext = { status: 422, code: "VALIDATION_ERROR" };
     fireEvent.click(screen.getByTestId("settings-save"));
     expect(await screen.findByTestId("settings-form-error")).toBeTruthy();

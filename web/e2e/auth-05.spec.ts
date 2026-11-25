@@ -1,11 +1,22 @@
 import { expect, test } from "@playwright/test";
 
 for (const locale of ["en", "ar"] as const) {
+  // QA B2 (owner 2026-11-24): the page start goes straight to /auth/refresh - the CSRF token is only
+  // fetched when the API asks for one, so a guest no longer calls /auth/csrf at all.
   test(`AUTH-05: ${locale} page start tries the refresh cookie via same-origin /api/v1 with Accept-Language`, async ({
     page,
   }) => {
     const seen: { url: string; lang: string | undefined }[] = [];
+    let csrfCalls = 0;
     await page.route("**/api/v1/auth/csrf", async (route) => {
+      csrfCalls += 1;
+      await route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ code: "UNAUTHORIZED", message: "no session" }),
+      });
+    });
+    await page.route("**/api/v1/auth/refresh", async (route) => {
       seen.push({ url: route.request().url(), lang: route.request().headers()["accept-language"] });
       await route.fulfill({
         status: 401,
@@ -17,6 +28,7 @@ for (const locale of ["en", "ar"] as const) {
     await expect.poll(() => seen.length).toBeGreaterThan(0);
     expect(new URL(seen[0].url).origin).toBe(new URL(page.url()).origin);
     expect(seen[0].lang).toBe(locale);
+    expect(csrfCalls).toBe(0);
     await expect(page.locator("html")).toHaveAttribute("lang", locale);
   });
 }

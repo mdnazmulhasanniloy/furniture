@@ -70,7 +70,13 @@ const putBody = (expectedUpdatedAt: string | Date, overrides: Record<string, unk
   contactPhone: '0500000000',
   deliveryFee: 1500,
   freeDeliveryThreshold: null,
-  vat: { vatRate: 15, applyToDelivery: true, pricesIncludeVat: true, registrationNumber: null },
+  // Owner 2026-11-24: a rate above 0 needs a registration number, so the default body carries one.
+  vat: {
+    vatRate: 15,
+    applyToDelivery: true,
+    pricesIncludeVat: true,
+    registrationNumber: '310000000000003',
+  },
   deliveryCities: cities,
   defaultLocale: 'ar',
   ...overrides,
@@ -208,6 +214,55 @@ describe('ADM-09 · site settings', () => {
     );
     expect(ok.status).toBe(200);
     expect(ok.body.vat.registrationNumber).toBe('310000000000003');
+  });
+
+  /**
+   * Owner 2026-11-24 (QA batch A review): in Saudi Arabia only a VAT-registered seller may charge VAT,
+   * so settings refuse a rate above 0 without a registration number. Checked before anything is
+   * written. Existing order snapshots are never touched - an invoice still shows the VAT line of an
+   * order that charged VAT.
+   */
+  it('ADM-09 · a VAT rate above 0 without a registration number -> 422 VAT_NUMBER_REQUIRED, nothing saved', async () => {
+    const seeded = await seedSettings();
+    const cases = [
+      { vatRate: 15, applyToDelivery: true, pricesIncludeVat: true, registrationNumber: null },
+      { vatRate: 15, applyToDelivery: true, pricesIncludeVat: true }, // absent
+      { vatRate: 0.01, applyToDelivery: true, pricesIncludeVat: true, registrationNumber: null },
+    ];
+    for (const vat of cases) {
+      const res = await put().send(putBody(seeded.updatedAt, { vat }));
+      expect(res.status, JSON.stringify(vat)).toBe(422);
+      expect(res.body.code, JSON.stringify(vat)).toBe('VAT_NUMBER_REQUIRED');
+      expect(res.body.requestId).toEqual(expect.any(String));
+      const row = await prisma.siteSetting.findUniqueOrThrow({ where: { key: 'default' } });
+      expect(row.vat.vatRate, 'nothing was saved').toBe(0);
+      expect(row.updatedAt.getTime()).toBe(seeded.updatedAt.getTime());
+    }
+    // Rate 0 needs no number, and a rate with one saves.
+    const zero = await put().send(
+      putBody(seeded.updatedAt, {
+        vat: {
+          vatRate: 0,
+          applyToDelivery: true,
+          pricesIncludeVat: true,
+          registrationNumber: null,
+        },
+      }),
+    );
+    expect(zero.status).toBe(200);
+    expect(zero.body.vat).toMatchObject({ vatRate: 0, registrationNumber: null });
+    const charged = await put().send(
+      putBody(zero.body.updatedAt, {
+        vat: {
+          vatRate: 15,
+          applyToDelivery: true,
+          pricesIncludeVat: true,
+          registrationNumber: '310000000000003',
+        },
+      }),
+    );
+    expect(charged.status).toBe(200);
+    expect(charged.body.vat).toMatchObject({ vatRate: 15, registrationNumber: '310000000000003' });
   });
 
   it('ADM-09 · contact email and phone are optional: absent or empty clears them, VAT and delivery still save (owner 2026-11-24, B-033)', async () => {

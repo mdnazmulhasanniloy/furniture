@@ -19,7 +19,8 @@ import { PublicFrame } from "./public-frame";
 // api-spec accept-invite: 6-digit code, and the one password policy (src/lib/password-policy.ts, owner
 // 2026-11-24), the same file the API enforces. The live checklist under the field shows which rule is unmet.
 const schema = z.object({
-  email: z.string().trim().email("invalidEmail"),
+  // QA C2: "required" before the shape check (an empty string fails `.email()` too).
+  email: z.string().trim().min(1, "required").email("invalidEmail"),
   code: z.string().regex(/^[0-9]{6}$/, "invalidCode"),
   password: z.string().max(128, "passwordWeak").refine(isStrongPassword, "passwordWeak"),
 });

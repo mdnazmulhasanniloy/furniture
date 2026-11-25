@@ -23,6 +23,8 @@ const isWriteConflict = (err: unknown): boolean =>
 type Issue = 'UNAVAILABLE' | 'OUT_OF_STOCK' | 'QTY_REDUCED' | 'PRICE_CHANGED' | null;
 
 export interface CartItemResponse {
+  /** The stored line's product id, also when the product is gone (B-035): the client removes by it. */
+  productId: string;
   product: ProductResponse | null;
   /** Effective quantity: stored qty capped at live stock; 0 for OUT_OF_STOCK/UNAVAILABLE. */
   qty: number;
@@ -117,11 +119,19 @@ export async function consumeCartLines(
 
 // ---------------------------------------------------------------- CART-01 writes
 
-/** PUT /cart/items: qty 0 removes; above live stock -> 409 OUT_OF_STOCK; refreshes priceSeen. */
+/**
+ * PUT /cart/items: qty 0 removes; above live stock -> 409 OUT_OF_STOCK; refreshes priceSeen.
+ *
+ * A remove (`qty: 0`) always succeeds, even when the product was deleted or unpublished (owner
+ * 2026-11-24, QA B1): that is the only way to clear an UNAVAILABLE line, and refusing it with 404 left
+ * the line stuck in the cart. Removing a product that is not in the cart changes nothing and is still a
+ * 200 (idempotent). Adding or changing a quantity still needs a live PUBLISHED product.
+ */
 export async function setItem(userId: string, body: PutItemBody): Promise<CartResponse> {
+  const removing = body.qty === 0;
   const product = await prisma.product.findUnique({ where: { id: body.productId } });
-  if (!product || product.status !== 'PUBLISHED') throw productNotFound();
-  if (body.qty > product.stock) {
+  if (!removing && (!product || product.status !== 'PUBLISHED')) throw productNotFound();
+  if (product && body.qty > product.stock) {
     throw new AppError(409, 'OUT_OF_STOCK', 'Requested quantity exceeds the available stock', {
       productId: product.id,
       stock: product.stock,
@@ -129,11 +139,11 @@ export async function setItem(userId: string, body: PutItemBody): Promise<CartRe
   }
   await writeCart(userId, (items) => {
     const rest = items.filter((i) => i.productId !== body.productId);
-    if (body.qty === 0) return rest;
+    if (removing) return rest;
     if (rest.length >= MAX_CART_LINES && rest.length === items.length) {
       throw new AppError(409, 'CART_LIMIT_REACHED', `A cart holds at most ${MAX_CART_LINES} items`);
     }
-    const line = { productId: product.id, qty: body.qty, priceSeen: product.price };
+    const line = { productId: product!.id, qty: body.qty, priceSeen: product!.price };
     return items.some((i) => i.productId === body.productId)
       ? items.map((i) => (i.productId === body.productId ? line : i))
       : [...items, line];
@@ -250,16 +260,31 @@ export async function getCart(userId: string, query: GetCartQuery): Promise<Cart
   const lines = items.map((line): CartItemResponse => {
     const product = products.get(line.productId);
     if (!product || product.status !== 'PUBLISHED') {
-      return { product: null, qty: 0, lineTotal: 0, issue: 'UNAVAILABLE', details: null };
+      return {
+        productId: line.productId,
+        product: null,
+        qty: 0,
+        lineTotal: 0,
+        issue: 'UNAVAILABLE',
+        details: null,
+      };
     }
     const shaped = toProduct(product);
     if (product.stock === 0) {
-      return { product: shaped, qty: 0, lineTotal: 0, issue: 'OUT_OF_STOCK', details: null };
+      return {
+        productId: line.productId,
+        product: shaped,
+        qty: 0,
+        lineTotal: 0,
+        issue: 'OUT_OF_STOCK',
+        details: null,
+      };
     }
     const qty = Math.min(line.qty, product.stock);
     const issue: Issue =
       qty < line.qty ? 'QTY_REDUCED' : product.price !== line.priceSeen ? 'PRICE_CHANGED' : null;
     return {
+      productId: line.productId,
       product: shaped,
       qty,
       lineTotal: 0, // filled from computePricing below

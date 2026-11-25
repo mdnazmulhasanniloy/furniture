@@ -55,7 +55,10 @@ function stubApi() {
           failNext = null;
           return json({ code: f.code, message: "Raw English API text" }, f.status);
         }
-        if (method === "GET") return json(list);
+        // Like the API: sortOrder asc, then slug (backend categories service), which is what put a
+        // child above its parent before B6.
+        if (method === "GET")
+          return json([...list].sort((a, b) => a.sortOrder - b.sortOrder || a.slug.localeCompare(b.slug)));
         if (method === "POST") return json({ id: "c9", ...body, image: null, productCount: 0 }, 201);
         if (method === "PATCH") return json({ ...list[0], ...body });
         if (method === "DELETE") return new Response(null, { status: 204 });
@@ -110,6 +113,21 @@ describe.each([
     expect(rows[1].textContent).toContain(n(base()[0])); // parent column
     expect(within(rows[1]).getByRole("switch").getAttribute("aria-checked")).toBe("false");
     expect(screen.getByRole("heading", { level: 1, name: msgs.categories.title })).toBeTruthy();
+  });
+
+  /**
+   * QA 2026-11-24 (B6). The API returns categories by sortOrder, so a child with a lower sortOrder
+   * than its parent (the seeded "Corner sofas" is 0 under "Sofas" at 1) was listed above it. The list
+   * is a tree now: each parent, then its own children.
+   */
+  it("ADM-03 · a child is listed under its parent, not by its own sort order (B6)", async () => {
+    mount();
+    const rows = await screen.findAllByTestId("category-row");
+    const slugs = rows.map((r) => r.querySelectorAll("td")[1]?.textContent?.trim());
+    expect(slugs).toEqual(["sofas", "corner-sofas", "lamps"]);
+    // and the child keeps its indent
+    expect(rows[1].querySelector("td span")?.className).toContain("ps-4");
+    expect(rows[0].querySelector("td span")?.className).not.toContain("ps-4");
   });
 
   it("ADM-03 · create needs both English and Arabic names and sends the documented body", async () => {

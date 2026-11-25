@@ -21,6 +21,7 @@ const BASE = '/api/v1/cart';
 
 type CartBody = {
   items: {
+    productId: string;
     product: { id: string; price: number } | null;
     qty: number;
     lineTotal: number;
@@ -368,12 +369,53 @@ describe('CART-01 · issues (read-only GET)', () => {
     await prisma.product.update({ where: { id: p.id }, data: { status: 'ARCHIVED' } });
     const cart = await get();
     expect(cart.items[0]).toMatchObject({
+      productId: p.id, // B-035: every line carries it, so the client can remove this one
       product: null,
       qty: 0,
       lineTotal: 0,
       issue: 'UNAVAILABLE',
     });
     expect(cart.subtotal).toBe(0);
+  });
+
+  /**
+   * QA 2026-11-24 (B1) and B-035. An UNAVAILABLE line could not be removed: the response carried no
+   * productId, and PUT /cart/items answered 404 for a product that no longer exists even when the
+   * quantity was 0. Removing is now always allowed, and every line names its product.
+   */
+  it('CART-01 · every line carries productId, also when the product is gone (B-035)', async () => {
+    const live = await mkProduct();
+    const gone = await mkProduct();
+    await put(live.id, 1).expect(200);
+    await put(gone.id, 1).expect(200);
+    await prisma.product.delete({ where: { id: gone.id } });
+    const cart = await get();
+    expect(cart.items.map((i) => i.productId).sort()).toEqual([live.id, gone.id].sort());
+  });
+
+  it('CART-01 · qty 0 removes a line whose product was deleted or unpublished (B1)', async () => {
+    const deleted = await mkProduct();
+    const archived = await mkProduct();
+    const live = await mkProduct();
+    await put(deleted.id, 1).expect(200);
+    await put(archived.id, 2).expect(200);
+    await put(live.id, 1).expect(200);
+    await prisma.product.delete({ where: { id: deleted.id } });
+    await prisma.product.update({ where: { id: archived.id }, data: { status: 'ARCHIVED' } });
+
+    const afterDeleted = await put(deleted.id, 0).expect(200);
+    expect((afterDeleted.body as CartBody).items.map((i) => i.productId)).toEqual([
+      archived.id,
+      live.id,
+    ]);
+    const afterArchived = await put(archived.id, 0).expect(200);
+    expect((afterArchived.body as CartBody).items.map((i) => i.productId)).toEqual([live.id]);
+    expect(afterArchived.body.subtotal).toBe(10_000); // only the live line, at the default price
+    // Removing something that is not in the cart is a no-op, not a 404 (idempotent remove).
+    await put(deleted.id, 0).expect(200);
+    // Adding a gone product is still refused.
+    await put(deleted.id, 1).expect(404);
+    await put(archived.id, 1).expect(404);
   });
 
   it('CART-01 · a price change is flagged PRICE_CHANGED and the next PUT refreshes priceSeen', async () => {

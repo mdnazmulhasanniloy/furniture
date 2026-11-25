@@ -9,6 +9,9 @@
     "noEmit": true,
     "skipLibCheck": true,
     "isolatedModules": true,
+    // qrcode-generator ships CommonJS types (`export =`) next to an ESM build whose default export the
+    // bundler uses; this makes the default import type-check without changing any emit.
+    "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

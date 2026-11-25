@@ -58,6 +58,10 @@ paths:
         data (password hash, names, locale) is stored on the new OTP row and applied only when *that* OTP is verified
         (prevents pre-account takeover). Subject to the 60 s cooldown and the 5-per-hour OTP cap (429 `RATE_LIMITED`),
         and to a per-IP cap of 20 register requests per hour (T-019, NFR-01; all requests count).
+
+        A mail that cannot be sent is **503 `EMAIL_SEND_FAILED`**, never a 500 (owner 2026-11-24): the pending
+        registration is kept, the row of the code nobody received is removed again, so neither the 60 s cooldown nor
+        the hourly cap is spent on it, and the next attempt may be made immediately.
       requestBody:
         required: true
         content:
@@ -77,6 +81,7 @@ paths:
         '409': { $ref: '#/components/responses/Error', description: "`EMAIL_IN_USE` - the email belongs to a verified account" }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` - cooldown, hourly OTP cap, or the per-IP cap (20/hour)" }
+        '503': { $ref: '#/components/responses/Error', description: "`EMAIL_SEND_FAILED` - the code could not be mailed; the pending registration is kept, no cooldown is spent, retry immediately" }
   /auth/verify-otp:
     post:
       tags: [Auth]
@@ -124,6 +129,10 @@ paths:
         exactly as for an unknown email; the cooldown and hourly cap behave the same either way. A caller who does not
         know the password of a pending registration can therefore never obtain a code bound to it.
         **RESET_PASSWORD** stays `{email, purpose}`; `password` is ignored. `password` missing for VERIFY_EMAIL -> 422.
+
+        A mail that cannot be sent is **503 `EMAIL_SEND_FAILED`** (owner 2026-11-24): the row of the code nobody
+        received is removed again, so that attempt spends neither the cooldown nor the hourly cap. A decoy row (unknown
+        email, wrong password, purpose that does not apply) sends no mail and still answers 200.
       requestBody:
         required: true
         content:
@@ -139,6 +148,7 @@ paths:
         '200': { $ref: '#/components/responses/Message' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (OTP cooldown, hourly cap, or the per-IP cap)" }
+        '503': { $ref: '#/components/responses/Error', description: "`EMAIL_SEND_FAILED` - the code could not be mailed; no cooldown is spent, retry immediately" }
   /auth/login:
     post:
       tags: [Auth]
@@ -147,7 +157,7 @@ paths:
         Email + password login (AUTH-02). Order: per-IP limit -> email lockout check -> password check -> status checks.
         While an email is locked (LOGIN_MAX_FAILURES failures within LOGIN_LOCKOUT_SECONDS) every attempt gets 429 `ACCOUNT_LOCKED` WITHOUT checking the password, for known and unknown emails alike (no password oracle); `Retry-After` is set.
         An unknown email and a wrong password both give the identical 401 `INVALID_CREDENTIALS`. `EMAIL_NOT_VERIFIED` and `ACCOUNT_BLOCKED` are returned only after the password verified.
-        For an unverified account the password is matched against its pending registrations (same rule as resend-otp), the new OTP is bound to the matching one and sent, and the response is 403 `EMAIL_NOT_VERIFIED` (if the OTP cooldown or cap blocks the mail it is not sent, the response is the same).
+        For an unverified account the password is matched against its pending registrations (same rule as resend-otp), the new OTP is bound to the matching one and sent, and the response is 403 `EMAIL_NOT_VERIFIED` (if the OTP cooldown or cap blocks the mail, or the mail cannot be sent at all, it is not sent and the response is the same; owner 2026-11-24).
         The per-IP limit (10 failed attempts / 15 min) does not count successful logins. The oldest session is revoked when MAX_ACTIVE_SESSIONS would be exceeded.
       requestBody:
         required: true
@@ -215,6 +225,8 @@ paths:
         known and unknown emails (and for blocked or unverified accounts, which get no mail); the 60 s cooldown and
         the 5-per-hour cap apply per email, also for unknown emails, so a 429 does not reveal whether an account exists.
         A per-IP cap of 20 requests per hour (T-019, NFR-01; all requests count) stops mass mail across many emails.
+        A mail that cannot be sent is **503 `EMAIL_SEND_FAILED`** (owner 2026-11-24); the row of the undelivered code
+        is removed again, so that attempt spends neither the cooldown nor the hourly cap.
       requestBody:
         required: true
         content:
@@ -228,6 +240,7 @@ paths:
         '200': { $ref: '#/components/responses/Message' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/RateLimited', description: "`RATE_LIMITED` (OTP cooldown, hourly cap, or the per-IP cap)" }
+        '503': { $ref: '#/components/responses/Error', description: "`EMAIL_SEND_FAILED` - the code could not be mailed; no cooldown is spent, retry immediately" }
   /auth/reset-password:
     post:
       tags: [Auth]
@@ -633,8 +646,12 @@ paths:
       description: |
         Upserts one line and refreshes its `priceSeen` to the live price. `qty` above live stock -> 409
         `OUT_OF_STOCK` with `details: {productId, stock}`, nothing written. Unknown or non-PUBLISHED
-        product -> 404. Adding a 51st distinct line -> 409 `CART_LIMIT_REACHED`. Concurrent writes that
-        keep conflicting after 3 attempts -> 409 `CART_CONFLICT` (client retries).
+        product -> 404 **when adding or changing a quantity**. Adding a 51st distinct line -> 409
+        `CART_LIMIT_REACHED`. Concurrent writes that keep conflicting after 3 attempts -> 409
+        `CART_CONFLICT` (client retries).
+        **`qty: 0` always removes** (owner 2026-11-24, QA B1): it succeeds even when the product was
+        deleted or unpublished, which is the only way to clear an UNAVAILABLE line, and removing a
+        product that is not in the cart is an idempotent 200 that changes nothing.
       requestBody:
         required: true
         content:
@@ -652,7 +669,7 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/Cart' } } }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error', description: Not a customer }
-        '404': { $ref: '#/components/responses/Error', description: Product unknown or not PUBLISHED }
+        '404': { $ref: '#/components/responses/Error', description: Product unknown or not PUBLISHED, for `qty` above 0 only (a `qty: 0` remove always succeeds) }
         '409': { $ref: '#/components/responses/Error', description: "`OUT_OF_STOCK` (details: {productId, stock}), `CART_LIMIT_REACHED` (max 50 distinct lines) or `CART_CONFLICT` (concurrent writes, retry)" }
   /cart/merge:
     post:
@@ -1607,6 +1624,10 @@ paths:
         instead); a missing code (removal or code change) -> 409 `CITY_CODE_IMMUTABLE` with the offending
         codes in `details.missingCodes`, nothing written. At least one submitted city must be active -> 422
         otherwise. Max 100 cities.
+        VAT (owner 2026-11-24): only a VAT-registered seller may charge VAT, so `vat.vatRate` above 0 requires
+        `vat.registrationNumber` -> 422 `VAT_NUMBER_REQUIRED` otherwise, checked before anything is written.
+        A rate of 0 needs no number. Order snapshots already stored are never changed, so an invoice still
+        shows the VAT line of an order that charged VAT.
       requestBody:
         required: true
         content: { application/json: { schema: { $ref: '#/components/schemas/SiteSettingInput' } } }
@@ -1618,7 +1639,7 @@ paths:
           description: "`STALE_UPDATE` (current settings in `details.current`), or `CITY_CODE_IMMUTABLE` — an existing city code was removed (deactivate it instead) or changed; the missing codes are in `details.missingCodes` (T-022)"
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
         '422':
-          description: VALIDATION_ERROR — no active delivery city or more than 100 cities (T-022), duplicate city code, missing ar/en city name, negative fee (base or per-city override), VAT rate outside 0–50% or more than 2 decimals, or invalid VAT registration number
+          description: "`VALIDATION_ERROR` — no active delivery city or more than 100 cities (T-022), duplicate city code, missing ar/en city name, negative fee (base or per-city override), VAT rate outside 0–50% or more than 2 decimals, or invalid VAT registration number; or `VAT_NUMBER_REQUIRED` — `vat.vatRate` is above 0 and `vat.registrationNumber` is not set (owner 2026-11-24), nothing written"
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /admin/admins:
     get:
@@ -1799,7 +1820,7 @@ components:
         vatRate: { type: number, minimum: 0, maximum: 50, multipleOf: 0.01, default: 0, description: 'VAT percentage, e.g. 15 = 15%. 0 (default) means no VAT line anywhere.' }
         applyToDelivery: { type: boolean, default: true, description: 'Apply VAT to the delivery fee; only effective when vatRate > 0' }
         pricesIncludeVat: { type: boolean, default: true }
-        registrationNumber: { type: [string, 'null'], pattern: '^3[0-9]{13}3$', description: 15-digit VAT registration number, printed on invoices }
+        registrationNumber: { type: [string, 'null'], pattern: '^3[0-9]{13}3$', description: "15-digit VAT registration number, printed on invoices. Required whenever `vatRate` is above 0 (owner 2026-11-24): PUT /admin/settings answers 422 `VAT_NUMBER_REQUIRED` without it. It also decides the printed document: with a number the invoice is a simplified tax invoice with the ZATCA Phase 1 QR, without one a plain invoice (ADM-04, A6)." }
     OrderVat:
       type: object
       description: Immutable snapshot taken at order placement (ADR-009)
@@ -1821,7 +1842,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, WISHLIST_LIMIT_REACHED, WISHLIST_CONFLICT, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, ALREADY_VERIFIED, CUSTOMER_HAS_OPEN_ORDERS, FORBIDDEN_TARGET, CUSTOMER_DELETED, CONFIRM_EMAIL_MISMATCH] }
+        code: { type: string, examples: [VALIDATION_ERROR, BAD_REQUEST, PAYLOAD_TOO_LARGE, INTERNAL_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, OUT_OF_STOCK, RATE_LIMITED, OTP_INVALID, OTP_EXPIRED, EMAIL_IN_USE, EMAIL_NOT_VERIFIED, ACCOUNT_BLOCKED, ACCOUNT_LOCKED, INVALID_CREDENTIALS, REFRESH_RACE, CSRF_INVALID, UPLOAD_NOT_ALLOWED, INVALID_TRANSITION, OUT_OF_DELIVERY_AREA, ADDRESS_LIMIT_REACHED, SLUG_TAKEN, CATEGORY_HAS_PRODUCTS, CATEGORY_HAS_CHILDREN, STALE_UPDATE, CITY_CODE_IMMUTABLE, CART_CONFLICT, CART_LIMIT_REACHED, CART_EMPTY, WISHLIST_LIMIT_REACHED, WISHLIST_CONFLICT, PRICE_CHANGED, TOO_MANY_PENDING_ORDERS, IDEMPOTENCY_MISMATCH, SELF_BLOCK, LAST_ADMIN, VAT_NUMBER_REQUIRED, EMAIL_SEND_FAILED, ALREADY_VERIFIED, CUSTOMER_HAS_OPEN_ORDERS, FORBIDDEN_TARGET, CUSTOMER_DELETED, CONFIRM_EMAIL_MISMATCH] }
         message: { type: string, description: "English only, for logs and developers. Clients must not display it; they localise by `code` (en/ar message catalogues, generic fallback)." }
         details: {}
         requestId: { type: string }
@@ -2151,7 +2172,13 @@ components:
           type: array
           items:
             type: object
+            required: [productId, qty, lineTotal, issue]
             properties:
+              productId:
+                $ref: '#/components/schemas/ObjectId'
+                description: >-
+                  The stored line's product id. Present on EVERY line, including UNAVAILABLE ones whose
+                  `product` is null (owner, B-035), so the client can always remove the line.
               product:
                 anyOf: [{ $ref: '#/components/schemas/Product' }, { type: 'null' }]
                 description: Null when the product no longer exists (issue UNAVAILABLE)

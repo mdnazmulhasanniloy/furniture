@@ -7,13 +7,21 @@ import { HomeSections, type ShelfFallback } from "@/components/home/home-section
 import type { Locale } from "@/i18n/routing";
 import { getHome, getProducts, getSettings } from "@/lib/api/public";
 import { sectionHasContent } from "@/lib/home";
+import { pick } from "@/lib/pick";
 import { alternatesFor } from "@/lib/seo";
 
+/**
+ * The home page is the one page whose title is just the store name (QA 2026-11-24 item 10), so it sets
+ * it absolutely - the layout's default is reserved for the 404 (QA B7).
+ */
 export async function generateMetadata({
   params,
 }: Readonly<{ params: Promise<{ locale: string }> }>): Promise<Metadata> {
   const { locale } = await params;
-  return { alternates: alternatesFor(locale, "/") };
+  const settings = await getSettings();
+  const brand = pick(settings?.storeName, locale) || "Furnixa";
+  const title = pick(settings?.seo?.title, locale) || brand;
+  return { title: { absolute: title }, alternates: alternatesFor(locale, "/") };
 }
 
 /** Newest products of a type, for a shelf tab the admin has not configured (ADR-015 Q-1). */

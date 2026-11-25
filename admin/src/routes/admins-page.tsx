@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { errorMessage } from "@/lib/api/messages";
 import { useAdmins, useBlockAdmin, useInviteAdmin, useResendInvite, type AdminUser } from "@/lib/admins";
+import { useAuth } from "@/lib/auth/use-auth";
 import { formatDateTime, toLocale } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,8 @@ import { cn } from "@/lib/utils";
 const schema = z.object({
   firstName: z.string().trim().min(1, "required").max(40, "tooLong"),
   lastName: z.string().trim().min(1, "required").max(40, "tooLong"),
-  email: z.string().trim().email("invalidEmail"),
+  // QA C2: "required" before the shape check, like the two names above.
+  email: z.string().trim().min(1, "required").email("invalidEmail"),
   preferredLocale: z.enum(["ar", "en"]),
 });
 type Values = z.infer<typeof schema>;
@@ -95,9 +97,41 @@ function StatusBadge({ admin }: { admin: AdminUser }) {
   );
 }
 
+/** Block, or the disabled action plus the reason it is not allowed (QA A4). */
+function BlockAction({
+  admin,
+  guard,
+  onBlock,
+}: {
+  admin: AdminUser;
+  guard: "SELF_BLOCK" | "LAST_ADMIN" | null;
+  onBlock: () => void;
+}) {
+  const { t } = useTranslation();
+  if (!guard) {
+    return (
+      <Button variant="destructive" size="sm" data-testid="admin-block" onClick={onBlock}>
+        {t("admins.block")}
+      </Button>
+    );
+  }
+  const whyId = `admin-block-why-${admin.id}`;
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <Button variant="destructive" size="sm" disabled data-testid="admin-block" aria-describedby={whyId}>
+        {t("admins.block")}
+      </Button>
+      <span id={whyId} data-testid="admin-block-why" className="text-xs text-muted-foreground">
+        {t(`errors.${guard}`)}
+      </span>
+    </span>
+  );
+}
+
 export function AdminsPage() {
   const { t, i18n } = useTranslation();
   const locale = toLocale(i18n.language);
+  const { user: me } = useAuth();
   const list = useAdmins();
   const block = useBlockAdmin();
   const resend = useResendInvite();
@@ -108,6 +142,19 @@ export function AdminsPage() {
   const nameOf = (id: string | null | undefined) => {
     const a = id ? items.find((x) => x.id === id) : undefined;
     return a ? `${a.firstName} ${a.lastName}` : "—";
+  };
+
+  /**
+   * QA A4 (2026-11-24): only offer Block where the API allows it. The signed-in admin may never block
+   * themselves and the store must keep one active verified admin, so those rows show the action
+   * disabled with the reason. The API guards (422 SELF_BLOCK / 409 LAST_ADMIN) stay the authority -
+   * a stale list is still answered by the server and the error is shown as before (rule 5).
+   */
+  const active = items.filter((a) => a.isVerified && !a.isBlocked);
+  const blockGuard = (a: AdminUser): "SELF_BLOCK" | "LAST_ADMIN" | null => {
+    if (a.isBlocked) return null; // unblocking is always allowed
+    if (a.id === me?.id) return "SELF_BLOCK";
+    return active.length <= 1 && active[0]?.id === a.id ? "LAST_ADMIN" : null;
   };
 
   const setBlocked = async (a: AdminUser, isBlocked: boolean) => {
@@ -218,9 +265,7 @@ export function AdminsPage() {
                           {t("admins.unblock")}
                         </Button>
                       ) : (
-                        <Button variant="destructive" size="sm" data-testid="admin-block" onClick={() => setConfirm(a)}>
-                          {t("admins.block")}
-                        </Button>
+                        <BlockAction admin={a} guard={blockGuard(a)} onBlock={() => setConfirm(a)} />
                       )}
                     </div>
                   </td>

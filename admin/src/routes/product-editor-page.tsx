@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, type FieldErrors, type FieldPath } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api/errors";
 import { errorMessage } from "@/lib/api/messages";
-import { slugify, useCategories } from "@/lib/categories";
+import { slugify, sortAsTree, useCategories } from "@/lib/categories";
 import { formatPrice, toLocale } from "@/lib/format";
+import { parseSar } from "@/lib/money";
 import {
   MAX_IMAGES,
   productSchema,
@@ -60,6 +61,20 @@ function ProductEditor({ product, onReload }: { product: AdminProduct | null; on
   const dirty = !done && (formState.isDirty || imageSig(images) !== initialSig);
   const guard = useUnsavedGuard(dirty);
 
+  // QA A2 (2026-11-24): the category <select> is registered while /admin/categories is still in flight,
+  // so react-hook-form applies the product's id to a select that has no matching <option> yet and the
+  // element falls back to the placeholder - the category looked unset, and because a select is read back
+  // from the DOM on blur, opening and leaving the field really did clear it ("This field is required" on
+  // save). Re-applying the loaded values once, as soon as the options exist, fixes both; `keepDirtyValues`
+  // keeps anything already typed.
+  const catsReady = cats.data !== undefined;
+  const applied = useRef(false);
+  useEffect(() => {
+    if (!catsReady || applied.current) return;
+    applied.current = true;
+    form.reset(toFormValues(product), { keepDirtyValues: true });
+  }, [catsReady, form, product]);
+
   const type = watch("type");
   const titleEn = watch("titleEn");
   const status = watch("status");
@@ -68,7 +83,11 @@ function ProductEditor({ product, onReload }: { product: AdminProduct | null; on
   useEffect(() => {
     if (!slugTouched) setValue("slug", slugify(titleEn));
   }, [titleEn, slugTouched, setValue]);
-  const preview = (v: string) => (/^\d{1,9}$/.test(v) ? formatPrice(Number(v), locale) : "—");
+  // The typed SAR amount read back as the customer sees it (A3): invalid text has no preview.
+  const preview = (v: string) => {
+    const p = parseSar(v);
+    return p.ok ? formatPrice(p.halalas, locale) : "—";
+  };
   const conditions: Condition[] = type === "NEW" ? ["NEW"] : RESALE_CONDITIONS;
 
   const onValid = async (v: ProductFormValues) => {
@@ -218,7 +237,8 @@ function ProductEditor({ product, onReload }: { product: AdminProduct | null; on
             {sel(
               "categoryId",
               t("products.form.category"),
-              (cats.data ?? []).map((c) => ({ value: c.id, label: `${c.parentId ? "— " : ""}${c.name[locale]}` })),
+              // Each child under its parent (QA B6), indented with an em dash.
+              sortAsTree(cats.data ?? []).map((c) => ({ value: c.id, label: `${c.parentId ? "— " : ""}${c.name[locale]}` })),
             )}
             {sel(
               "type",

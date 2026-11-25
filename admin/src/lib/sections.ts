@@ -6,6 +6,8 @@ import type { LocalizedText } from "@/lib/products";
 // api-spec.yaml /admin/home-sections (ADM-07). PATCH always carries `expectedUpdatedAt` (409 STALE_UPDATE,
 // backend T-011); `PUT /admin/home-sections/reorder` takes exactly the full list of existing ids.
 
+/** Types an admin can create here. SHOP_THE_LOOK is missing on purpose: its photo and hotspots need
+ *  the look editor (admin T-085), so it cannot be configured yet - but it can already exist. */
 export const SECTION_TYPES = [
   "FEATURED_PRODUCTS",
   "NEW_ARRIVALS",
@@ -14,7 +16,15 @@ export const SECTION_TYPES = [
   "PROMO_BANNER",
   "TESTIMONIALS",
 ] as const;
-export type SectionType = (typeof SECTION_TYPES)[number];
+
+/**
+ * Every type the API can return (api-spec `SectionType`), so the list always has a label for what it
+ * shows - a SHOP_THE_LOOK section used to print the raw key (QA B4, 2026-11-24).
+ */
+export const ALL_SECTION_TYPES = [...SECTION_TYPES, "SHOP_THE_LOOK"] as const;
+export type SectionType = (typeof ALL_SECTION_TYPES)[number];
+/** The subset an admin may create. */
+export type CreatableSectionType = (typeof SECTION_TYPES)[number];
 
 export type SectionConfig = {
   productIds?: string[];

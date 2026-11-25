@@ -14,6 +14,7 @@ import {
   useCategories,
   useDeleteCategory,
   useSaveCategory,
+  sortAsTree,
   type AdminCategory,
   type CategoryFormValues,
 } from "@/lib/categories";
@@ -233,7 +234,8 @@ export function CategoriesPage() {
   const [editing, setEditing] = useState<AdminCategory | "new" | null>(null);
   const [deleting, setDeleting] = useState<AdminCategory | null>(null);
   const [rowError, setRowError] = useState<string | null>(null);
-  const all = q.data ?? [];
+  // Parents first, each followed by its children (QA B6), not the API's flat sortOrder order.
+  const all = sortAsTree(q.data ?? []);
   const byId = new Map(all.map((c) => [c.id, c]));
 
   return (

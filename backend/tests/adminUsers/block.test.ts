@@ -233,6 +233,54 @@ describe('PATCH /admin/admins/{id}/block (ADM-11)', () => {
     );
   });
 
+  /**
+   * QA 2026-11-24 (A4). The whole rule in one place: the only admin of the store cannot take their own
+   * access away, by any route. Block is the one admin-state route there is; the customer routes refuse
+   * the caller's own id, and no route can change a role or delete an admin at all.
+   */
+  it('ADM-11 · the only admin cannot block, edit or delete themselves by any route (A4)', async () => {
+    const solo = await mkUser({ role: 'ADMIN' });
+    const token = signAccessToken(solo);
+    expect(
+      await prisma.user.count({ where: { role: 'ADMIN', isVerified: true, isBlocked: false } }),
+    ).toBe(1);
+
+    const blocked = await blockAdminReq(token, solo.id);
+    expect(blocked.status).toBe(422);
+    expect(blocked.body.code).toBe('SELF_BLOCK');
+
+    const edited = await request(app)
+      .patch(`/api/v1/admin/customers/${solo.id}`)
+      .set(auth(token))
+      .send({ expectedUpdatedAt: solo.updatedAt.toISOString(), firstName: 'Renamed' });
+    expect(edited.status).toBe(403);
+    expect(edited.body.code).toBe('FORBIDDEN_TARGET');
+
+    const deleted = await request(app)
+      .delete(`/api/v1/admin/customers/${solo.id}`)
+      .set(auth(token))
+      .send({ confirmEmail: solo.email });
+    expect(deleted.status).toBe(403);
+    expect(deleted.body.code).toBe('FORBIDDEN_TARGET');
+
+    // No route demotes or deletes an admin, so there is nothing else to guard.
+    expect(
+      (await request(app).delete(`/api/v1/admin/admins/${solo.id}`).set(auth(token))).status,
+    ).toBe(404);
+    expect(
+      (
+        await request(app)
+          .patch(`/api/v1/admin/admins/${solo.id}`)
+          .set(auth(token))
+          .send({ role: 'CUSTOMER' })
+      ).status,
+    ).toBe(404);
+
+    const after = await prisma.user.findUniqueOrThrow({ where: { id: solo.id } });
+    expect(after).toMatchObject({ role: 'ADMIN', isBlocked: false, firstName: solo.firstName });
+    expect(after.deletedAt ?? null).toBeNull();
+  });
+
   it('ADM-11 · two concurrent blocks of the two last admins -> exactly one succeeds (serialized guard)', async () => {
     const adminA = await mkUser({ role: 'ADMIN', firstName: 'A' });
     const adminB = await mkUser({ role: 'ADMIN', firstName: 'B' });

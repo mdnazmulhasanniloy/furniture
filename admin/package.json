@@ -19,7 +19,7 @@
     "@fontsource-variable/ibm-plex-sans": "^5.3.0",
     "@fontsource-variable/readex-pro": "^5.3.0",
     "@fontsource/ibm-plex-sans-arabic": "^5.3.0",
-    "@hookform/resolvers": "^4.1.0",
+    "@hookform/resolvers": "^5.9.2",
     "@tanstack/react-query": "^5.66.0",
     "@tanstack/react-table": "^8.21.2",
     "@tiptap/extension-image": "2.27.3",
@@ -32,6 +32,7 @@
     "framer-motion": "^12.4.0",
     "i18next": "^24.2.2",
     "lucide-react": "^0.475.0",
+    "qrcode-generator": "2.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
@@ -41,7 +42,7 @@
     "socket.io-client": "^4.8.1",
     "sonner": "^2.0.0",
     "tailwind-merge": "^3.0.1",
-    "zod": "^3.24.2"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

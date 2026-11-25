@@ -89,6 +89,15 @@ export async function createOtp(args: {
   return code;
 }
 
+/**
+ * Removes the row `createOtp` just wrote for `code` (owner 2026-11-24, QA A1). Used when the mail
+ * could not be sent: a code nobody received must not spend the 60 s cooldown or the hourly cap, and it
+ * must not stay verifiable. Matching on the keyed hash touches that one row only.
+ */
+export async function discardOtp(email: string, purpose: OtpPurpose, code: string): Promise<void> {
+  await prisma.otp.deleteMany({ where: { email, purpose, codeHash: hashOtp(email, code) } });
+}
+
 let dummyHash: Promise<string> | undefined;
 
 /**

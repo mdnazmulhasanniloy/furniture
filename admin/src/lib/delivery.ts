@@ -1,26 +1,8 @@
+import { halalasToSar, parseSar } from "@/lib/money";
 import type { DeliveryCity } from "@/lib/settings";
 
-// ADM-14: "Fees are entered in SAR and stored as halalas; negative values are rejected." The admin types
-// SAR with at most 2 decimals; more decimals are rejected (never rounded), so no money rounding rule is
-// needed. Conversion is string/integer arithmetic only (no floating point).
-export type SarParse = { ok: true; halalas: number } | { ok: false; reason: "negative" | "invalid" };
-
-const SAR_RE = /^(\d{1,10})(?:\.(\d{1,2}))?$/;
-
-export function parseSar(raw: string): SarParse {
-  const v = raw.trim();
-  if (v.startsWith("-")) return { ok: false, reason: "negative" };
-  const m = SAR_RE.exec(v);
-  if (!m) return { ok: false, reason: "invalid" };
-  return { ok: true, halalas: Number(m[1]) * 100 + Number((m[2] ?? "").padEnd(2, "0") || "0") };
-}
-
-/** Halalas to the SAR text shown in an input ("15", "15.5" becomes "15.50"). */
-export function halalasToSar(h: number): string {
-  const whole = Math.floor(h / 100);
-  const rest = h % 100;
-  return rest === 0 ? String(whole) : `${whole}.${String(rest).padStart(2, "0")}`;
-}
+// ADM-14: "Fees are entered in SAR and stored as halalas; negative values are rejected." The SAR rule
+// itself lives in `lib/money.ts` - since 2026-11-24 every admin money input shares it (B-031).
 
 export const MAX_CITIES = 100;
 const CODE_RE = /^[a-z0-9-]+$/;

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
 import { AppToaster } from "@/components/app-toaster";
+import { SessionReset } from "@/components/auth/session-reset";
 import { CartSync } from "@/components/cart/cart-sync";
 import { FavouritesSync } from "@/components/favourites/favourites-sync";
 import { NotificationsSync } from "@/components/notifications/sync";
@@ -21,6 +22,7 @@ export function Providers({ children }: Readonly<{ children: React.ReactNode }>)
     void restoreSession();
   }, []);
   return <QueryClientProvider client={client}>
+      <SessionReset />
       <CartSync />
       <FavouritesSync />
       <NotificationsSync />

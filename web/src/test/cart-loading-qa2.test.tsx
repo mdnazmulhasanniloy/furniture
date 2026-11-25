@@ -93,7 +93,7 @@ for (const locale of ["en", "ar"] as const) {
       act(() =>
         useCartStore.setState({
           cart: {
-            items: [{ product: A, qty: 1, lineTotal: 100000, issue: null }],
+            items: [{ productId: A.id, product: A, qty: 1, lineTotal: 100000, issue: null }],
             subtotal: 100000, deliveryFee: 0, total: 100000,
             vat: { vatRate: 0, vatAmount: 0, applyToDelivery: true, pricesIncludeVat: true },
           },

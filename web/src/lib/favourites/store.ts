@@ -179,8 +179,15 @@ export function resetFavouritesToGuest() {
   });
 }
 
-/** Guest favourites shown on the page: product data loaded by slug (no by-id endpoint). */
+/**
+ * Guest favourites shown on the page: product data loaded by slug (no by-id endpoint).
+ *
+ * QA B1: a product that answers 404 is dropped from the local list as well, so the header badge can
+ * never count a product that no longer exists. Any other failure leaves the entry alone - a transient
+ * error must not throw away what the visitor saved.
+ */
 export async function resolveGuestFavourites(): Promise<HomeProduct[]> {
+  const gone: string[] = [];
   const out = await Promise.all(
     get().guest.map(async (g) => {
       try {
@@ -188,11 +195,14 @@ export async function resolveGuestFavourites(): Promise<HomeProduct[]> {
           `/products/${encodeURIComponent(g.slug)}`,
           { skipAuth: true },
         );
+        if (!data.product) gone.push(g.productId);
         return data.product ?? null;
-      } catch {
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) gone.push(g.productId);
         return null;
       }
     }),
   );
+  if (gone.length > 0) commitGuest(get().guest.filter((g) => !gone.includes(g.productId)));
   return out.filter((p): p is HomeProduct => !!p);
 }

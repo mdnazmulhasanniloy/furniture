@@ -32,6 +32,8 @@ const admin = (o: Partial<AdminUser> = {}): AdminUser => ({
 type Call = { method: string; path: string; body?: Record<string, unknown> };
 let calls: Call[] = [];
 let rows: AdminUser[] = [];
+/** The signed-in admin (A4 needs a case where the viewer is not the row). */
+let me: AdminUser = admin();
 let failNext: { status: number; code: string } | null = null;
 
 function stubApi() {
@@ -43,7 +45,7 @@ function stubApi() {
       const path = url.replace(/^.*\/api\/v1/, "");
       const method = init?.method ?? "GET";
       if (path === "/auth/csrf") return json({ csrfToken: "csrf-1" });
-      if (path === "/auth/refresh") return json({ accessToken: "at-1", user: admin() });
+      if (path === "/auth/refresh") return json({ accessToken: "at-1", user: me });
       if (path.startsWith("/admin/admins")) {
         const body = init?.body ? JSON.parse(String(init.body)) : undefined;
         calls.push({ method, path, body });
@@ -101,6 +103,7 @@ describe.each([
     initI18n(locale as Locale);
     await setLocale(locale as Locale);
     localStorage.removeItem(THEME_KEY);
+    me = admin();
     rows = [
       admin(),
       admin({ id: "u2", firstName: "Omar", lastName: "Pending", email: "omar@furnixa.test", isVerified: false, invitedById: "u1" }),
@@ -128,7 +131,8 @@ describe.each([
     expect(within(dlg).queryByLabelText(/password|كلمة/i)).toBeNull();
     expect((within(dlg).getByLabelText(msgs.admins.form.locale) as HTMLSelectElement).value).toBe("ar");
     fireEvent.click(screen.getByTestId("admin-invite-submit"));
-    expect(await within(dlg).findAllByText(msgs.admins.form.errors.required)).toHaveLength(2);
+    // Three since QA C2: the email says "required" when it is empty, like the two names.
+    expect(await within(dlg).findAllByText(msgs.admins.form.errors.required)).toHaveLength(3);
     expect(writes()).toHaveLength(0);
     fireEvent.change(within(dlg).getByLabelText(msgs.admins.form.firstName), { target: { value: "Nora" } });
     fireEvent.change(within(dlg).getByLabelText(msgs.admins.form.lastName), { target: { value: "New" } });
@@ -204,12 +208,56 @@ describe.each([
   ])("ADM-11 · block error %s is localized by code", async (code, status) => {
     mount();
     const rs = await screen.findAllByTestId("admin-row");
-    fireEvent.click(within(rowOf(rs, "Sara")).getByTestId("admin-block"));
+    // Omar, not the signed-in Sara: her own Block is disabled since A4, and the API can still answer
+    // either code for anyone else (a concurrent block elsewhere).
+    fireEvent.click(within(rowOf(rs, "Omar")).getByTestId("admin-block"));
     failNext = { status, code };
     fireEvent.click(await screen.findByTestId("admin-block-confirm"));
     expect((await screen.findByTestId("admins-notice-error")).textContent).toBe(msgs.errors[code as "SELF_BLOCK" | "LAST_ADMIN"]);
     expect(document.body.textContent).not.toContain("Raw English API text");
     expect(screen.queryByTestId("admin-block-dialog")).toBeNull();
+  });
+
+  /**
+   * QA 2026-11-24 (A4). The page offered Block on every row, the signed-in admin's own included, and
+   * only the API refusal (422 SELF_BLOCK / 409 LAST_ADMIN) stopped it. The action is now disabled with
+   * the reason next to it; the API guards stay the authority (admin CLAUDE.md rule 5).
+   */
+  const blockBtn = (row: HTMLElement) => within(row).getByTestId("admin-block") as HTMLButtonElement;
+
+  it("ADM-11 · the signed-in admin cannot block themselves: disabled with the reason (A4)", async () => {
+    mount();
+    const rs = await screen.findAllByTestId("admin-row");
+    const mine = rowOf(rs, "Sara");
+    expect(blockBtn(mine).disabled).toBe(true);
+    expect(within(mine).getByTestId("admin-block-why").textContent).toBe(msgs.errors.SELF_BLOCK);
+    expect(blockBtn(mine).getAttribute("aria-describedby")).toBe(within(mine).getByTestId("admin-block-why").id);
+    fireEvent.click(blockBtn(mine));
+    expect(screen.queryByTestId("admin-block-dialog")).toBeNull();
+    expect(writes()).toHaveLength(0);
+  });
+
+  it("ADM-11 · another admin's row stays blockable (A4)", async () => {
+    mount();
+    const rs = await screen.findAllByTestId("admin-row");
+    const other = rowOf(rs, "Omar");
+    expect(blockBtn(other).disabled).toBe(false);
+    expect(within(other).queryByTestId("admin-block-why")).toBeNull();
+    fireEvent.click(blockBtn(other));
+    expect(screen.getByTestId("admin-block-dialog")).toBeTruthy();
+  });
+
+  it("ADM-11 · the last active admin cannot be blocked: disabled with the reason (A4)", async () => {
+    me = admin({ id: "u9", firstName: "Nora", lastName: "Owner", email: "nora@furnixa.test" }); // not in the list
+    mount();
+    const rs = await screen.findAllByTestId("admin-row");
+    const last = rowOf(rs, "Sara"); // the only verified, unblocked admin in the list
+    expect(blockBtn(last).disabled).toBe(true);
+    expect(within(last).getByTestId("admin-block-why").textContent).toBe(msgs.errors.LAST_ADMIN);
+    // a pending invite does not count as active, and a blocked admin can always be unblocked
+    expect(blockBtn(rowOf(rs, "Omar")).disabled).toBe(false);
+    expect(within(rowOf(rs, "Lina")).getByTestId("admin-unblock")).toBeTruthy();
+    expect(writes()).toHaveLength(0);
   });
 
   it("ADM-11 · RTL direction and dark mode render the list", async () => {

@@ -17,6 +17,7 @@ import { setTransport } from '../../src/emails/mailer.js';
 import { verifyPassword } from '../../src/lib/password.js';
 import { prisma } from '../../src/lib/prisma.js';
 import { createApp } from '../../src/app.js';
+import { expectNoSecretKeys } from '../helpers/noSecrets.js';
 
 const app = createApp();
 const sendMail = vi.fn().mockResolvedValue({});
@@ -593,5 +594,82 @@ describe('NFR-01 · recipient address injection is rejected before any mail is s
     const res = await resend('victim@example.com,attacker@evil.test');
     expect(res.status).toBe(422);
     expect(sendMail).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * QA 2026-11-24 (A1). Registration created the account and the OTP row and only then sent the mail, so
+ * a transport failure surfaced as 500 INTERNAL_ERROR while the OTP row had already started the 60 s
+ * cooldown: the retry answered 429 and login answered EMAIL_NOT_VERIFIED. A send that fails is now a
+ * 503 EMAIL_SEND_FAILED, the row for the code nobody received is removed, and the next attempt is free.
+ */
+describe('AUTH-01 · a failed OTP send is a 503 and never spends the cooldown (A1)', () => {
+  const failSend = () => sendMail.mockRejectedValueOnce(new Error('535 Authentication failed'));
+  const login = (password = PASSWORD_1) =>
+    request(app).post('/api/v1/auth/login').send({ email: EMAIL, password });
+
+  it('AUTH-01 · register → 503 EMAIL_SEND_FAILED, the pending registration is kept, no OTP row is left', async () => {
+    failSend();
+    const res = await register();
+    expect(res.status).toBe(503);
+    expect(res.body.code).toBe('EMAIL_SEND_FAILED');
+    expect(res.body.requestId).toEqual(expect.any(String));
+    expectNoSecretKeys(res.body);
+    // The account stays a usable pending registration...
+    const user = await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } });
+    expect(user.isVerified).toBe(false);
+    // ...and the undelivered code leaves no row, so neither the cooldown nor the hourly cap is spent.
+    expect(await prisma.otp.count({ where: { email: EMAIL } })).toBe(0);
+  });
+
+  it('AUTH-01 · the immediate retry is 201 (not 429) and its code verifies', async () => {
+    failSend();
+    expect((await register()).status).toBe(503);
+    const retry = await register(); // same second: the failed send started no cooldown
+    expect(retry.status).toBe(201);
+    expect(sendMail).toHaveBeenCalledTimes(2); // one rejected, one delivered
+    const verified = await verify(sentCode());
+    expect(verified.status).toBe(200);
+    expect((await prisma.user.findUniqueOrThrow({ where: { email: EMAIL } })).isVerified).toBe(
+      true,
+    );
+  });
+
+  it('AUTH-01 · the 503 body carries neither the code nor an SMTP credential', async () => {
+    failSend();
+    const res = await register();
+    expect(res.text).not.toMatch(/\b\d{6}\b/);
+    expect(res.text).not.toContain(getEnv().SMTP_PASS ?? 'smtp-pass-not-set');
+  });
+
+  it('AUTH-04 · resend-otp → 503 and the next resend is allowed straight away', async () => {
+    expect((await register()).status).toBe(201);
+    advance(61);
+    failSend();
+    const failed = await resend();
+    expect(failed.status).toBe(503);
+    expect(failed.body.code).toBe('EMAIL_SEND_FAILED');
+    expect(await prisma.otp.count({ where: { email: EMAIL } })).toBe(1); // only the register row
+    expect((await resend()).status).toBe(200); // the failed send left no cooldown of its own
+  });
+
+  it('AUTH-03 · forgot-password → 503 when the mail cannot be sent', async () => {
+    expect((await register()).status).toBe(201);
+    expect((await verify(sentCode())).status).toBe(200);
+    failSend();
+    const res = await request(app).post('/api/v1/auth/forgot-password').send({ email: EMAIL });
+    expect(res.status).toBe(503);
+    expect(res.body.code).toBe('EMAIL_SEND_FAILED');
+    expect(await prisma.otp.count({ where: { email: EMAIL, purpose: 'RESET_PASSWORD' } })).toBe(0);
+  });
+
+  it('T-005 · an unverified login still answers EMAIL_NOT_VERIFIED when its new code cannot be sent', async () => {
+    expect((await register()).status).toBe(201);
+    advance(61);
+    failSend();
+    const res = await login();
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('EMAIL_NOT_VERIFIED');
+    expect(await prisma.otp.count({ where: { email: EMAIL } })).toBe(1); // only the register row
   });
 });

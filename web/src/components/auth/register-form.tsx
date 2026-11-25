@@ -1,13 +1,15 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { KernedText } from "@/components/kerned-text";
 import { Button } from "@/components/ui/button";
 import { Link, useRouter } from "@/i18n/navigation";
 import { register, type Locale } from "@/lib/auth/flows";
+import { accountTarget, safeNext } from "@/lib/auth/next-path";
 import { usePendingAuth } from "@/lib/auth/pending";
+import { useAuthStore } from "@/lib/auth/store";
 import {
   validateEmail,
   validateNewPassword,
@@ -17,12 +19,25 @@ import {
 
 import { AuthShell, ErrorSummary, Field, PasswordRules, FormAlert, useErrorSummary } from "./auth-ui";
 
-/** AUTH-01: register, then the OTP screen. Form data is kept in memory only. */
-export function RegisterForm() {
+/**
+ * AUTH-01: register, then the OTP screen. Form data is kept in memory only.
+ *
+ * `next` (QA B2): a visitor who is already signed in has nothing to register, so they go to that path
+ * (same-origin only) or to the account page; it also travels with the pending registration so the
+ * verify screen can continue there.
+ */
+export function RegisterForm({ next }: { next?: string } = {}) {
   const t = useTranslations("auth");
   const locale = useLocale() as Locale;
   const router = useRouter();
+  const status = useAuthStore((s) => s.status);
+  const target = accountTarget(next, locale);
+  // Captured here: `next` is shadowed inside onSubmit by the validation result.
+  const continueTo = safeNext(next, locale) ?? undefined;
   const setPending = usePendingAuth((s) => s.setPending);
+  useEffect(() => {
+    if (status === "authenticated") router.replace(target);
+  }, [status, router, target]);
   const [v, setV] = useState({ firstName: "", lastName: "", email: "", password: "" });
   const [errors, setErrors] = useState<Partial<Record<keyof typeof v, FieldError | null>>>({});
   const [apiError, setApiError] = useState<unknown>(null);
@@ -68,7 +83,7 @@ export function RegisterForm() {
     };
     try {
       await register({ ...data, preferredLocale: locale });
-      setPending(data);
+      setPending({ ...data, next: continueTo });
       router.push("/verify");
     } catch (err) {
       setApiError(err);

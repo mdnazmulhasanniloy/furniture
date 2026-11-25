@@ -449,7 +449,13 @@ it('NFR-01 · CMS routes conform (banners, sections, pages, settings, home)', as
       contactEmail: 'info@furnixa.example',
       contactPhone: '+966551234567',
       deliveryFee: 1500,
-      vat: { vatRate: 15, applyToDelivery: true, pricesIncludeVat: true },
+      // A rate above 0 needs a registration number (owner 2026-11-24, 422 VAT_NUMBER_REQUIRED).
+      vat: {
+        vatRate: 15,
+        applyToDelivery: true,
+        pricesIncludeVat: true,
+        registrationNumber: '310000000000003',
+      },
       deliveryCities: [
         {
           code: 'riyadh',

@@ -11,7 +11,12 @@ import { login } from "@/lib/auth/flows";
 import { useAuth } from "@/lib/auth/use-auth";
 import { PublicFrame } from "./public-frame";
 
-const schema = z.object({ email: z.string().trim().email("invalidEmail"), password: z.string().min(1, "required") });
+// QA C2: "required" before the shape check - an empty string fails `.email()` too, which is why an
+// empty field used to be answered "Enter a valid email address".
+const schema = z.object({
+  email: z.string().trim().min(1, "required").email("invalidEmail"),
+  password: z.string().min(1, "required"),
+});
 type Values = z.infer<typeof schema>;
 
 /** Only same-app paths are followed after sign-in (no open redirect). */

@@ -85,12 +85,22 @@ export async function rawRequest<T>(path: string, o: RequestOptions = {}): Promi
   return parse<T>(await send(path, o, null));
 }
 
+let inFlightCsrf: Promise<string> | null = null;
+
+/** Single-flight like the refresh (QA B3): concurrent callers share one GET /auth/csrf. */
 async function fetchCsrf(force = false): Promise<string> {
   const cached = authStore.get().csrfToken;
   if (cached && !force) return cached;
-  const { csrfToken } = await rawRequest<{ csrfToken: string }>("/auth/csrf");
-  authStore.setCsrfToken(csrfToken);
-  return csrfToken;
+  if (!inFlightCsrf) {
+    inFlightCsrf = (async () => {
+      const { csrfToken } = await rawRequest<{ csrfToken: string }>("/auth/csrf");
+      authStore.setCsrfToken(csrfToken);
+      return csrfToken;
+    })().finally(() => {
+      inFlightCsrf = null;
+    });
+  }
+  return inFlightCsrf;
 }
 
 /** Cookie-authenticated POST: CSRF token first, one retry with a fresh token on CSRF_INVALID. */
@@ -125,13 +135,20 @@ export async function primeCsrf(): Promise<void> {
 async function doRefresh(): Promise<AuthSession> {
   let csrfRetried = false;
   let raceRetried = false;
+  // A refresh that is overtaken by a sign-out (or another sign-in) must not write its result back
+  // (QA B3): it would resurrect a session that is already over.
+  const epoch = authStore.get().epoch;
+  const stale = () => authStore.get().epoch !== epoch;
   for (;;) {
+    // Stop before spending another request when the session this refresh belonged to is gone.
+    if (stale()) throw new ApiError({ status: 401, code: "UNAUTHORIZED" });
     try {
       const csrf = await fetchCsrf();
       const session = await rawRequest<AuthSession>("/auth/refresh", {
         method: "POST",
         headers: { "X-CSRF-Token": csrf },
       });
+      if (stale()) throw new ApiError({ status: 401, code: "UNAUTHORIZED" });
       authStore.setSession(session);
       return session;
     } catch (e) {
@@ -149,7 +166,7 @@ async function doRefresh(): Promise<AuthSession> {
         // Transient: keep the session state, the caller decides.
         if (e.code === "REFRESH_RACE" || e.status === 0 || e.status >= 500 || e.status === 429) throw e;
       }
-      authStore.clear();
+      if (!stale()) authStore.clear();
       throw e;
     }
   }

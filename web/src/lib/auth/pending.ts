@@ -11,6 +11,8 @@ export type PendingVerification = {
   /** Present when the flow started on the register form (needed to re-register). */
   firstName?: string;
   lastName?: string;
+  /** Same-origin path to continue to after verifying (QA B2); in memory like the rest. */
+  next?: string;
 };
 
 type PendingState = {

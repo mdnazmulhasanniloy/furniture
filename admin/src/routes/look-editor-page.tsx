@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Link, Navigate, useNavigate, useParams } from "react-router";
 import { altState, ImageUploader, isUploading, storedImage, type UploaderImage } from "@/components/image-uploader";
 import { LookCanvas, pct, type CanvasPoint } from "@/components/look-canvas";
+import { LookPreview } from "@/components/look-preview";
 import { Field } from "@/components/modal";
 import { ProductPicker } from "@/components/product-picker";
 import { Button } from "@/components/ui/button";
@@ -75,7 +76,8 @@ function Editor({
   const [picking, setPicking] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [stale, setStale] = useState(false);
-  const { register, handleSubmit, formState } = useForm<SectionFormValues>({
+  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const { register, handleSubmit, formState, watch } = useForm<SectionFormValues>({
     resolver: zodResolver(sectionSchema),
     defaultValues: {
       titleEn: look?.title.en ?? "",
@@ -88,6 +90,7 @@ function Editor({
     },
   });
   const errs = formState.errors;
+  const values = watch(); // the preview follows what is being typed
   const msg = (m?: string) => (m ? t(m) : undefined);
   const image = photo.find((i) => i.status === "done" && i.key);
   const saving = create.isPending || update.isPending;
@@ -350,6 +353,18 @@ function Editor({
             </p>
           )}
         </div>
+
+        <LookPreview
+          device={device}
+          onDevice={setDevice}
+          src={image?.url ?? null}
+          alt={image?.alt[locale] ?? ""}
+          width={size?.width ?? null}
+          height={size?.height ?? null}
+          points={points}
+          title={values[`title${locale === "en" ? "En" : "Ar"}`] || ""}
+          subtitle={values[`subtitle${locale === "en" ? "En" : "Ar"}`] || ""}
+        />
       </form>
       {picking && (
         <ProductPicker

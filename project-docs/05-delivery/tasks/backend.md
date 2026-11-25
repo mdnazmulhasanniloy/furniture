@@ -268,3 +268,29 @@ new `formatRiyadhDateTime` helper; customers keep `password-changed`. Tests: `te
 with 404 first) plus the two email-template tests and the conformance call.
 - **Owner decisions 2026-11-25:** a wrong current password counts toward the **existing login lockout** (the one `login:email:<hmac>` counter, so five wrong attempts also pause sign-in for that admin - stated in the plan); the new password must differ from the current one; all other sessions are revoked and this one gets a fresh access token and refresh cookie; **no notification to the other admins**; a **security email to the admin whose password changed** (new `admin-password-changed` template, en + ar, with the Riyadh time and no secrets) sent in the background, so a transport failure leaves the change in place and is logged without details. The new `changePassword:user:<id>` limiter I had proposed is dropped in favour of the login lockout. Blocked on the owner approving the copy in section 4 of the plan.
 
+### T-110 Shop the look: the API the editor needs (ADM-15) · plan written 2026-11-25, awaiting approval
+- Req: ADM-15 · Depends: T-080 (storage) · Pairs with admin **T-085**, which holds the full plan and the copy list · Branch `feat/look-editor`
+- No new entity and no new route: a look is a `SHOP_THE_LOOK` home section, so this is a change to the existing `/admin/home-sections`
+  create, update and delete, all already admin-only (`requireAuth` + `requireRole('ADMIN')`) with `expectedUpdatedAt` concurrency and the
+  `syncImages` attach/release the photo needs. **api-spec.yaml first**, then `schema.ts`, then the service.
+- Planned changes, each with its own fail-first test:
+  1. `config.look.hotspots`: `maxItems` 4 -> **6** (`HomeSectionConfig` and `ResolvedLook`). `minItems` stays 1.
+  2. `config.look.image`: accept and **require** `width` and `height` (positive integers, <= 20000) so the storefront can render the photo
+     at its own ratio and a percentage always lands on the same spot (see T-085 proposal 3). The uploader already measures them.
+     `ImageAssetInput` gains them as optional; the look's own schema requires them. Existing rows keep working: the fields are read as
+     optional on the way out, and the storefront falls back to today's cropped box when they are missing.
+  3. **No duplicate product inside one look** -> 422 `DUPLICATE_PRODUCT` (`details.productIds`). Tightens today's behaviour; the fixture in
+     `tests/cms/shop-the-look.test.ts` that saves duplicates on purpose changes with the rule.
+  4. **Every product must exist and be PUBLISHED at save time** -> 422 `PRODUCT_NOT_PUBLISHED` with `details.productIds`, checked inside the
+     same transaction as the write (one `findMany` on `{ id: { in } }` with the status), so a product unpublished a second earlier cannot
+     slip in. Today only the id format is validated.
+  5. The **admin** response resolves each point's product so the list and the editor can warn without N+1 calls:
+     `config.look.hotspots[].product = { id, title, slug, price, status, image }` (read-only, ignored in a request body). `GET /cms/home`
+     is untouched: it still drops a point whose product is not PUBLISHED.
+  6. One **audit line** per write, in the shape T-104 established: `section.look.save` and `section.look.delete` with `actorId`,
+     `targetId`, the point count and the product ids, at `info`.
+  7. `SECTION_TYPES` in the admin may now create `SHOP_THE_LOOK`; the API already allowed it.
+- Tests: the 6-point boundary (6 ok, 7 -> 422), width/height required and bounded, duplicates, a product that is DRAFT or deleted at save
+  time, the resolved product shape, the photo attach/release across a replace (already covered - extended), concurrency via a stale
+  `expectedUpdatedAt`, and **authz**: anonymous -> 401, customer token -> 403, on create, update, delete and reorder.
+

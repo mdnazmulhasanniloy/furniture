@@ -113,9 +113,116 @@ Backend, for completeness (same commands): `npm audit --omit=dev` is **4 high**,
 - Screenshots (`03-design/screens-v2/t079-admin-*.png`: login, banners list and banner editor with the crop preview; /ar and /en, light and dark, 1440 px). The API was stubbed in the browser with placeholder images, so nothing was read from or written to the database. Not done: 390 px admin screenshots (the admin is a desktop tool; the existing layout was not changed).
 - Critique: the admin now reads as the same house as the shop, quietly: sand table heads and panels, Readex headings, no arch except inside the one place it explains a crop. Dark mode keeps its ADR-014 teal, which is warmer-neutral than the light sand; acceptable, flagged only. Weak: the editor dialog is long, so the crop preview is below the fold; it stays visible next to the Save button, and moving it beside the uploader would need a layout change that was not asked for.
 
-### T-085 Look editor (follow-up, CR-009 Q-7, ADM-15) · todo
-- Req: ADM-15 · Depends: backend T-080 · Not built in CR-009.
-- Done: Home sections editor for `SHOP_THE_LOOK`: photo upload with alt text, click-to-place hotspots, product picker (1 to 4).
+### T-085 Shop the look: admin editor (ADM-15) · plan written 2026-11-25, awaiting approval of the copy
+- Req: ADM-15 · Depends: backend T-080 (storage) and backend **T-110** (the API changes this needs) · Branch `feat/look-editor`
+- Done when: an admin can manage a look end to end - list, photo, 1 to 6 points each linked to a published product, live desktop and
+  mobile preview, warnings for products that fall out of the catalogue - and a point lands on the same spot of the photo at every
+  breakpoint in both locales.
+
+#### What already exists (read first, so the plan builds on it)
+- A "look" **is** a home section of type `SHOP_THE_LOOK` whose `config.look = { image, hotspots[{x,y,productId}] }` (1 to 4 today). So the
+  list, the order, the visible toggle and delete are the existing `/admin/home-sections` routes: no new entity, no new list endpoint.
+- The photo already follows the banner upload rules: `syncImages(tx, old, new, 'admin', ctx)` on create, update and delete with the
+  post-commit `release`, so a photo in use is never cleaned up and a replaced one is released. Nothing new to build there.
+- `GET /cms/home` already drops a hotspot whose product is not PUBLISHED, and omits the look when no point is left.
+- The admin uploader already measures the natural size (`readImageSize`) but the API does not accept it (B-030).
+- `sections.type.SHOP_THE_LOOK` got its label in QA B4; `SECTION_TYPES` (what an admin may create) still excludes it - this task adds it.
+- There is **no product picker** anywhere in the admin yet. `GET /admin/products?q=&status=PUBLISHED&page=` is what it will search.
+
+#### Four proposals that need the owner's word
+1. **More than one look: stacked, not a carousel.** Each look is already its own section with its own title, subtitle, position and
+   visible toggle, and the home page renders sections in order, so stacking needs no new data model, keeps every look visible and
+   indexable, and leaves the order where the admin already controls it. A carousel would hide looks behind interaction, need a grouping
+   concept above sections, and compete with the hero carousel for the same gesture. If the owner prefers a carousel, the hero's
+   behaviour can be reused, but it becomes its own task (grouping, dots, autoplay, reduced motion).
+2. **Duplicate products inside one look: not allowed** (422 `DUPLICATE_PRODUCT`); the same product in two different looks stays fine.
+   Two cards for one product on one photo is noise and nearly always a slip. **This tightens today's API**:
+   `backend/tests/cms/shop-the-look.test.ts` currently saves duplicates on purpose (`hotspot(i % 4)`), so that fixture changes with the rule.
+3. **Alignment: render the photo at its natural aspect ratio, uncropped.** Today the storefront puts the photo in `aspect-[4/5]
+   sm:aspect-[16/9]` with `object-cover` while the points are percentages of the *container*, so the same point sits on different parts
+   of the photo at 390 and at 1440 - the bug the owner anticipated. The fix: store the photo's intrinsic `width`/`height` (the uploader
+   already measures them) and give the container exactly that ratio, so a percentage is a percentage of the photo at every width and in
+   both locales. The alternative (keep the crop and compute positions from it) needs the same dimensions **plus** crop maths in JS and
+   breaks again the moment `object-position` changes. **Migration note:** looks saved before this task have no dimensions, so the
+   storefront keeps today's cropped box as a fallback until the photo is saved again through the new editor, which requires them.
+4. **Ratio guard: advisory only.** No server rule. The editor warns when the photo is outside 1:2 to 2:1 and shows both previews, so an
+   unusual photo stays possible on purpose.
+
+#### Steps, one commit each, fail-first test in every step
+1. **Backend T-110** (spec first; see `tasks/backend.md`): 1 to **6** points; the look image accepts and requires `width`/`height`;
+   duplicates refused; every product checked PUBLISHED at save time (422 `PRODUCT_NOT_PUBLISHED`, `details.productIds`); the admin
+   response resolves each point's product (slim: id, title, slug, price, status, first image) so the admin needs no N+1 calls; audit
+   lines `section.look.save` and `section.look.delete`; authz tests (anonymous 401, customer 403).
+2. **Looks list** at `/sections/looks`, reached from a button on `/sections`: thumbnail, title, point count, visible toggle, order (drag
+   handle and move buttons, reusing the sections-page interactions), edit, delete behind the confirm dialog. Order note:
+   `PUT /admin/home-sections/reorder` takes **every** section id, so moving a look swaps it with the neighbouring look inside the full
+   list and sends the whole list; the other sections keep their relative order.
+3. **Editor** at `/sections/looks/new` and `/sections/looks/:id`: title and subtitle in both locales (reusing `sections.form.*`), the
+   photo through the existing uploader with alt text required in both locales, stale handling as on the sections page.
+4. **The point canvas**: click the photo to add a point (up to 6); Pointer Events for drag, so mouse and touch share one path; the
+   selected point moves 1% per arrow key and 5% with Shift; Delete or the remove button takes it out; every point is listed beside the
+   photo with its product and a Change button; coordinates rounded to 0.1%.
+5. **The product picker**: a modal over `GET /admin/products?q=&status=PUBLISHED&page=`, debounced, showing image, name and price,
+   keyboard reachable, refusing a product already used in this look.
+6. **Live preview** with Desktop and Mobile toggles that renders the storefront's own look markup, so the preview cannot drift: the
+   presentational part moves into a component both apps import. If that drags Next-only code into the admin bundle, the fallback is a
+   copy plus a test that compares the two files - the drift guard already used for the password policy.
+7. **Warnings**: in the list and in the editor, a point whose product is no longer PUBLISHED is flagged with the sentence that the
+   website hides it (the API now reports the status).
+8. **Storefront alignment** (web): the photo renders at its stored ratio with no crop, the hotspot markup unchanged; plus an e2e that
+   measures a hotspot's offset against the image box at **390, 768 and 1440 in en and ar**, asserts the same percentage within 1px, and
+   asserts **x is not mirrored in RTL** (it is a photograph, not a layout).
+9. **Docs**: changelog, task statuses, `node scripts/traceability.mjs`.
+
+#### New copy, printed for the owner on 2026-11-25, **not yet approved**
+Reused unchanged, no new copy: `sections.type.SHOP_THE_LOOK`, `sections.{hint,loading,retry,empty,edit,editNamed,dragHandle,moveUp,moveDown,toggleVisible,visible,hidden,moved}`,
+`sections.form.{languages,titleEn,titleAr,subtitleEn,subtitleAr,visible,required,tooLong,bothLocales,hasErrors,stale,reload}`, `uploader.*`
+(including the alt-text fields and the type and size errors), `common.{save,cancel,delete,search}`, `products.col.price`, `products.status.*`,
+`errors.{STALE_UPDATE,VALIDATION_ERROR,NOT_FOUND}`.
+
+| Key | en | ar |
+| --- | --- | --- |
+| `sections.looks.manage` | Manage looks | إدارة التنسيقات |
+| `sections.looks.title` | Shop the look | تسوّق هذا التنسيق |
+| `sections.looks.new` | New look | تنسيق جديد |
+| `sections.looks.empty` | No looks yet. | لا توجد تنسيقات بعد. |
+| `sections.looks.back` | Back to looks | العودة إلى التنسيقات |
+| `sections.looks.col.photo` | Photo | الصورة |
+| `sections.looks.col.points` | Points | النقاط |
+| `sections.looks.delete.title` | Delete this look? | حذف هذا التنسيق؟ |
+| `sections.looks.delete.body` | This removes the look and its photo from the home page. This cannot be undone. | يؤدي هذا إلى إزالة التنسيق وصورته من الصفحة الرئيسية، ولا يمكن التراجع عن ذلك. |
+| `sections.looks.unpublished` | A product in this look is no longer published. Those points are hidden on the website. | أحد منتجات هذا التنسيق لم يعد منشوراً. تُخفى تلك النقاط على الموقع. |
+| `sections.looks.editor.titleNew` | New look | تنسيق جديد |
+| `sections.looks.editor.titleEdit` | Edit look | تعديل التنسيق |
+| `sections.looks.editor.photo` | Room photo | صورة الغرفة |
+| `sections.looks.editor.photoHint` | One photo of the room. It is shown uncropped, so the points always sit on the same spot. | صورة واحدة للغرفة. تُعرض كاملة بدون قص، لذلك تبقى النقاط في مواضعها دائماً. |
+| `sections.looks.editor.photoRequired` | Add a room photo. | أضف صورة للغرفة. |
+| `sections.looks.editor.altRequired` | The photo needs alt text in both languages. | تحتاج الصورة إلى نص بديل باللغتين. |
+| `sections.looks.editor.ratioWarning` | This photo is unusually tall or wide. Check both previews before saving. | هذه الصورة طويلة أو عريضة بشكل غير معتاد. راجع المعاينتين قبل الحفظ. |
+| `sections.looks.editor.points` | Points | النقاط |
+| `sections.looks.editor.addHint` | Click the photo to add a point, up to 6. | اضغط على الصورة لإضافة نقطة، حتى 6 نقاط. |
+| `sections.looks.editor.keyboardHint` | With a point selected: the arrow keys move it by 1%, Shift and an arrow by 5%, Delete removes it. | عند تحديد نقطة: تحرّكها مفاتيح الأسهم بنسبة 1%، ومع Shift بنسبة 5%، ويزيلها مفتاح Delete. |
+| `sections.looks.editor.point` | Point {n} | النقطة {n} |
+| `sections.looks.editor.pointAt` | Point {n}: {x}% from the left, {y}% from the top | النقطة {n}: {x}% من اليسار، {y}% من الأعلى |
+| `sections.looks.editor.removePoint` | Remove point {n} | إزالة النقطة {n} |
+| `sections.looks.editor.pointsRequired` | Add at least one point. | أضف نقطة واحدة على الأقل. |
+| `sections.looks.editor.pointsMax` | A look holds at most 6 points. | يحتوي التنسيق على 6 نقاط كحد أقصى. |
+| `sections.looks.editor.product` | Product | المنتج |
+| `sections.looks.editor.productRequired` | Every point needs a product. | كل نقطة تحتاج إلى منتج. |
+| `sections.looks.editor.productUnpublished` | This product is no longer published, so this point is hidden on the website. | هذا المنتج لم يعد منشوراً، لذلك تُخفى هذه النقطة على الموقع. |
+| `sections.looks.editor.duplicateProduct` | Each product can be used once per look. | يمكن استخدام كل منتج مرة واحدة في التنسيق. |
+| `sections.looks.editor.choose` | Choose product | اختيار منتج |
+| `sections.looks.editor.change` | Change | تغيير |
+| `sections.looks.editor.noProducts` | No published products match. | لا توجد منتجات منشورة مطابقة. |
+| `sections.looks.editor.preview` | Preview | معاينة |
+| `sections.looks.editor.desktop` | Desktop | سطح المكتب |
+| `sections.looks.editor.mobile` | Mobile | الجوال |
+| `errors.PRODUCT_NOT_PUBLISHED` | One of the chosen products is no longer published. Replace it and save again. | أحد المنتجات المختارة لم يعد منشوراً. استبدله ثم احفظ مرة أخرى. |
+| `errors.DUPLICATE_PRODUCT` | Each product can be used once per look. | يمكن استخدام كل منتج مرة واحدة في التنسيق. |
+
+Copy notes: `sections.looks.title` repeats the value of `sections.type.SHOP_THE_LOOK` and `editor.preview` repeats `banners.form.preview`;
+both are duplicated on purpose so each namespace owns its strings. **No new storefront copy**: the section already has
+`home.look.{title,hint,hotspot}`, and each look's own title comes from the admin.
 
 ### T-088 Appearance tab (CR-010, ADM-16) · todo
 - Req: ADM-16 · Depends: backend T-086

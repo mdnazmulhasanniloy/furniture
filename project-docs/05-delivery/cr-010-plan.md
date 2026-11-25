@@ -10,7 +10,11 @@ Admin > Settings > Appearance: five preset themes as cards, each with a live pre
 
 Five presets, one default: **Emerald** (the current look, default), **Walnut** (warm brown, copper accent), **Charcoal** (near-black, brass accent), **Sand** (olive-bronze, the warmest and quietest), and **Burgundy** (a deep majlis red, the owner's choice for the fifth). Names in Arabic: الزمرد، الجوز، الفحم، الرمل، العنابي.
 
-**What a theme changes (12 CSS variables, the brief's list mapped onto the real tokens):**
+**Correction 2026-11-25 (T-086 build):** ADR-018 (CR-011, accepted after this plan) added `--blush` and `--champagne`,
+and every preset carries its own, so a theme changes **14** variables, not 12. The two extra rows are below the token
+table, and the AA gate now runs over three surfaces (paper, `--muted`, `--blush`): 135 checks, all passing.
+
+**What a theme changes (12 CSS variables, the brief's list mapped onto the real tokens; plus the two from ADR-018):**
 
 | Brief | Token(s) |
 |---|---|
@@ -39,6 +43,8 @@ Token values:
 | gold | `#B8913A` | `#C58E4E` | `#A8905A` | `#BCA264` | `#C09A5B` |
 | goldStrong | `#9C7A2E` | `#8F5F2A` | `#857037` | `#85702F` | `#8C6A2C` |
 | price | `#7A5E22` | `#77491B` | `#5F5226` | `#6E5A22` | `#76471C` |
+| blush (ADR-018) | `#F7EEEA` | `#F8EFE8` | `#F2F1EF` | `#F6F0E4` | `#FAEFEE` |
+| champagne (ADR-018) | `#C8A96A` | `#D2A977` | `#BFA878` | `#D0B882` | `#D3A878` |
 
 Contrast, computed with the same relative-luminance formula as the web and admin tests (every cell must reach the number in brackets; every cell does):
 
@@ -64,6 +70,10 @@ Contrast, computed with the same relative-luminance formula as the web and admin
 | ink on gold (decorative CTA) (4.5) | 5.70 | 5.86 | 5.42 | 6.77 | 6.39 |
 
 The decorative gold hairline on the footer is checked at 3:1 so it stays visible; gold is never text. Walnut and Sand needed their accent lightened once to clear that check, and Burgundy was tuned until every cell passed; the values above are the final ones.
+
+Blush as a surface (2026-11-25, same formula): ink 14.65 to 14.87, muted text 5.39 to 7.11, price 5.32 to 6.94, primary
+8.59 to 11.54 (all against 4.5); gold-strong 3.51 to 4.82 and stone 4.18 to 4.89 (against 3); ink on champagne 7.25 to
+8.66. Emerald's blush and champagne are exactly the values already in `globals.css`, so the default does not move.
 
 ## 3. Backend (spec first, then code and tests)
 

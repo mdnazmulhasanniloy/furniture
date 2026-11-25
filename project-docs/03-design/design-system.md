@@ -10,7 +10,7 @@ Mood: a bright, quiet showroom with one bold gesture, the arch. White page, deep
 Where this section and the sections below disagree, **this section wins** on the storefront. Sections 1 to 3 remain the base for tokens not named here; section 4 (the arch) is **withdrawn** for the storefront and the component is deleted in T-094.
 
 - **Type:** headings Bodoni Moda (en) and El Messiri (ar), weights 600 and 700 only, via next/font/google, per-locale scoping kept (each locale downloads only its own fonts). Body IBM Plex Sans / IBM Plex Sans Arabic at 17 px (root 106.25 %), line-height 1.65 (ar 1.85). Hero 36 px (mobile) to 72 px (clamp). Bodoni Moda is used from 28 px up (Q-10). Readex Pro is retired.
-- **New tokens:** `--blush` #F7EEEA with `--blush-foreground` (soft band surface; ink 15:1, primary and price pass 4.5:1 on it, enforced by the AA gate on the new surface) and `--champagne` #C8A96A (decorative lines and ornaments only; 2.2:1 on paper, the gate rejects any `text-champagne`). `--gold` and `--gold-strong` stay for the free-delivery bar until T-086 folds them into the presets. Presets (CR-010) each carry their own blush and champagne.
+- **New tokens:** `--blush` #F7EEEA with `--blush-foreground` (soft band surface; ink 15:1, primary and price pass 4.5:1 on it, enforced by the AA gate on the new surface) and `--champagne` #C8A96A (decorative lines and ornaments only; 2.2:1 on paper, the gate rejects any `text-champagne`). `--gold` and `--gold-strong` stay for the free-delivery bar; T-086 folds them, and blush and champagne, into the presets — see section 1b for all five.
 - **Layout:** `.container-wide` max 1440 px, gutters 20 / 32 / 48 px; `.band` vertical rhythm 48 px mobile, 72 px desktop; photos may be full-bleed.
 - **Shape:** radius sm 4 px, md and lg 8 px, tiles 8 px. No arch.
 - **Rails:** `.rail-scroll` hides the native scrollbar and keeps snap; every rail has arrow buttons and keyboard support.
@@ -38,6 +38,45 @@ All colour comes from CSS variables (`web/src/app/globals.css`, `admin/src/index
 Contrast (computed, WCAG): ink on paper 16.8, ink on sand 13.9, white on emerald 9.8, emerald on sand 8.1, stone ink `#5C6360` on paper 6.2 / on sand 5.1, price `#7A5E22` on paper 6.1 / on sand 5.0, sand text on emerald 8.1. Date gold on paper is 2.9 and on emerald 3.3: that is why it is a decorative hairline only. Admin dark mode keeps the ADR-014 values. **Admin deviation:** fields can sit on sand panels in the admin, so its `--input` is `#78857F` (3.2:1 on sand, 3.9:1 on paper) instead of `#7D8A85`; the admin gate requires 3:1 on every surface, the web gate requires it on paper only. The admin destructive and blocked chips use a 10 % tint (`bg-destructive/10`, 4.6:1 on sand; 15 % was 4.3:1). The AA tests in `web` and `admin` keep scanning the real CSS and every colour call site.
 
 Dropped from v1: `--secondary` cream `#F6EFD9`, cool grey `#F4F6F5`, `--gold` `#C8A24A`, the old ink `#1C2321`. Fewer neutrals: paper, sand, ink, stone.
+
+## 1b. Themes (CR-010, ADR-017, built in T-086/T-087/T-088)
+
+The table in section 1 is the **Emerald** preset: the default, and the only one written into `globals.css`. An admin
+chooses a preset in **Settings → Appearance**; the storefront then receives its token map from `GET /cms/settings` and
+sets the variables in the `style` attribute of `<html>` on the server, which overrides `:root`. There is no colour
+picker, and the admin dashboard keeps its own colours.
+
+**A theme changes exactly these 14 variables** (`--secondary` always equals `--muted`):
+
+| Token | emerald (default) | walnut | charcoal | sand | burgundy |
+|---|---|---|---|---|---|
+| `--primary`, `--ring` | `#0F4C45` | `#6B3F2A` | `#2B3236` | `#4D4430` | `#6E1F2E` |
+| `--primary-foreground` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` | `#FFFFFF` |
+| `--muted`, `--secondary` | `#EFE9DD` | `#F0E7DC` | `#ECEDEE` | `#E9E0CF` | `#F1E7E2` |
+| `--muted-foreground` | `#5C6360` | `#5E5249` | `#54595C` | `#5A5446` | `#5C4D4C` |
+| `--stone` | `#6B726F` | `#756A60` | `#6F7479` | `#6E6858` | `#776A68` |
+| `--border` | `#E4E0D6` | `#E6DCD0` | `#DFE1E2` | `#DDD3BF` | `#E6DAD4` |
+| `--input` | `#7D8A85` | `#85786C` | `#7C8286` | `#80765F` | `#85726F` |
+| `--gold` | `#B8913A` | `#C58E4E` | `#A8905A` | `#BCA264` | `#C09A5B` |
+| `--gold-strong` | `#9C7A2E` | `#8F5F2A` | `#857037` | `#85702F` | `#8C6A2C` |
+| `--price` | `#7A5E22` | `#77491B` | `#5F5226` | `#6E5A22` | `#76471C` |
+| `--blush` | `#F7EEEA` | `#F8EFE8` | `#F2F1EF` | `#F6F0E4` | `#FAEFEE` |
+| `--champagne` | `#C8A96A` | `#D2A977` | `#BFA878` | `#D0B882` | `#D3A878` |
+
+Arabic names: الزمرد، الجوز، الفحم، الرمل، العنابي.
+
+**A theme never changes** paper (`#FFFFFF`), ink (`#14201D`), `--blush-foreground`, `--gold-foreground`, or any status
+colour (destructive, success, warning and their text shades): an order or stock state must read the same in every theme,
+and body text stays at 16.8:1. **Every preset is a light theme**; the admin's dark mode is not themed.
+
+**The gate.** A backend test computes the WCAG ratios for every preset with the same relative-luminance formula as
+`web/src/test/ui-02-aa-contrast.test.ts`, over three surfaces — paper, `--muted` and `--blush` — and a preset that fails
+fails CI. Text needs 4.5:1, graphics (ring, field border, `--gold-strong`, the gold hairline on the footer) 3:1. 135
+checks, all passing; tightest are `--gold-strong` on blush 3.51 and the emerald field border on paper 3.59. `--gold` and
+`--champagne` are never text, so they are checked only as graphics, plus ink on them for decorative CTAs.
+
+The values live in **one place, the backend** (`backend/src/lib/themes.ts`); web and admin hold no copy, and a test
+asserts the Emerald preset still equals the `:root` block of `globals.css` so the default cannot drift.
 
 ## 2. Typography
 

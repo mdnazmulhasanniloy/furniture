@@ -216,9 +216,11 @@ Order: backend T-080 first (seed), then the owner runs `demo:reset`, then T-081 
 - Req: CAT-01, UI-01, UI-02 · Depends: T-081..T-083
 - Done: emerald band with the three steps (step 3 says cash on delivery), trust strip with true facts and the real cities, page assembly, vitals before and after (budget in `cr-009-plan.md` section 2), screenshots in `03-design/screens-v4/`.
 
-### T-087 Theme variables on the storefront (CR-010, UI-03) · todo
-- Req: UI-03 · Depends: backend T-086, T-045
+### T-087 Theme variables on the storefront (CR-010, UI-03) · in-progress 2026-11-25
+- Req: UI-03 · Depends: backend T-086, T-045 (`/api/revalidate`, done) · Docs: `adr/ADR-017`, `design-system.md` §1b · Branch `feat/theme-presets`
 - Done: `themeStyle()` helper and the `<html>` style in the locale layout, fallback to the CSS defaults, tests (en and ar). Starts after CR-009 is approved.
+- Plan: `src/lib/theme-style.ts` turns `settings.theme.tokens` into a `CSSProperties` of the 14 custom properties, accepting only the known names and only `^#[0-9a-fA-F]{6}$` and returning `undefined` when nothing survives — the values come from an API, so they are validated before they reach markup. `[locale]/layout.tsx` already awaits `getSettings()` for the header, footer and metadata, so the theme costs no extra request: the style goes on the existing `<html>` tag beside the font-variable classes, server-rendered, so the first byte already carries the theme and there is no flash. `SiteSettings` in `src/lib/api/public.ts` gains `theme?`. API down or no `theme` → the `:root` defaults (emerald).
+- Tests (en and ar): each preset's variables land on `<html>`; an unknown name and a bad value are dropped; no `theme` falls back to the defaults; **drift guard** — the first `:root` block of `globals.css` is parsed and must equal the emerald preset's 14 values, so the default can never diverge from the backend registry; `ui-02-aa-contrast` and `ui-02-aa-call-sites` stay green. Preset hexes appear only under `src/test`, which `ui-01-no-raw-colours` already exempts.
 
 ## CR-011 (soft luxury, approved 2026-11-24; see `05-delivery/cr-011-plan.md`)
 

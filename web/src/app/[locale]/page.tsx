@@ -4,6 +4,7 @@ import { setRequestLocale } from "next-intl/server";
 import { TrustStrip } from "@/components/home/trust-strip";
 import { Hero, HeroFallback } from "@/components/home/hero";
 import { HomeSections, type ShelfFallback } from "@/components/home/home-sections";
+import { RevealNoScript } from "@/components/motion/reveal";
 import type { Locale } from "@/i18n/routing";
 import { getHome, getProducts, getSettings } from "@/lib/api/public";
 import { sectionHasContent } from "@/lib/home";
@@ -47,6 +48,13 @@ export default async function HomePage({
 
   return (
     <main>
+      {/*
+        UI-05 / ADR-019: the reveals below start hidden as an inline style in this page's HTML, which is what lets
+        them play properly instead of flashing in already visible. With JavaScript off nothing would ever clear
+        that, so this hands those visitors the finished state. It belongs to the page, not the layout: the home
+        page is the only page with scroll motion.
+      */}
+      <RevealNoScript />
       {banners.length > 0 ? <Hero banners={banners} /> : <HeroFallback />}
       <HomeSections sections={sections} locale={locale as Locale} fallback={fallback} />
       <TrustStrip settings={settings} />

@@ -7,10 +7,10 @@
     "node": "22.x"
   },
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "prisma generate && tsc -p tsconfig.build.json",
-    "build:vercel": "node scripts/vercel-typecheck.mjs",
-    "start": "node dist/server.js",
+    "dev": "node init && tsx watch src/server.ts",
+    "build": "node init && prisma generate && tsc -p tsconfig.build.json",
+    "build:vercel": "node init && node scripts/vercel-typecheck.mjs",
+    "start": "node init && node dist/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . && npm run format:check",
     "test": "vitest run",

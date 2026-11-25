@@ -257,3 +257,40 @@ Order: backend T-080 first (seed), then the owner runs `demo:reset`, then T-081 
   `e2e/support/api-stub.mjs` adds one known look to this machine's own `GET /cms/home` payload and passes every other
   request through to the real API.
 ### T-103 Checkpoint 2 screenshots (screens-v6) · done
+
+## CR-012 — home page motion (ADR-019, branch `feat/home-motion`)
+
+Approved 2026-11-25 (`05-delivery/cr-012-plan.md` section 8). Grammar is fixed by ADR-019 and lives as constants in one file: opacity 0→1 with a **24 px** rise, 450 ms ease-out, stagger 70 ms inside a capped 350 ms window (so a group settles within ~800 ms), trigger margin −10 %, **plays once**, `y` only (never `x`, so nothing mirrors in RTL). The hero is never revealed (LCP). Framer Motion only — no GSAP, ScrollTrigger or AOS, and no new dependency. Not merged to `main`, not deployed, without the owner's approval.
+
+### T-112 Motion foundation: the shared reveal primitive + the UI-01 gate change · done
+- Req: UI-01, UI-05 · Depends: — · Docs: `adr/ADR-019-home-scroll-reveals.md`, `cr-012-plan.md` §3, §4.5
+- New `src/components/motion/reveal.tsx` (`"use client"`) exporting `Reveal`, `RevealGroup`, `RevealItem`, plus `RevealLine` (the drawn champagne hairline) and `RevealNoScript` (the single `<noscript>` override). Props are `as`, `delay`, `className` only — distance, duration, easing and stagger are constants, so no caller can drift from the grammar. The one extra export, `staggerSecondsFor`, exists for its own test: the window cap cannot be read off the DOM.
+- Children stay in the DOM at all times: opacity and transform only, never `display:none` or `visibility:hidden` (jsdom, Playwright and crawlers must all see the content). Server components wrap their children with it and stay server components.
+- Reduced motion is a branch, not a shorter duration: with `useReducedMotion()` true the component renders a plain element — no `motion` wrapper, no initial state, no transition.
+- A `<noscript>` style block forces the final state, so the page is complete with JavaScript disabled (owner Q-6).
+- No global Vitest setup file is added (there is none: `environment: "node"` with a per-file `// @vitest-environment jsdom` pragma). jsdom has no `IntersectionObserver`, so the primitive's own guard renders the final state and the existing home suites need no stub and no change; `t112-reveal.test.tsx` stubs a silent observer in its own file to reach the animating path, the way `t053-header-footer` and `t056-product-condition` already do.
+- Done 2026-11-25: `src/components/motion/reveal.tsx`, `src/test/t112-reveal.test.tsx` (18 tests: stagger arithmetic, first-paint hidden state, both static branches, no horizontal movement in en and ar, valid `<ul>`/`<li>` markup through the group, hairline origin, the no-script override), the gate change below, and `<RevealNoScript />` wired into `app/[locale]/page.tsx`. **Verified:** `npm test` 729 passed / 49 files, `npm run typecheck` clean, `npm run lint` clean, `npm run i18n:check` OK (409 keys, no new string).
+- Reduced motion and direction come from `useMotionPrefs` (owner instruction, 2026-11-25) — the hook every storefront animation already reads — so nothing is re-implemented. Its `dir` is unused: the reveal moves on `y` only and `RevealLine` flips through a logical CSS class, which still works with JavaScript off. Consequence: a reveal needs the intl provider in scope, since that hook reads the locale (true on every storefront page; the test wraps in `NextIntlClientProvider`).
+- Stagger: 70 ms, compressed towards a **60 ms floor** for a long row, so every value stays inside the approved 60–80 ms band and an eight-card rail settles within ~900 ms. A first attempt compressed to 350/(n−1), which fell to 50 ms and left the band; corrected, and the docs now match (ADR-019 decision 4 records both corrections).
+- Finding, worth knowing before T-113: React's **client** renderer drops the children of `<noscript>`, so a jsdom render of `RevealNoScript` is an empty element and proves nothing. The server HTML is the real delivery path, so the test asserts `renderToStaticMarkup` output; T-115's Playwright spec covers it again with JavaScript actually disabled. Verified separately that Framer Motion server-renders `initial` as an inline style (`opacity:0;transform:translateY(24px)`, and `scaleX(0)` for the line), which is what the first-paint assertions rely on.
+- `<RevealNoScript />` is already on the home page, so T-113 does not need to add it.
+- Gate change (`src/test/home-redesign-ui-01.test.tsx`, plan §4.5): **only** the `data-reveal` token leaves the forbidden list, and the test is renamed. `from "aos"`, `data-aos`, `animate-marquee`, `.shimmer`, `pattern-emerald`, `gsap/ScrollTrigger` and `ContactStrip` stay forbidden, the four deleted files stay asserted deleted, and the `gsapMock` assertions stay. New assertions replace the removed token: every `whileInView`/`useInView` in `src/` lives only in `components/motion/reveal.tsx`, `components/home/hero.tsx` imports no reveal, and `reveal.tsx` references `useReducedMotion`. No other test is weakened or deleted.
+
+### T-113 Home reveals part 1: category bento, shelf, shop the look · open
+- Req: UI-05 · Depends: T-112 · Docs: `cr-012-plan.md` §2 rows 2–4
+- Category bento: `RevealGroup` over the tiles, stagger 70 ms; `.zoom-on-hover` untouched.
+- Shelf: heading + tab bar one `Reveal`; rail cards a `RevealGroup`, stagger 60 ms, first view only. Tab switch gets a 180 ms crossfade (`AnimatePresence`, `mode="wait"`), no height animation.
+- Shop the look: photo `Reveal` with **no scale** — the hotspots are percentages of the photo box (T-085), so the box must not be transformed in a way that moves them. Dots fade in 120 ms after the photo, stagger 50 ms. `e2e/look-alignment.spec.ts` must stay green.
+
+### T-114 Home reveals part 2: section shell, optional sections, pre-owned band, trust strip · open
+- Req: UI-05 · Depends: T-112 · Docs: `cr-012-plan.md` §2 rows 5–7
+- `SectionShell` wraps heading + subtitle in one `Reveal`; `FEATURED_PRODUCTS` and `TESTIMONIALS` grids become a `RevealGroup`; `PROMO_BANNER` reveals its text column and photo as one group, stagger 80 ms.
+- "How pre-owned works": heading `Reveal`, the three steps a `RevealGroup` (stagger 80 ms), and each `border-champagne` hairline draws `scaleX` 0→1 in 400 ms with `transform-origin` at the inline start, so the origin flips in RTL.
+- Trust strip: facts a `RevealGroup`, stagger 80 ms, same hairline draw. Both are server components today and stay server components.
+
+### T-115 Verification: tests, budgets, screenshots · open
+- Req: UI-05, UI-02 · Depends: T-113, T-114
+- Vitest in **en and ar** per section: revealed state, reduced-motion state (final, no transform), RTL (no horizontal movement, hairline origin at the inline start).
+- New `e2e/home-motion.spec.ts`: a section reveals when scrolled to, does not animate again after scrolling back up, reduced-motion emulation renders everything static, and the full content is present with JavaScript disabled.
+- LCP and CLS re-measured against the CR-009 budget (mobile LCP ≤ 1505 ms en / 1580 ms ar, desktop ≤ 400 ms, CLS ≤ 0.042 mobile / 0.01 desktop); the budget does not move (owner Q-7).
+- Screenshots at 390, 768, 1440 and 1920 in `/en` and `/ar` into `03-design/screens-v8/`, then stop and show the owner.

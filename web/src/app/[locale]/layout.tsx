@@ -13,6 +13,7 @@ import { getCategories, getSettings } from "@/lib/api/public";
 import { routing } from "@/i18n/routing";
 import { pick } from "@/lib/pick";
 import { notFoundMeta, siteUrl } from "@/lib/seo";
+import { themeStyle } from "@/lib/theme-style";
 import "../globals.css";
 
 // NFR-03: site-wide title/description from admin SEO settings (fallback "Furnixa"), absolute URLs.
@@ -75,6 +76,10 @@ export default async function LocaleLayout({
       lang={locale}
       dir={dir}
       className={`${fonts.heading.variable} ${fonts.body.variable}`}
+      // UI-03: the admin's colour preset, server-rendered so there is no flash of the default. The
+      // settings were already fetched above for the header, footer and metadata, so this costs no
+      // request; an unreachable API or an unknown value leaves the globals.css defaults in place.
+      style={themeStyle(settings?.theme?.tokens)}
     >
       <body>
         <NextIntlClientProvider>

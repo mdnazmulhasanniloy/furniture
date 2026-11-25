@@ -2,6 +2,16 @@
 
 Status: **Accepted 2026-11-24** (CR-010, SRC-011; owner approved the plan and answered Q-1 to Q-5) · Source: UI-01, UI-02, new ADM-16 and UI-03 · Builds on ADR-014 (token contract, AA gate) and ADR-015 (the Emerald values are the default). Implementation starts after CR-009 is approved.
 
+## Correction 2026-11-25 (build of T-086): 14 tokens, not 12
+
+ADR-018 ("soft luxury", CR-011) was accepted after this ADR and added two storefront tokens, `--blush` (a soft band
+surface) and `--champagne` (decorative ornaments), noting that each preset must carry its own. The registry therefore
+holds **14** variables per preset, not 12; everywhere below that says twelve, read fourteen. The two new values per
+preset are in `design-system.md` section 1b, and the AA gate was extended to treat `--blush` as a third surface next to
+paper and `--muted` (135 checks, all passing; the tightest new margin is `--gold-strong` on blush at 3.51 against 3).
+`--champagne` is decorative only, so it is checked as a graphic and for ink on it, never as text. Nothing else in this
+decision changes.
+
 ## Context
 
 The owner wants the admin to change the storefront's colours without a developer, safely: a few presets, not a colour picker, every preset readable (WCAG AA), applied on the server so there is no flash, and visible shortly after the change.

@@ -1,5 +1,48 @@
 # Changelog
 
+## 2026-11-25 (T-088 Settings > Appearance, on `feat/theme-presets`)
+- **The colour theme is now yours to choose (ADM-16).** Settings has a sixth tab, **Appearance**: five cards, one per
+preset, each showing its name in your language, five labelled swatches and a small preview of a product tile, a price and
+a button in that theme. Choosing a card only highlights it; **Apply** is what changes the website, and it is greyed out
+when the theme you are looking at is already the applied one. There is no free colour picker on purpose - every preset is
+tested for readability, a hand-picked colour could not be.
+- **The dashboard keeps its own colours.** Each card paints only itself, so you can browse all five without the screen
+around you changing, and the admin's own light and dark modes are untouched.
+- **If someone else saved the settings meanwhile**, Apply is refused and says so, with a Reload button - the same rule
+the rest of the settings form follows. After you apply a theme, the open form keeps working: it quietly picks up the new
+save stamp instead of refusing your next Save.
+- Twenty new strings in both languages. The five theme names are not among them: they come from the backend, so a name
+can never say one thing while the colours say another. 10 tests, all shown failing first.
+
+## 2026-11-25 (T-087 the storefront in the chosen theme, on `feat/theme-presets`)
+- **The website now renders in the applied theme (UI-03).** Every colour on the storefront already came from one set of
+variables, so the chosen preset is written into the page's own `<html>` tag and the whole site follows - buttons, links,
+prices, the sand bands, the footer. It is done on the server, so the first byte a visitor receives already carries the
+right colours: no flash of green before the page turns brown, and no extra request, because the settings were already
+being fetched for the header and the footer.
+- **Nothing a visitor sees depends on the API being up.** An unreachable API, a missing theme or a value that is not a
+real colour leaves the built-in Emerald palette in place, and only the known fourteen variables are ever written into
+the page.
+- 4 unit tests and 3 e2e, all shown failing first, including one that parses `globals.css` and proves the built-in
+palette still equals the Emerald preset - the default cannot drift from the registry - and one that measures the footer's
+real colour at both languages, with Arabic getting the same colours and only the direction flipping.
+
+## 2026-11-25 (T-086 theme presets and the appearance API, on `feat/theme-presets`)
+- **Five colour themes, in one place (ADM-16, UI-03).** Emerald (today's look, the default), Walnut, Charcoal, Sand and
+Burgundy live in the backend with their names in both languages and their fourteen colour values. The database stores
+only which one is chosen, never a colour, so there is nothing to keep in sync between the three apps and a theme can be
+corrected in one file.
+- **A theme can never ship unreadable.** A test computes the WCAG contrast of all five presets over three surfaces -
+white, the sand panel and the soft blush band - 135 checks in all, with the same arithmetic the website and dashboard
+gates already use. A preset that fails stops the build. White, the near-black ink and every status colour (success,
+warning, error) are fixed in all five themes, so an order or stock state reads the same whatever the shop looks like.
+- **Applying a theme is its own small save.** `PATCH /admin/settings/appearance` changes the theme and nothing else, so
+the General, Delivery, VAT, Social and SEO forms are unaffected; it refuses a stale save the same way the settings form
+does, records who applied it and when, writes one audit line, and refreshes the storefront's cache so visitors see the
+new colours on their next request. Spec first; 11 tests, all shown failing first.
+- Correction to the approved plan: ADR-017 said a theme changes 12 variables, but ADR-018 later added the blush band and
+the champagne hairline, so it is 14. The two new values per preset were computed and gated with the rest.
+
 ## 2026-11-25 (T-085 the Shop the look editor, on `feat/look-editor`)
 - **"Shop the look" is now the admin's to manage (ADM-15).** A looks list under Home sections shows each look's photo,
 title, how many points it has and whether it is on the website, with the order changed by dragging or by buttons, and

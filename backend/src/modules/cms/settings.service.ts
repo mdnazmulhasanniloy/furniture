@@ -1,8 +1,11 @@
 import { Prisma, type SiteSetting } from '@prisma/client';
+import { getEnv } from '../../config/env.js';
 import { AppError } from '../../lib/errors.js';
+import { createLogger, type Logger } from '../../lib/logger.js';
 import { prisma } from '../../lib/prisma.js';
 import { buildImageAsset, syncImages, type R2Context } from '../../lib/r2.js';
-import type { PutSettingsBody } from './schema.js';
+import { resolveTheme, THEMES } from '../../lib/themes.js';
+import type { AppearancePatchBody, PutSettingsBody } from './schema.js';
 
 const SETTINGS_KEY = 'default';
 const notFound = () =>
@@ -12,6 +15,11 @@ const isWriteConflict = (err: unknown): boolean =>
 
 export type SaveContext = R2Context & { uploadedById: string };
 const noRelease = async () => {};
+
+const themeOf = (s: SiteSetting) => {
+  const { id, tokens } = resolveTheme(s.themeId);
+  return { id, tokens };
+};
 
 const toSettings = (s: SiteSetting, opts: { activeCitiesOnly: boolean }) => ({
   storeName: s.storeName,
@@ -41,6 +49,9 @@ const toSettings = (s: SiteSetting, opts: { activeCitiesOnly: boolean }) => ({
     })),
   defaultLocale: s.defaultLocale,
   seo: s.seo ?? null,
+  // UI-03: the storefront sets these as CSS variables on <html>, so it never holds a copy of the values.
+  // A null, missing or retired id reads as the default rather than failing the page.
+  theme: themeOf(s),
   updatedAt: s.updatedAt,
 });
 export type SettingsResponse = ReturnType<typeof toSettings>;
@@ -101,6 +112,85 @@ export async function getPublic(): Promise<SettingsResponse> {
 
 export async function getAdmin(): Promise<SettingsResponse> {
   return toSettings(await load(), { activeCitiesOnly: false });
+}
+
+// ------------------------------------------------------------------ appearance (ADM-16, UI-03)
+
+const toAppearance = (s: SiteSetting) => ({
+  themeId: resolveTheme(s.themeId).id,
+  presets: THEMES,
+  themeUpdatedAt: s.themeUpdatedAt ?? null,
+  updatedAt: s.updatedAt,
+});
+export type AppearanceResponse = ReturnType<typeof toAppearance>;
+
+/** Everything Settings > Appearance needs: what is applied, and every preset so each card previews itself. */
+export async function getAppearance(): Promise<AppearanceResponse> {
+  return toAppearance(await load());
+}
+
+/**
+ * One audit line per theme change, in the shape T-104 established: who, what it was, what it became.
+ * No colour values and nothing personal - the ids say it all.
+ */
+let auditFallback: Logger | undefined;
+function auditTheme(ctx: SaveContext, settingId: string, from: string, to: string): void {
+  const log: Pick<Logger, 'info'> = (ctx.log as Partial<Logger> | undefined)?.info
+    ? (ctx.log as Logger)
+    : (auditFallback ??= createLogger(getEnv()));
+  log.info(
+    {
+      event: 'settings.theme.apply',
+      actorId: ctx.uploadedById,
+      targetId: settingId,
+      from,
+      to,
+      at: new Date().toISOString(),
+      requestId: ctx.requestId,
+    },
+    'settings.theme.apply',
+  );
+}
+
+/**
+ * ADM-16: applies a preset and nothing else, so the General, Delivery, VAT, Social and SEO forms are
+ * untouched and the full-replace PUT keeps its existing contract (ADR-017). Same optimistic concurrency as
+ * that PUT: one conditional write, so a save that slipped in between changes nothing and answers 409.
+ */
+export async function applyTheme(
+  body: AppearancePatchBody,
+  ctx: SaveContext,
+): Promise<AppearanceResponse> {
+  try {
+    const { row, from } = await prisma.$transaction(async (tx) => {
+      const current = await tx.siteSetting.findUnique({ where: { key: SETTINGS_KEY } });
+      if (!current) throw notFound();
+      if (current.updatedAt.getTime() !== body.expectedUpdatedAt.getTime()) {
+        throw staleUpdate(current);
+      }
+      const res = await tx.siteSetting.updateMany({
+        where: { key: SETTINGS_KEY, updatedAt: body.expectedUpdatedAt },
+        data: {
+          themeId: body.themeId,
+          themeUpdatedById: ctx.uploadedById,
+          themeUpdatedAt: new Date(),
+        },
+      });
+      if (res.count !== 1) throw staleUpdate(current);
+      return {
+        row: await tx.siteSetting.findUniqueOrThrow({ where: { key: SETTINGS_KEY } }),
+        from: resolveTheme(current.themeId).id,
+      };
+    });
+    auditTheme(ctx, row.id, from, body.themeId);
+    return toAppearance(row);
+  } catch (err) {
+    if (isWriteConflict(err)) {
+      const current = await prisma.siteSetting.findUnique({ where: { key: SETTINGS_KEY } });
+      throw current ? staleUpdate(current) : notFound();
+    }
+    throw err;
+  }
 }
 
 /** MongoDB Json fields take plain null (no DbNull/JsonNull split on this connector). */

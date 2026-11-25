@@ -2,6 +2,7 @@ import argon2 from 'argon2';
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { buildSearchText } from '../../src/lib/searchText.js';
 import { failedPasswordRules } from '../../src/lib/passwordPolicy.js';
+import { DEFAULT_THEME_ID } from '../../src/lib/themes.js';
 import { CATEGORIES, DELIVERY_CITIES, DEMO_PRODUCTS, HOME_SECTIONS, PAGES } from './data.js';
 
 export interface SeedOptions {
@@ -114,6 +115,9 @@ export async function runSeed(prisma: PrismaClient, opts: SeedOptions): Promise<
         vat: { vatRate: 0, applyToDelivery: true, pricesIncludeVat: true },
         currency: 'SAR',
         defaultLocale: 'ar',
+        // CR-010: the default colour preset, written explicitly on a new install. Existing documents are
+        // never touched - a missing themeId already reads as emerald.
+        themeId: DEFAULT_THEME_ID,
         deliveryCities: DELIVERY_CITIES.map((c, i) => ({
           code: c.code,
           name: c.name,

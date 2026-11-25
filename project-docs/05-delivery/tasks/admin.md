@@ -252,9 +252,19 @@ Copy notes: `sections.looks.title` repeats the value of `sections.type.SHOP_THE_
 both are duplicated on purpose so each namespace owns its strings. **No new storefront copy**: the section already has
 `home.look.{title,hint,hotspot}`, and each look's own title comes from the admin.
 
-### T-088 Appearance tab (CR-010, ADM-16) · todo
-- Req: ADM-16 · Depends: backend T-086
+### T-088 Appearance tab (CR-010, ADM-16) · done 2026-11-25
+- Req: ADM-16 · Depends: backend T-086 · Docs: `adr/ADR-017`, `cr-010-plan.md` §5 · Branch `feat/theme-presets`
 - Done: preset cards with scoped live preview (product tile, button, price), Apply with 409 handling, tests (en and ar). Starts after CR-009 is approved.
+- Plan: `src/lib/appearance.ts` (`useAppearance`, `useApplyTheme`) follows the `KEY` + `useQuery`/`useMutation` convention of `lib/sections.ts` with `setQueryData` as in `lib/settings.ts`. `src/routes/settings-appearance.tsx` adds `AppearancePanel`: a `radiogroup` of five cards with arrow-key navigation, each showing the localized name from the API, five labelled swatches, and a **scoped preview** — the preset's variables as inline style on the card's own container, never on `<html>`, so the dashboard does not retint while the owner browses. Selecting only highlights; **Apply** sends the `PATCH` with `expectedUpdatedAt` and is disabled while the selection is the applied theme; 409 shows the stale message with a Reload action. `settings-page.tsx` gains `"appearance"` in the `Section` union and the tablist after `seo` — a sixth tab on the existing page, so no new route and no sidebar entry: **Settings → Appearance**.
+- Copy: 20 new keys under `settings.appearance.*` plus the tab label, approved by the owner 2026-11-25. The five theme names are **not** in the locale files — they come from the backend registry in both languages (الزمرد، الجوز، الفحم، الرمل، العنابي), so no copy can drift from the presets. No new error codes: `STALE_UPDATE` and `VALIDATION_ERROR` are already in `KNOWN_ERROR_CODES`.
+- Tests (en and ar): five cards with localized names, selecting enables Apply, Apply sends the right body, 409 shows the reload message, the preview variables are scoped to the card while the admin root keeps its own tokens, keyboard selection.
+- **Done 2026-11-25 on `feat/theme-presets`.** `src/lib/appearance.ts` (`useAppearance`, `useApplyTheme`, `previewStyle`, `SWATCHES`) and `src/routes/settings-appearance.tsx` (`AppearancePanel`), wired as the sixth tab of `settings-page.tsx`. Notes:
+  - **Copy key corrected:** the plan said `settings.tabs.appearance`, but this page's tabs already read from `settings.section.*`; the tab label is `settings.section.appearance`. The 20 panel strings are under `settings.appearance.*` as planned. i18n 734 → 754 keys.
+  - The panel renders inside the settings `<form>` (that is where the tablist and panels live), so every control is `type="button"` and the Apply mutation is its own; the form's Save still saves only the other tabs. Mounted only while its tab is open, so the appearance query is not fired for an owner who never looks.
+  - After a successful apply the hook invalidates `["admin","settings"]`. The settings document's `updatedAt` moved, so without that the owner's *own* open form would have been refused as stale on its next Save — ADR-017 foresaw that for a second admin, not for the same one.
+  - Deliberately not jest-dom: this repo's tests use plain DOM assertions (`getAttribute`, `textContent`, `.disabled`), and the first draft had to be rewritten after using matchers that are not set up here. `initI18n(locale)` must run before `setLocale(locale)`, as in `adm-09-settings.test.tsx`.
+  - 10 tests in `src/test/t088-appearance.test.tsx`, **all 10 shown failing first** (panel returning null and `previewStyle` emptied).
+  - Evidence: admin 638 tests, 12 e2e, typecheck, lint, i18n 754 keys, build.
 
 ## CR-011 (approved 2026-11-24)
 

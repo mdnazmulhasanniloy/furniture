@@ -1,9 +1,10 @@
 // A tiny stand-in for the backend, used only by `npm run e2e`.
 //
-// The home page is rendered on the server, so Playwright's request interception cannot reach its data:
-// without something answering `GET /api/v1/cms/home` there is no "Shop the look" section to measure. This
-// serves exactly that one route (a look with three points on a 2:1 photo) and 404s everything else, which
-// is what the e2e saw before - every other page keeps its no-backend behaviour.
+// The pages are rendered on the server, so Playwright's request interception cannot reach their data:
+// without something answering `GET /api/v1/cms/home` there is no "Shop the look" section to measure, and
+// without `GET /api/v1/cms/settings` no known theme to measure either. This serves those two routes - the
+// real payload with one known look, and the real settings with one known theme - and passes everything else
+// through, so every other spec sees exactly the API it saw before.
 import { createServer, request as httpRequest } from "node:http";
 
 /** A 2:1 photo, inline so nothing is fetched over the network. */
@@ -50,6 +51,34 @@ export const LOOK_SECTION = {
 };
 
 const HOME = "/api/v1/cms/home";
+const SETTINGS = "/api/v1/cms/settings";
+
+/**
+ * UI-03: the walnut preset, exactly as backend/src/lib/themes.ts has it. The theme reaches the storefront
+ * through the server-rendered settings fetch, which Playwright cannot intercept either, so the stub applies
+ * it for the whole run: `theme.spec.ts` can then measure a real colour instead of trusting the mechanism.
+ * Nothing else about the settings is touched, and paper and ink are the same in every preset, so the specs
+ * that assert a white page or dark text are unaffected.
+ */
+export const WALNUT = {
+  id: "walnut",
+  tokens: {
+    primary: "#6b3f2a",
+    primaryForeground: "#ffffff",
+    ring: "#6b3f2a",
+    muted: "#f0e7dc",
+    secondary: "#f0e7dc",
+    mutedForeground: "#5e5249",
+    stone: "#756a60",
+    border: "#e6dcd0",
+    input: "#85786c",
+    gold: "#c58e4e",
+    goldStrong: "#8f5f2a",
+    price: "#77491b",
+    blush: "#f8efe8",
+    champagne: "#d2a977",
+  },
+};
 
 /**
  * Everything except the one stubbed route is passed through to wherever the API really is, so a machine
@@ -74,10 +103,10 @@ function passThrough(upstream, req, res) {
   req.pipe(proxied);
 }
 
-/** Read the real home payload (if there is one) and put the known look in place of any look it has. */
-function homeWithLook(upstream) {
+/** GET one route from the real API as JSON, or null when there is nothing (or nothing valid) there. */
+function upstreamJson(upstream, path) {
   return new Promise((resolve) => {
-    const target = new URL(HOME, upstream);
+    const target = new URL(path, upstream);
     const req = httpRequest(
       { hostname: target.hostname, port: target.port, path: target.pathname, method: "GET", headers: { Accept: "application/json" } },
       (up) => {
@@ -86,33 +115,47 @@ function homeWithLook(upstream) {
         up.on("data", (c) => (raw += c));
         up.on("end", () => {
           try {
-            const data = up.statusCode === 200 ? JSON.parse(raw) : null;
-            const others = Array.isArray(data?.sections)
-              ? data.sections.filter((s) => s?.type !== "SHOP_THE_LOOK")
-              : [];
-            resolve({ ...(data ?? {}), banners: data?.banners ?? [], sections: [...others, LOOK_SECTION] });
+            resolve(up.statusCode === 200 ? JSON.parse(raw) : null);
           } catch {
-            resolve({ banners: [], sections: [LOOK_SECTION] });
+            resolve(null);
           }
         });
       },
     );
-    req.on("error", () => resolve({ banners: [], sections: [LOOK_SECTION] }));
+    req.on("error", () => resolve(null));
     req.end();
   });
+}
+
+/** Read the real home payload (if there is one) and put the known look in place of any look it has. */
+async function homeWithLook(upstream) {
+  const data = await upstreamJson(upstream, HOME);
+  const others = Array.isArray(data?.sections)
+    ? data.sections.filter((s) => s?.type !== "SHOP_THE_LOOK")
+    : [];
+  return { ...(data ?? {}), banners: data?.banners ?? [], sections: [...others, LOOK_SECTION] };
+}
+
+/** The real settings with one known theme applied, so a colour is a measurable claim (UI-03). */
+async function settingsWithTheme(upstream) {
+  const data = await upstreamJson(upstream, SETTINGS);
+  return data ? { ...data, theme: WALNUT } : null;
 }
 
 export function startStub(port, upstream = process.env.API_ORIGIN ?? "http://localhost:1000") {
   return new Promise((resolve) => {
     const server = createServer((req, res) => {
       const path = (req.url ?? "").split("?")[0];
-      if (path !== HOME || req.method !== "GET") return passThrough(upstream, req, res);
-      // The home page keeps whatever this machine's API says, with one known look appended: the alignment
-      // spec needs fixed coordinates, and the rest of the page must stay as it is or other specs would be
-      // measuring a page that does not exist anywhere else.
-      void homeWithLook(upstream).then((body) => {
+      const stubbed = req.method === "GET" && (path === HOME || path === SETTINGS);
+      if (!stubbed) return passThrough(upstream, req, res);
+      // Each stubbed route keeps whatever this machine's API says, with one known thing merged in: the
+      // alignment spec needs fixed hotspot coordinates and the theme spec a fixed colour. Everything else
+      // on those payloads stays as it is, or other specs would be measuring a page that exists nowhere.
+      const body = path === HOME ? homeWithLook(upstream) : settingsWithTheme(upstream);
+      void body.then((payload) => {
+        if (payload === null) return passThrough(upstream, req, res); // no API here: keep the old behaviour
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(body));
+        res.end(JSON.stringify(payload));
       });
     });
     server.listen(port, "127.0.0.1", () => resolve(server));

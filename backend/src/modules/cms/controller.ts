@@ -5,6 +5,7 @@ import * as banners from './banners.service.js';
 import * as home from './home.service.js';
 import * as pages from './pages.service.js';
 import type {
+  AppearancePatchBody,
   CreateBannerBody,
   CreatePageBody,
   CreateSectionBody,
@@ -186,6 +187,21 @@ export const putSettings: RequestHandler = async (req, res) => {
       await release();
       await revalidateTags(SETTINGS_TAGS, ctx(req));
     },
+    () => res.status(200).json(saved),
+  );
+};
+
+// ---------------------------------------------------------------- appearance (ADM-16, UI-03)
+
+export const getAppearance: RequestHandler = async (_req, res) => {
+  res.status(200).json(await settings.getAppearance());
+};
+
+export const patchAppearance: RequestHandler = async (req, res) => {
+  const saved = await settings.applyTheme(req.body as AppearancePatchBody, ctx(req));
+  // Colours reach product pages too, so the same tags as any settings save.
+  await finishAfterCommit(
+    () => revalidateTags(SETTINGS_TAGS, ctx(req)),
     () => res.status(200).json(saved),
   );
 };

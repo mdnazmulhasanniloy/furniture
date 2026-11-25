@@ -17,6 +17,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import { BellActions, NotificationToaster, NotificationsSync } from "@/components/notifications/live";
+import { ChangePasswordDialog, ProfileDialog } from "./account-dialogs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ADMIN_ROLE, logout } from "@/lib/auth/flows";
@@ -74,11 +75,12 @@ export function RequireAdmin() {
   return <Shell />;
 }
 
-function AvatarMenu() {
+function AvatarMenu({ onNotice }: { onNotice: (message: string) => void }) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [dialog, setDialog] = useState<"password" | "profile" | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -117,6 +119,33 @@ function AvatarMenu() {
           <p className="px-2 pb-2 text-xs text-muted-foreground" dir="ltr">
             {user.email}
           </p>
+          {/* T-109 (QA C5): the account's own two actions, above Sign out. */}
+          <Button
+            role="menuitem"
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start"
+            data-testid="account-profile-open"
+            onClick={() => {
+              setOpen(false);
+              setDialog("profile");
+            }}
+          >
+            {t("account.profile")}
+          </Button>
+          <Button
+            role="menuitem"
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start"
+            data-testid="account-password-open"
+            onClick={() => {
+              setOpen(false);
+              setDialog("password");
+            }}
+          >
+            {t("account.changePassword")}
+          </Button>
           <Button
             role="menuitem"
             variant="ghost"
@@ -132,13 +161,35 @@ function AvatarMenu() {
           </Button>
         </div>
       )}
+      {dialog === "password" && (
+        <ChangePasswordDialog
+          onClose={() => setDialog(null)}
+          onDone={(message) => {
+            setDialog(null);
+            onNotice(message);
+          }}
+        />
+      )}
+      {dialog === "profile" && (
+        <ProfileDialog
+          onClose={() => setDialog(null)}
+          onDone={(message) => {
+            setDialog(null);
+            onNotice(message);
+          }}
+        />
+      )}
     </div>
   );
 }
 
 export function Shell() {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
   const [collapsed, setCollapsed] = useState(readCollapsed);
+  // T-109: the confirmation of an account dialog, shown above the page and cleared on navigation.
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => setNotice(null), [pathname]);
   const toggle = () => {
     const next = !collapsed;
     setCollapsed(next);
@@ -215,10 +266,15 @@ export function Shell() {
           <div className="ms-auto flex items-center gap-2">
             <PreferenceToggles />
             <BellActions />
-            <AvatarMenu />
+            <AvatarMenu onNotice={setNotice} />
           </div>
         </header>
         <main className="p-4">
+          {notice && (
+            <p role="status" data-testid="account-notice" className="mb-3 text-sm text-success-foreground">
+              {notice}
+            </p>
+          )}
           {/* QA C4: the pages are loaded on demand. The boundary sits here, inside the shell, so the
               sidebar and the top bar stay put while a page's chunk arrives. */}
           <Suspense fallback={null}>

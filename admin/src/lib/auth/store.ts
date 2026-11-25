@@ -78,6 +78,12 @@ export const authStore = {
     state = { ...state, restoring };
     emit();
   },
+  /** T-109: the profile dialog saved a new name; the session itself is untouched. */
+  setUser(user: AuthUser) {
+    if (!state.user) return;
+    state = { ...state, user };
+    emit();
+  },
   setCsrfToken(t: string | null) {
     state = { ...state, csrfToken: t };
     emit();

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-25 (T-109 admin account menu, on `feat/admin-account`)
+- **The account menu has Profile and Change password (ADM-11, PROF-01; QA C5, copy approved).** Both are dialogs opened from the avatar
+menu above Sign out, and the confirmation appears above the page, cleared on navigation. Change password reuses the live password
+checklist and refuses locally what it can - empty fields, a new password that breaks the shared policy, a mismatched confirmation, and a
+new password equal to the current one - so a lockout attempt is never spent on a typo; the API's answers land where they belong (401 on
+the current-password field with its own message, `SAME_PASSWORD` on the new-password field, `ACCOUNT_LOCKED` with its retry wait as the
+form error), and a success stores the fresh session from T-108 and re-primes the CSRF token for the new family. Profile saves the name
+with `PATCH /me` - no admin endpoint needed, it is behind `requireAuth` with no role check - and the avatar initials follow at once; the
+email is read-only with the owner's note. 20 tests (10 x en + ar); the behaviours they assert were verified by disabling them.
+
 ## 2026-11-25 (T-108 change own password, on `feat/admin-account`)
 - **`POST /auth/change-password` (ADM-11, PROF-01; QA C5).** Spec first. A signed-in user changes their own password: the one password
 policy on the new one first (400 `PASSWORD_TOO_WEAK` with the unmet rules, so a typo there spends no attempt), then the **shared sign-in

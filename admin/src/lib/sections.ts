@@ -6,8 +6,8 @@ import type { LocalizedText, ProductStatus, StoredImage } from "@/lib/products";
 // api-spec.yaml /admin/home-sections (ADM-07). PATCH always carries `expectedUpdatedAt` (409 STALE_UPDATE,
 // backend T-011); `PUT /admin/home-sections/reorder` takes exactly the full list of existing ids.
 
-/** Types an admin can create here. SHOP_THE_LOOK is missing on purpose: its photo and hotspots need
- *  the look editor (admin T-085), so it cannot be configured yet - but it can already exist. */
+/** Types an admin can create here. SHOP_THE_LOOK is missing on purpose: this form cannot build a photo
+ *  with its points, so a look is created in its own editor instead (T-085, /sections/looks). */
 export const SECTION_TYPES = [
   "FEATURED_PRODUCTS",
   "NEW_ARRIVALS",

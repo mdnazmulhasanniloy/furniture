@@ -18,6 +18,7 @@ const BannerEditorPage = lazy(() => import("@/routes/banner-editor-page").then((
 const BannersPage = lazy(() => import("@/routes/banners-page").then((m) => ({ default: m.BannersPage })));
 const PagesPage = lazy(() => import("@/routes/pages-page").then((m) => ({ default: m.PagesPage })));
 const SectionsPage = lazy(() => import("@/routes/sections-page").then((m) => ({ default: m.SectionsPage })));
+const LooksPage = lazy(() => import("@/routes/looks-page").then((m) => ({ default: m.LooksPage })));
 const CategoriesPage = lazy(() => import("@/routes/categories-page").then((m) => ({ default: m.CategoriesPage })));
 const InvoicePage = lazy(() => import("@/routes/invoice-page").then((m) => ({ default: m.InvoicePage })));
 const NotificationsPage = lazy(() => import("@/routes/notifications-page").then((m) => ({ default: m.NotificationsPage })));
@@ -105,6 +106,7 @@ export function App({ queryClient }: { queryClient?: QueryClient } = {}) {
           <Route path="/pages" element={<PagesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/sections" element={<SectionsPage />} />
+          <Route path="/sections/looks" element={<LooksPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/orders/:id" element={<OrderDetailPage />} />
           <Route path="/orders/:id/invoice" element={<InvoicePage />} />

@@ -14,10 +14,11 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowDown, ArrowUp, GripVertical, Pencil } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Images, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useForm, type FieldErrors } from "react-hook-form";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import { Field, Modal } from "@/components/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -349,9 +350,20 @@ export function SectionsPage() {
 
   return (
     <section aria-labelledby="sec-title">
-      <h1 id="sec-title" className="font-display text-2xl font-semibold">
-        {t("sections.title")}
-      </h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 id="sec-title" className="font-display text-2xl font-semibold">
+          {t("sections.title")}
+        </h1>
+        {/* "Shop the look" needs a photo and points, which this form cannot edit: it has its own page (T-085). */}
+        <Link
+          to="/sections/looks"
+          data-testid="sections-manage-looks"
+          className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <Images className="size-4" aria-hidden />
+          {t("sections.looks.manage")}
+        </Link>
+      </div>
       <p className="mt-1 text-sm text-muted-foreground">{t("sections.hint")}</p>
       {q.isPending && (
         <p role="status" className="mt-4 text-muted-foreground">

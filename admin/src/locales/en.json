@@ -68,6 +68,8 @@
     "SELF_BLOCK": "You cannot block yourself.",
     "LAST_ADMIN": "The last active admin cannot be blocked.",
     "VAT_NUMBER_REQUIRED": "Add your VAT registration number before charging VAT.",
+    "DUPLICATE_PRODUCT": "Each product can be used once per look.",
+    "PRODUCT_NOT_PUBLISHED": "One of the chosen products is no longer published. Replace it and save again.",
     "SAME_PASSWORD": "Choose a password different from your current one.",
     "ALREADY_VERIFIED": "This invite was already accepted. The list was refreshed.",
     "CUSTOMER_HAS_OPEN_ORDERS": "This customer has pending or confirmed orders. Finish or cancel them first.",
@@ -407,6 +409,49 @@
       "PROMO_BANNER": "Promo banner",
       "TESTIMONIALS": "Testimonials",
       "SHOP_THE_LOOK": "Shop the look"
+    },
+    "looks": {
+      "manage": "Manage looks",
+      "title": "Shop the look",
+      "new": "New look",
+      "empty": "No looks yet.",
+      "back": "Back to looks",
+      "col": {
+        "photo": "Photo",
+        "points": "Points"
+      },
+      "delete": {
+        "title": "Delete this look?",
+        "body": "This removes the look and its photo from the home page. This cannot be undone."
+      },
+      "unpublished": "A product in this look is no longer published. Those points are hidden on the website.",
+      "editor": {
+        "titleNew": "New look",
+        "titleEdit": "Edit look",
+        "photo": "Room photo",
+        "photoHint": "One photo of the room. It is shown uncropped, so the points always sit on the same spot.",
+        "photoRequired": "Add a room photo.",
+        "altRequired": "The photo needs alt text in both languages.",
+        "ratioWarning": "This photo is unusually tall or wide. Check both previews before saving.",
+        "points": "Points",
+        "addHint": "Click the photo to add a point, up to 6.",
+        "keyboardHint": "With a point selected: the arrow keys move it by 1%, Shift and an arrow by 5%, Delete removes it.",
+        "point": "Point {n}",
+        "pointAt": "Point {n}: {x}% from the left, {y}% from the top",
+        "removePoint": "Remove point {n}",
+        "pointsRequired": "Add at least one point.",
+        "pointsMax": "A look holds at most 6 points.",
+        "product": "Product",
+        "productRequired": "Every point needs a product.",
+        "productUnpublished": "This product is no longer published, so this point is hidden on the website.",
+        "duplicateProduct": "Each product can be used once per look.",
+        "choose": "Choose product",
+        "change": "Change",
+        "noProducts": "No published products match.",
+        "preview": "Preview",
+        "desktop": "Desktop",
+        "mobile": "Mobile"
+      }
     },
     "form": {
       "languages": "Languages",

@@ -17,7 +17,10 @@ export default defineConfig({
   webServer: {
     // Production server: next/font only emits its per-locale preload links in
     // production builds (dev serves no font preloads), and prod is what ships.
-    command: `npm run build && npx next start -p ${PORT}`,
+    // Built and served behind the API stub (see e2e/support/api-stub.mjs): it answers the one route the
+    // "Shop the look" alignment spec needs with known data and passes everything else through, so the
+    // rest of the suite sees the same API it always did.
+    command: `node e2e/support/with-api-stub.mjs "npm run build && npx next start -p ${PORT}"`,
     url: `http://localhost:${PORT}/ar`,
     // Never reuse: an unrelated server on the port would otherwise be tested silently.
     // If the port is busy, Playwright fails fast — set E2E_PORT to a free one.

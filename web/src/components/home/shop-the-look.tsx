@@ -12,6 +12,7 @@ import type { HomeSection } from "@/lib/api/public";
 import { flyToCart } from "@/lib/cart/fly";
 import { addToCart } from "@/lib/cart/store";
 import { pick } from "@/lib/pick";
+import { cn } from "@/lib/utils";
 
 type Look = NonNullable<HomeSection["look"]>;
 
@@ -30,6 +31,9 @@ export function ShopTheLook({ section, locale }: { section: HomeSection; locale:
   const root = useRef<HTMLDivElement>(null);
   const lang = useLocale();
   const title = pick(section.title, lang) || t("title");
+  /** The photo's own ratio, when the admin saved it (every look from T-110 on). */
+  const { width, height } = look.image;
+  const ratio = width && height ? `${width} / ${height}` : null;
 
   useEffect(() => {
     if (open === null) return;
@@ -59,7 +63,20 @@ export function ShopTheLook({ section, locale }: { section: HomeSection; locale:
         {title}
       </h2>
       <p className="mt-2 text-base text-muted-foreground">{t("hint")}</p>
-      <div ref={root} className="relative mt-8 aspect-[4/5] overflow-hidden rounded-lg bg-muted sm:aspect-[16/9]" data-testid="look-photo">
+      {/*
+        The photo is shown at its own ratio and is never cropped (T-085/T-110): a hotspot is a percentage of
+        the photo, so cropping differently per breakpoint would move every dot off its object. Looks saved
+        before the photo's size was stored fall back to the old fixed box.
+      */}
+      <div
+        ref={root}
+        className={cn(
+          "relative mt-8 overflow-hidden rounded-lg bg-muted",
+          !ratio && "aspect-[4/5] sm:aspect-[16/9]",
+        )}
+        style={ratio ? { aspectRatio: ratio } : undefined}
+        data-testid="look-photo"
+      >
         <Image
           src={look.image.url}
           alt={pick(look.image.alt, lang)}

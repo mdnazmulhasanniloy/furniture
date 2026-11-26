@@ -5,3 +5,6 @@ node_modules
 !.env.example
 !**/.env.example
 .env.preview-check
+
+# Vercel CLI link metadata (project + org IDs), written per app by `vercel link`
+.vercel

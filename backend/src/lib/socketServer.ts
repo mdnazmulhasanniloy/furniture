@@ -26,6 +26,37 @@ export const SOCKET_CONNECT_WINDOW_SECONDS = 60;
 /** Clients only listen (NOTIF-01..03), so inbound frames never need more than this. */
 export const SOCKET_MAX_BUFFER_BYTES = 10 * 1024;
 
+/**
+ * Node keeps a timer delay in a 32-bit signed integer. A larger delay is silently clamped to 1 ms
+ * (with a `TimeoutOverflowWarning`), so an access-token TTL beyond ~24.8 days used to fire the
+ * expiry disconnect *immediately* instead of at expiry — inverting the control it implements and
+ * killing every socket on connect. Long waits are served in slices instead (`armExpiryTimer`).
+ */
+export const MAX_TIMEOUT_MS = 2_147_483_647;
+
+export interface CancellableTimer {
+  cancel(): void;
+}
+
+/**
+ * `setTimeout` for an arbitrarily distant deadline: the wait is split into slices no longer than
+ * `MAX_TIMEOUT_MS` and re-armed until the remainder is gone. A deadline already in the past fires
+ * on the next tick, exactly as `setTimeout(fn, 0)` would (T-023, NOTIF-01).
+ */
+export function armExpiryTimer(onExpiry: () => void, delayMs: number): CancellableTimer {
+  let remaining = Number.isFinite(delayMs) ? Math.max(delayMs, 0) : 0;
+  let timer: NodeJS.Timeout;
+  const arm = (): void => {
+    const slice = Math.min(remaining, MAX_TIMEOUT_MS);
+    remaining -= slice;
+    timer = setTimeout(() => (remaining > 0 ? arm() : onExpiry()), slice);
+  };
+  arm();
+  return {
+    cancel: () => clearTimeout(timer),
+  };
+}
+
 /** Mirrors `req.ip`: the forwarded header counts only when the proxy is trusted (`TRUST_PROXY`). */
 function clientIp(socket: Socket, env: Env): string | undefined {
   if (env.TRUST_PROXY !== false) {
@@ -90,11 +121,10 @@ export function createSocketServer(
       await socket.join(`user:${user.id}`);
       if (user.role === 'ADMIN') await socket.join('admins');
       // The socket must not outlive its credential: disconnect when the access token expires.
-      const timer = setTimeout(
-        () => socket.disconnect(true),
-        Math.max(claims.exp * 1000 - Date.now(), 0),
-      );
-      socket.on('disconnect', () => clearTimeout(timer));
+      // Re-armed in slices, because a TTL past Node's 32-bit timer ceiling would otherwise be
+      // clamped to 1 ms and disconnect the socket straight away (`armExpiryTimer`).
+      const timer = armExpiryTimer(() => socket.disconnect(true), claims.exp * 1000 - Date.now());
+      socket.on('disconnect', () => timer.cancel());
       next();
     } catch {
       next(new Error('unauthorized'));

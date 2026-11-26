@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-11-26 (live updates were dying on connect: one wrong number, and the trap behind it, on `main`)
+- **Every real-time feature was switched off by a single setting.** The backend's own settings file had the
+access-token lifetime set to 30 days instead of the documented 15 minutes. That one value silently killed all of
+it: the admin's notification bell, new-order alerts, order-status updates. Not now and then - every connection
+died about a millisecond after it opened.
+- **Why a longer lifetime broke things instead of extending them.** When someone connects, the server sets itself
+a reminder to hang up at the exact moment their credential expires, so a live connection can never outlive the
+permission it was opened with. Node keeps that reminder's delay as a 32-bit number, which runs out at roughly 24.8
+days. A 30-day delay does not fit - and rather than refuse it, Node quietly rounds it down to one millisecond. So
+the hang-up fired immediately. A safety measure had inverted into the thing that broke the feature.
+- **The number is corrected and the trap is now closed.** The lifetime is back to 15 minutes, and the reminder is
+no longer set in one go: any wait longer than the ceiling is now served in slices and re-armed until the full time
+has passed. A lifetime beyond 24.8 days does what it says instead of turning into its opposite, so the same
+mistake cannot come back through a settings change later.
+- **How it surfaced.** Ten backend tests were failing, every one of them about live updates, and every one with a
+connection that should have stayed open reporting itself closed. Node had been printing a warning about the
+oversized number 30 times per test run, which named the cause once anyone read it.
+- **Checked:** the whole backend suite passes (1029 tests across 74 files) with no warnings left; types, linting
+and formatting are clean, and the Vercel-resolver check still passes. Six new tests cover the guard, and the one
+that reproduces the original fault was confirmed to fail when the fix is removed. Website (729) and dashboard
+(638) suites were re-run and are unaffected.
+- Nothing merged, nothing pushed, nothing deployed, and no production settings were changed.
+
 ## 2026-11-25 (T-112 the motion foundation, on `feat/home-motion`)
 - **The groundwork for the home page's movement is in (UI-05).** Nothing moves yet - no section has been wired up -
 but the piece that will make them move exists, and it is deliberately one piece: the fade, the 24 px rise, the

@@ -154,6 +154,29 @@ describe('socket auth = HTTP auth (T-023)', () => {
     const reason = await waitForDisconnect(socket, 6000);
     expect(reason).toBe('io server disconnect');
   });
+
+  it('NOTIF-01 · a 30-day access token keeps the socket up (expiry timer re-armed, not overflowed)', async () => {
+    const user = await mkUser();
+    // 2_592_000_000 ms is past Node's 32-bit timer ceiling, which Node clamps to 1 ms. Before the
+    // re-arming fix that disconnected the socket on connect and took every socket test with it.
+    const longLived = craftToken(user.id, { expiresIn: 2_592_000 });
+    const warnings: string[] = [];
+    const onWarning = (w: Error) => warnings.push(w.name);
+    process.on('warning', onWarning);
+    try {
+      const socket = track(connectClient(server.port, longLived));
+      await connected(socket);
+      await sleep(400);
+      expect(socket.connected).toBe(true);
+
+      // Still a working member of its own room, not just nominally connected.
+      socketEmitter.toUser(user.id).emit('notification:new', { id: 'long-lived' });
+      expect(await waitForEvent(socket, 'notification:new')).toEqual({ id: 'long-lived' });
+    } finally {
+      process.off('warning', onWarning);
+    }
+    expect(warnings).not.toContain('TimeoutOverflowWarning');
+  });
 });
 
 describe('socket abuse limits (T-023)', () => {
